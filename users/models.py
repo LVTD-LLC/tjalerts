@@ -6,7 +6,8 @@ from model_utils.models import TimeStampedModel
 
 
 class CustomUser(AbstractUser):
-    name = models.CharField(max_length=20, blank=True)
+    name = models.CharField(max_length=100, blank=True)
+    paid = models.BooleanField(default=False)
 
     class Meta:
         db_table = "auth_user"

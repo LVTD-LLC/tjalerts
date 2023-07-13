@@ -61,7 +61,9 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.cache.UpdateCacheMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "django.middleware.cache.FetchFromCacheMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -207,16 +209,7 @@ Q_CLUSTER = {
     "retry": 120,
     "workers": 4,
     "max_attempts": 2,
-    "redis": {
-        "host": "localhost",
-        "port": 6380,
-        "db": 0,
-        "password": None,
-        "socket_timeout": None,
-        "charset": "utf-8",
-        "errors": "strict",
-        "unix_socket_path": None,
-    },
+    "redis": env("REDIS_URL"),
 }
 
 OPENAI_KEY = env("OPENAI_KEY")
@@ -242,9 +235,16 @@ else:
 
 API_TOKEN = env("API_TOKEN")
 
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": env("REDIS_URL"),
+if DEBUG:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+        }
     }
-}
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": env("REDIS_URL"),
+        }
+    }

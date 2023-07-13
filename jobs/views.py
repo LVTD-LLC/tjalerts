@@ -4,7 +4,7 @@ from django import forms
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Count
 from django.urls import reverse_lazy
-from django.views.generic import FormView
+from django.views.generic import DetailView, FormView
 from django_filters.views import FilterView
 from django_q.tasks import async_task
 
@@ -39,21 +39,18 @@ class PostListView(FilterView):
         return context
 
 
-# class JobDetailView(DetailView):
-#     model = Job
-#     template_name = "jobs/Job_detail.html"
+class PostDetailView(DetailView):
+    model = Post
+    template_name = "jobs/post_detail.html"
 
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
 
-#         user = self.request.user
-#         if user.is_authenticated:
-#             add_users_context(context, user)
+        user = self.request.user
+        if user.is_authenticated:
+            add_users_context(context, user)
 
-#         if self.object:
-#             context["Job_capacity"] = self.object.capacity.split(",")
-
-#         return context
+        return context
 
 
 class GenericForm(forms.Form):

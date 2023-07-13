@@ -56,11 +56,6 @@
           </button>
         </div>
         <div class="items-center hidden lg:flex lg:gap-x-12">
-
-          <div class="hidden lg:flex lg:gap-x-12">
-            <a href="{% url 'pricing' %}" class="text-base leading-6 text-gray-900">Pricing</a>
-          </div>
-
           {% if user.is_authenticated %}
           <!-- Profile dropdown -->
           <div data-controller="dropdown" class="relative ml-3">
@@ -101,9 +96,9 @@
               </div>
           </div>
           {% else %}
-            <a href="{% url 'account_login' %}" class="text-base font-semibold leading-6 text-gray-900">
+            <!-- <a href="{% url 'account_login' %}" class="text-base font-semibold leading-6 text-gray-900">
               Log in <span aria-hidden="true">&rarr;</span>
-            </a>
+            </a> -->
           {% endif %}
         </div>
       </nav>
@@ -134,14 +129,12 @@
                 <a href="{% url 'posts' %}" class="block px-3 py-2 -mx-3 text-base font-semibold leading-7 text-gray-900 rounded-lg hover:bg-gray-50">Jobs</a>
                 {% if user.is_authenticated %}
                   <a href="{% url 'settings' %}" class="block px-3 py-2 -mx-3 text-base font-semibold leading-7 text-gray-900 rounded-lg hover:bg-gray-50">Support</a>
-                {% else %}
-                  <a href="{% url 'pricing' %}" class="block px-3 py-2 -mx-3 text-base font-semibold leading-7 text-gray-900 rounded-lg hover:bg-gray-50">Pricing</a>
                 {% endif %}
 
               </div>
-              <div class="py-6">
+              <!-- <div class="py-6">
                 <a href="{% url 'account_login' %}" class="-mx-3 block rounded-lg py-2.5 px-3 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50">Log in</a>
-              </div>
+              </div> -->
             </div>
           </div>
         </div>

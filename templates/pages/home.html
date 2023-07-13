@@ -61,58 +61,51 @@
   <h2 class="mb-2 text-2xl font-semibold leading-6 text-center text-gray-900">Companies looking for employers...</h2>
   <ul role="list" class="grid grid-cols-1 gap-6 py-2 sm:grid-cols-2 lg:grid-cols-3">
     {% for object in latest_job_submissions %}
-    {% if object.technologies.all.count > 0 or object.jobs.all.count > 0 %}
-      <li class="col-span-1 bg-white border border-gray-100 divide-y divide-gray-200 rounded-lg shadow hover:bg-gray-50">
-          <div class="flex items-center justify-between w-full p-6 space-x-6">
-            <div class="flex-1 truncate">
-              <div class="flex items-center space-x-3">
-                <h3 class="text-lg font-medium text-gray-900 truncate">
-                  {{ object.company.name }}
-                </h3>
-                {% if object.company.company_homepage_link %}
-                <a href="{{ object.company.fixed_company_homepage_link }}" target="_blank">
-                  <img class="w-4 h-4" src="{% static 'vendors/images/external_link.svg' %}" alt="External Link" />
-                </a>
-                {% endif %}
-              </div>
-              {% if object.company_job_application_link %}
-                <a href="{{ object.split_application_links.0 }}" target="_blank" class="mt-1 text-sm text-gray-500 truncate">Application Link</a>
-              {% endif %}
-            </div>
-          </div>
-
-          {% if object.jobs.all.count > 0 %}
-          <div class="flex w-full p-3 -mt-px divide-x divide-gray-200">
-            <div class="flex flex-1 w-0">
-              <div class="my-2">
-                  <h4 class="text-sm">Roles</h4>
-                  {% for title in object.jobs.all %}
-                  <span class="inline-flex items-center px-2 py-1 my-1 text-sm font-medium text-green-700 rounded-md bg-green-50 ring-1 ring-inset ring-green-600/20">
-                    {{ title.name }}
-                  </span>
-                  {% endfor %}
+      {% if object.technologies.all.count > 0 or object.jobs.all.count > 0 %}
+        <li class="col-span-1 bg-white border border-gray-100 rounded-lg shadow hover:bg-gray-50">
+          <a class="divide-y divide-gray-200 rounded-lg" href="{% url 'post' object.id %}">
+            <div class="flex items-center justify-between w-full px-4 py-2 space-x-6">
+              <div class="flex-1 truncate">
+                <div class="flex items-center space-x-3">
+                  <h3 class="text-lg font-medium text-gray-900 truncate">
+                      {{ object.company.name }}
+                  </h3>
+                </div>
               </div>
             </div>
-          </div>
-          {% endif %}
 
-          {% if object.technologies.all.count > 0 %}
-          <div class="flex w-full p-3 -mt-px divide-x divide-gray-200">
-            <div class="flex flex-1 w-0">
-              <div class="my-2">
-                  <h4 class="text-sm">Tech Stack</h4>
-                  {% for technology in object.technologies.all %}
-                  <span class="inline-flex items-center px-2 py-1 my-1 text-sm font-medium text-green-700 rounded-md bg-green-50 ring-1 ring-inset ring-green-600/20">
-                    {{ technology.name }}
-                  </span>
-                  {% endfor %}
+            {% if object.jobs.all.count > 0 %}
+            <div class="flex w-full px-4 py-1 -mt-px divide-x divide-gray-200">
+              <div class="flex flex-1 w-0">
+                <div class="my-2">
+                    <h4 class="text-sm">Roles</h4>
+                    {% for title in object.jobs.all %}
+                    <span class="inline-flex items-center px-2 py-1 my-1 text-sm font-medium text-green-700 rounded-md bg-green-50 ring-1 ring-inset ring-green-600/20">
+                      {{ title.name }}
+                    </span>
+                    {% endfor %}
+                </div>
               </div>
             </div>
-          </div>
-          {% endif %}
+            {% endif %}
 
-      </li>
-    {% endif %}
+            {% if object.technologies.all.count > 0 %}
+            <div class="flex w-full px-4 py-1 -mt-px divide-x divide-gray-200">
+              <div class="flex flex-1 w-0">
+                <div class="my-2">
+                    <h4 class="text-sm">Tech Stack</h4>
+                    {% for technology in object.technologies.all %}
+                    <span class="inline-flex items-center px-2 py-1 my-1 text-sm font-medium text-green-700 rounded-md bg-green-50 ring-1 ring-inset ring-green-600/20">
+                      {{ technology.name }}
+                    </span>
+                    {% endfor %}
+                </div>
+              </div>
+            </div>
+            {% endif %}
+          </a>
+        </li>
+      {% endif %}
     {% endfor %}
   </ul>
 </div>

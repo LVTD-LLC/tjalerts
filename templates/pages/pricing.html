@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load markdown_extras %}
 
 {% block content %}
@@ -54,7 +54,7 @@
               <span class="text-5xl font-bold tracking-tight text-gray-900">$299</span>
               <span class="text-base font-semibold leading-6 tracking-wide text-gray-600">/ month</span>
             </p>
-            {% if user.is_authenticated and subscription.status == "active" %}
+            {% if user.is_authenticated and user.paid %}
               <p disabled href="{% url 'posts' %}" class="block w-full px-3 py-2 mt-10 text-sm font-semibold text-center text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
                 You are already a Active User
               </p>

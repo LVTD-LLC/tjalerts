@@ -86,7 +86,7 @@
     <ul role="list" class="flex flex-col space-y-2">
       {% for object in page_obj %}
         <li class="border border-gray-400 rounded-md">
-          <a class="flex flex-col px-6 py-4 space-y-2 bg-white divide-y rounded-md hover:bg-gray-50" href="#">
+          <a class="flex flex-col px-6 py-4 space-y-2 bg-white divide-y rounded-md hover:bg-gray-50" href="{% url 'post' object.id %}">
             <div class="flex items-center justify-between w-full py-2">
               <div class="flex-1">
                 <div class="flex items-center space-x-3">
