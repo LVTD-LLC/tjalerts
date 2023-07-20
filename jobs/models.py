@@ -42,7 +42,7 @@ class Post(TimeStampedModel):
     job_titles = models.ManyToManyField("Title", related_name="job", blank=True)
 
     def get_absolute_url(self):
-        return reverse("job", kwargs={"pk": self.id})
+        return reverse("post", kwargs={"pk": self.id})
 
     def split_application_links(self):
         links = self.company_job_application_link.split(",")

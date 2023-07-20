@@ -1,18 +1,16 @@
 import logging
 
 from django.contrib import messages
-from django.contrib.messages.views import SuccessMessageMixin
-from django.shortcuts import redirect
-from django.urls import reverse, reverse_lazy
-from django.views.generic import CreateView, FormView, TemplateView, UpdateView
+from django.urls import reverse_lazy
+from django.views.generic import FormView, TemplateView
 from django_q.tasks import async_task
 
 from hn_jobs.utils import add_users_context
 from jobs.queries import get_latest_submissions, get_most_popular_technologies, get_most_popular_titles
-from users.models import Subscriber
+from users.forms import CreateAlertForm
 
-from .forms import CreateAlertForm, SupportForm, UpdateAlertForm
-from .tasks import email_support_request, send_confirmation_email
+from .forms import SupportForm
+from .tasks import email_support_request
 
 logger = logging.getLogger(__file__)
 
@@ -77,28 +75,3 @@ class SupportView(FormView):
         kwargs = super().get_form_kwargs()
         kwargs["current_user"] = self.request.user
         return kwargs
-
-
-class AlertCreateView(SuccessMessageMixin, CreateView):
-    template_name = "pages/create-alert.html"
-    model = Subscriber
-    form_class = CreateAlertForm
-    success_url = reverse_lazy("home")
-    success_message = "Thanks for subscribing :) Check your emails to confirm!"
-
-    def form_valid(self, form):
-        if Subscriber.objects.filter(email=form.instance.email).exists():
-            messages.add_message(self.request, messages.WARNING, "An alert already exists for this email.")
-            return redirect("home")
-
-        confirmation_url = self.request.build_absolute_uri(reverse("confirm_subscription", args=[form.instance.id]))
-        async_task(send_confirmation_email, form.cleaned_data, confirmation_url)
-        return super(AlertCreateView, self).form_valid(form)
-
-
-class AlertUpdateView(SuccessMessageMixin, UpdateView):
-    model = Subscriber
-    form_class = UpdateAlertForm
-    template_name = "pages/subscription-confirmation.html"
-    success_url = reverse_lazy("home")
-    success_message = "Thanks for confirming :) You will receive your alerts soon!"

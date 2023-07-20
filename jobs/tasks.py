@@ -151,15 +151,6 @@ def analyze_hn_page(who_is_hiring_post_id):
     return "Task Completed"
 
 
-# Schedule.objects.create(
-#     func=analyze_hn_page,
-#     args=34983765,
-#     hook="hooks.print_result",
-#     schedule_type=Schedule.CRON,
-#     cron = '0 0 * * *'
-# )
-
-
 def create_valid_emails():
     posts_with_emails = Post.objects.exclude(emails="")
 

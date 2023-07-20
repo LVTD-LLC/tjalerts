@@ -1,7 +1,5 @@
 from django import forms
-from django.forms import Form, ModelForm
-
-from users.models import Subscriber
+from django.forms import Form
 
 
 class SupportForm(Form):
@@ -16,18 +14,3 @@ class SupportForm(Form):
         cleaned_data = super().clean()
         cleaned_data["current_user"] = self.current_user
         return cleaned_data
-
-
-class CreateAlertForm(ModelForm):
-    class Meta:
-        model = Subscriber
-        fields = [
-            "email",
-            "technology_selected",
-        ]
-
-
-class UpdateAlertForm(ModelForm):
-    class Meta:
-        model = Subscriber
-        fields = ["confirmed"]

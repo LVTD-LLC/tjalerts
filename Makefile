@@ -1,3 +1,3 @@
 
 redis:
-	redis-stack-server --port 6380
+	redis-stack-server --port 6381
