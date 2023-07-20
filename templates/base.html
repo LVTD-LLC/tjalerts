@@ -2,40 +2,42 @@
 
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+
+<head>
   <!-- Required meta tags -->
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <!-- Other meta stuff -->
   <link rel="apple-touch-icon" href="{% static 'vendors/favicon/logo.png' %}" />
   <link rel="apple-touch-icon" href="{% static 'vendors/favicon/logo.png' %}" />
-  <link rel="icon" type="image/png" sizes="16x16 32x32 500x500" href="{% static 'vendors/favicon/logo.png' %}"/>
+  <link rel="icon" type="image/png" sizes="16x16 32x32 500x500" href="{% static 'vendors/favicon/logo.png' %}" />
 
   {% block meta %}
-  <title>HN Jobs</title>
-  <meta name="description" content="Searchable Database of HN users **Who Want to be Hired**."/>
+  <title>Tech Job Alerts</title>
+  <meta name="description" content="Get notified when the new Tech Jobs are published." />
   <link rel="canonical" href="https://{{ request.get_host }}/" />
-      <meta property="og:type" content="website" />
-      <meta property="og:title" content="HN Jobs" />
-      <meta property="og:url" content="https://{{ request.get_host }}/" />
-      <meta property="og:description" content="Searchable Database of HN users **Who Want to be Hired**."/>
-      <meta property="og:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
-      <meta name="twitter:card" content="summary" />
-      <meta name="twitter:creator" content="@rasulkireev" />
-      <meta name="twitter:site" content="@rasulkireev" />
-      <meta name="twitter:title" content="HN Jobs" />
-      <meta name="twitter:description" content="Searchable Database of HN users **Who Want to be Hired**."/>
-      <meta name="twitter:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Tech Job Alerts" />
+  <meta property="og:url" content="https://{{ request.get_host }}/" />
+  <meta property="og:description" content="Get notified when the new Tech Jobs are published." />
+  <meta property="og:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:creator" content="@rasulkireev" />
+  <meta name="twitter:site" content="@rasulkireev" />
+  <meta name="twitter:title" content="Tech Job Alerts" />
+  <meta name="twitter:description" content="Get notified when the new Tech Jobs are published." />
+  <meta name="twitter:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
   {% endblock meta %}
 
   {% stylesheet_pack 'index' %}
   {% javascript_pack 'index' attrs='defer' %}
 
 </head>
+
 <body>
   {% block default_messages %}
-    {% include "components/messages.html" with messages=messages %}
+  {% include "components/messages.html" with messages=messages %}
   {% endblock default_messages %}
 
   <div data-controller="dropdown" class="bg-white">
@@ -43,14 +45,16 @@
       <nav class="flex items-center justify-between p-6 mx-auto max-w-7xl lg:px-8" aria-label="Global">
         <div class="flex items-center gap-x-12">
           <a href="{% url 'home' %}" class="-m-1.5 p-1.5 flex flex-row space-x-2 items-center justify-between">
-            <img class="w-auto h-8" src="{% static 'vendors/images/logo.png' %}" alt="Job Notifs Logo"/>
+            <img class="w-auto h-8" src="{% static 'vendors/images/logo.png' %}" alt="Job Notifs Logo" />
             <span class="text-base font-semibold text-gray-700">Job Notifs</span>
           </a>
         </div>
         <div class="flex lg:hidden">
-          <button data-action="dropdown#toggle click@window->dropdown#hide" type="button" class="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-700">
+          <button data-action="dropdown#toggle click@window->dropdown#hide" type="button"
+            class="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-700">
             <span class="sr-only">Open main menu</span>
-            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+              aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
             </svg>
           </button>
@@ -59,44 +63,29 @@
           {% if user.is_authenticated %}
           <!-- Profile dropdown -->
           <div data-controller="dropdown" class="relative ml-3">
-              <div>
-                  <button type="button"
-                          data-action="dropdown#toggle click@window->dropdown#hide"
-                          class="flex text-sm bg-gray-800 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"
-                          id="user-menu-button"
-                          aria-expanded="false"
-                          aria-haspopup="true">
-                      <span class="sr-only">Open user menu</span>
-                      <img class="object-cover w-10 h-10 p-1 bg-gray-100 border-2 border-gray-500 rounded-full"
-                            src="{% static 'vendors/images/unknown-man.png' %}"
-                            alt="No Personal Photo" />
-                  </button>
-              </div>
-              <div data-dropdown-target="menu"
-                   class="absolute right-0 z-10 w-48 py-1 mt-2 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
-                   role="menu"
-                   aria-orientation="vertical"
-                   aria-labelledby="user-menu-button"
-                   tabindex="-1">
-                  {% if user.is_authenticated %}
-                  <a href="{% url 'settings' %}"
-                     class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-300"
-                     role="menuitem"
-                     data-action="dropdown#toggle"
-                     tabindex="-1"
-                     id="user-menu-item-0">Settings</a>
-                  {% endif %}
-                  <!-- <a href="#" class="block px-4 py-2 text-sm text-gray-700" role="menuitem" tabindex="-1" id="user-menu-item-1">Settings</a> -->
-                  <a href="{% url 'account_logout' %}"
-                     class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-300"
-                     role="menuitem"
-                     data-action="dropdown#toggle"
-                     tabindex="-1"
-                     id="user-menu-item-2">Sign out</a>
-              </div>
+            <div>
+              <button type="button" data-action="dropdown#toggle click@window->dropdown#hide"
+                class="flex text-sm bg-gray-800 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"
+                id="user-menu-button" aria-expanded="false" aria-haspopup="true">
+                <span class="sr-only">Open user menu</span>
+                <img class="object-cover w-10 h-10 p-1 bg-gray-100 border-2 border-gray-500 rounded-full"
+                  src="{% static 'vendors/images/unknown-man.png' %}" alt="No Personal Photo" />
+              </button>
+            </div>
+            <div data-dropdown-target="menu"
+              class="absolute right-0 z-10 w-48 py-1 mt-2 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+              role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" tabindex="-1">
+              {% if user.is_authenticated %}
+              <a href="{% url 'settings' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-300"
+                role="menuitem" data-action="dropdown#toggle" tabindex="-1" id="user-menu-item-0">Settings</a>
+              {% endif %}
+              <!-- <a href="#" class="block px-4 py-2 text-sm text-gray-700" role="menuitem" tabindex="-1" id="user-menu-item-1">Settings</a> -->
+              <a href="{% url 'account_logout' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-300"
+                role="menuitem" data-action="dropdown#toggle" tabindex="-1" id="user-menu-item-2">Sign out</a>
+            </div>
           </div>
           {% else %}
-            <!-- <a href="{% url 'account_login' %}" class="text-base font-semibold leading-6 text-gray-900">
+          <!-- <a href="{% url 'account_login' %}" class="text-base font-semibold leading-6 text-gray-900">
               Log in <span aria-hidden="true">&rarr;</span>
             </a> -->
           {% endif %}
@@ -104,21 +93,21 @@
       </nav>
 
       <!-- Mobile menu, show/hide based on menu open state. -->
-      <div
-        data-dropdown-target="menu"
-        class="lg:hidden" role="dialog" aria-modal="true"
-      >
+      <div data-dropdown-target="menu" class="lg:hidden" role="dialog" aria-modal="true">
         <!-- Background backdrop, show/hide based on slide-over state. -->
         <div class="fixed inset-0 z-10"></div>
-        <div class="fixed inset-y-0 right-0 z-10 w-full px-6 py-6 overflow-y-auto bg-white sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">
+        <div
+          class="fixed inset-y-0 right-0 z-10 w-full px-6 py-6 overflow-y-auto bg-white sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">
           <div class="flex items-center justify-between">
             <a href="{% url 'home' %}" class="-m-1.5 p-1.5">
               <span class="sr-only">Job Notifs</span>
-              <img class="w-auto h-8" src="{% static 'vendors/images/logo.png' %}" alt="Job Notifs Logo"/>
+              <img class="w-auto h-8" src="{% static 'vendors/images/logo.png' %}" alt="Job Notifs Logo" />
             </a>
-            <button data-action="dropdown#toggle click@window->dropdown#hide" type="button" class="-m-2.5 rounded-md p-2.5 text-gray-700">
+            <button data-action="dropdown#toggle click@window->dropdown#hide" type="button"
+              class="-m-2.5 rounded-md p-2.5 text-gray-700">
               <span class="sr-only">Close menu</span>
-              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+                aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -126,9 +115,11 @@
           <div class="flow-root mt-6">
             <div class="-my-6 divide-y divide-gray-500/10">
               <div class="py-6 space-y-2">
-                <a href="{% url 'posts' %}" class="block px-3 py-2 -mx-3 text-base font-semibold leading-7 text-gray-900 rounded-lg hover:bg-gray-50">Jobs</a>
+                <a href="{% url 'posts' %}"
+                  class="block px-3 py-2 -mx-3 text-base font-semibold leading-7 text-gray-900 rounded-lg hover:bg-gray-50">Jobs</a>
                 {% if user.is_authenticated %}
-                  <a href="{% url 'settings' %}" class="block px-3 py-2 -mx-3 text-base font-semibold leading-7 text-gray-900 rounded-lg hover:bg-gray-50">Support</a>
+                <a href="{% url 'settings' %}"
+                  class="block px-3 py-2 -mx-3 text-base font-semibold leading-7 text-gray-900 rounded-lg hover:bg-gray-50">Support</a>
                 {% endif %}
 
               </div>
@@ -157,12 +148,12 @@
   </div>
 
   {% block schema %}
-    <script type="application/ld+json">
+  <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      "name": "HN Jobs",
-      "description": "Searchable Database of HN users **Who Want to be Hired**.",
+      "name": "Tech Job Alerts",
+      "description": "Get notified when the new Tech Jobs are published.",
       "thumbnailUrl": "https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}",
       "url": "https://{{ request.get_host }}/",
       "author": {
@@ -176,4 +167,5 @@
   {% endblock schema %}
 
 </body>
+
 </html>

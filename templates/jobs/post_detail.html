@@ -3,95 +3,98 @@
 {% load markdown_extras %}
 
 {% block meta %}
-    <title>HN job - {{ object.title }}</title>
-    <meta name="description" content="{{ object.description }}"/>
-    <link rel="canonical" href="https://{{ request.get_host }}/job/{{ object.id }}" />
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:creator" content="@rasulkireev" />
-    <meta name="twitter:title" content="HN job - {{ object.title }}" />
-    <meta name="twitter:description" content="{{ object.description }}"/>
-    <meta name="twitter:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
-    <meta property="og:title" content="HN job - {{ object.title }}" />
-    <meta property="og:url" content="https://{{ request.get_host }}/job/{{ object.id }}" />
-    <meta property="og:description" content="{{ object.description }}"/>
-    <meta property="og:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
+<title>Tech Job Post - {{ object.title }}</title>
+<meta name="description" content="{{ object.description }}" />
+<link rel="canonical" href="https://{{ request.get_host }}/job/{{ object.id }}" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:creator" content="@rasulkireev" />
+<meta name="twitter:title" content="Tech Job Post - {{ object.title }}" />
+<meta name="twitter:description" content="{{ object.description }}" />
+<meta name="twitter:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
+<meta property="og:title" content="Tech Job Post - {{ object.title }}" />
+<meta property="og:url" content="https://{{ request.get_host }}/job/{{ object.id }}" />
+<meta property="og:description" content="{{ object.description }}" />
+<meta property="og:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
 {% endblock meta %}
 
 {% block content %}
 <main class="max-w-4xl mx-auto mt-16 overflow-hidden">
+  <div>
     <div>
-      <div>
-          <div class="pb-2 border-b">
-            <div class="flex items-center space-x-3">
-              <h3 class="text-lg font-medium text-gray-900 truncate">
-                <a href="{% url 'post' object.id %}">
-                  {{ object.company.name }}
-                </a>
-              </h3>
-              {% if object.company.company_homepage_link %}
-              <a href="{{ object.company.fixed_company_homepage_link }}" target="_blank">
-                <img class="w-4 h-4" src="{% static 'vendors/images/external_link.svg' %}" alt="External Link" />
-              </a>
-              {% endif %}
-            </div>
-            {% if object.company_job_application_link %}
-              <a href="{{ object.split_application_links.0 }}" target="_blank" class="mt-1 text-sm text-gray-500 truncate">Application Link</a>
-            {% endif %}
-          </div>
+      <div class="pb-2 border-b">
+        <div class="flex items-center space-x-3">
+          <h3 class="text-lg font-medium text-gray-900 truncate">
+            <a href="{% url 'post' object.id %}">
+              {{ object.company.name }}
+            </a>
+          </h3>
+          {% if object.company.company_homepage_link %}
+          <a href="{{ object.company.fixed_company_homepage_link }}" target="_blank">
+            <img class="w-4 h-4" src="{% static 'vendors/images/external_link.svg' %}" alt="External Link" />
+          </a>
+          {% endif %}
+        </div>
+        {% if object.company_job_application_link %}
+        <a href="{{ object.split_application_links.0 }}" target="_blank"
+          class="mt-1 text-sm text-gray-500 truncate">Application Link</a>
+        {% endif %}
+      </div>
 
-          {% if object.jobs.all.count == 1 and object.jobs.all.0.name == "" %}
-          {% elif object.jobs.all.count >= 1 %}
-          <div class="flex w-full py-2 border-b">
-              <div>
-                <h2 class="text-base">Roles</h2>
-                {% for title in object.jobs.all %}
-                <span class="inline-flex items-center px-2 py-1 my-1 text-sm font-medium text-green-700 rounded-md bg-green-50 ring-1 ring-inset ring-green-600/20">
-                  {{ title.name }}
-                </span>
-                {% endfor %}
-              </div>
-          </div>
-          {% endif %}
+      {% if object.jobs.all.count == 1 and object.jobs.all.0.name == "" %}
+      {% elif object.jobs.all.count >= 1 %}
+      <div class="flex w-full py-2 border-b">
+        <div>
+          <h2 class="text-base">Roles</h2>
+          {% for title in object.jobs.all %}
+          <span
+            class="inline-flex items-center px-2 py-1 my-1 text-sm font-medium text-green-700 rounded-md bg-green-50 ring-1 ring-inset ring-green-600/20">
+            {{ title.name }}
+          </span>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
 
-          {% if object.technologies.all.count == 1 and object.technologies.all.0.name == "" %}
-          {% elif object.technologies.all.count > 0 %}
-            <div class="flex w-full py-2 border-b">
-                <div>
-                  <h2 class="text-base">Tech Stack</h2>
-                  {% for technology in object.technologies.all %}
-                  <span class="inline-flex items-center px-2 py-1 my-1 text-sm font-medium text-green-700 rounded-md bg-green-50 ring-1 ring-inset ring-green-600/20">
-                    {{ technology.name }}
-                  </span>
-                  {% endfor %}
-                </div>
-            </div>
-          {% endif %}
-          {% if object.names_of_the_contact_person %}
-          <div class="flex w-full py-2 border-b">
-            <div>
-              <h2 class="text-base">Contacts</h2>
-              <p class="px-2 py-1 my-1 text-sm font-medium">{{ object.names_of_the_contact_person }}</p>
-              <p class="px-2 py-1 my-1 text-sm font-medium">{{ object.emails }}</p>
-            </div>
-          </div>
-          {% endif %}
-          <div class="py-2">
-            <h2 class="text-base">Description</h2>
-            <div class="prose max-w-none">
-              <p>{{ object.description }}</p>
-            </div>
-          </div>
+      {% if object.technologies.all.count == 1 and object.technologies.all.0.name == "" %}
+      {% elif object.technologies.all.count > 0 %}
+      <div class="flex w-full py-2 border-b">
+        <div>
+          <h2 class="text-base">Tech Stack</h2>
+          {% for technology in object.technologies.all %}
+          <span
+            class="inline-flex items-center px-2 py-1 my-1 text-sm font-medium text-green-700 rounded-md bg-green-50 ring-1 ring-inset ring-green-600/20">
+            {{ technology.name }}
+          </span>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      {% if object.names_of_the_contact_person %}
+      <div class="flex w-full py-2 border-b">
+        <div>
+          <h2 class="text-base">Contacts</h2>
+          <p class="px-2 py-1 my-1 text-sm font-medium">{{ object.names_of_the_contact_person }}</p>
+          <p class="px-2 py-1 my-1 text-sm font-medium">{{ object.emails }}</p>
+        </div>
+      </div>
+      {% endif %}
+      <div class="py-2">
+        <h2 class="text-base">Description</h2>
+        <div class="prose max-w-none">
+          <p>{{ object.description }}</p>
+        </div>
       </div>
     </div>
+  </div>
 </main>
 {% endblock content %}
 
 {% block schema %}
-  <script type="application/ld+json">
+<script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "name": "HN job - {{ object.title }}",
+    "name": "Tech Job Post - {{ object.title }}",
     "description": "{{ object.description }}",
     "url": "https://{{ request.get_host }}/job/{{ object.id }}"
   }
