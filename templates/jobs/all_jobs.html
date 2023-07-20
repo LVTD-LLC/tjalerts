@@ -1,15 +1,12 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load markdown_extras %}
 {% load widget_tweaks %}
+{% load webpack_loader static %}
 
 {% block content %}
 
-<div class="mx-auto my-10 text-center max-w-7xl">
-  <h1 class="text-4xl font-bold tracking-tight text-gray-900">Hire the best people from <span class="text-orange-600">HackerNews</span></h1>
-</div>
-
-<div class="grid grid-cols-12 mx-auto mb-16 overflow-hidden bg-white border border-gray-300 rounded-md sm:mb-24 max-w-7xl">
-  <div class="col-span-12 px-2 md:col-span-3 sm:px-4 sm:pt-4">
+<div class="grid grid-cols-12 gap-2 mx-auto mt-10 mb-16 overflow-hidden bg-white sm:mb-24 max-w-7xl">
+  <div class="col-span-12 px-2 border border-gray-200 rounded-md md:col-span-3 sm:px-4 sm:pt-4">
     <form method="get">
         <div data-controller="dropdown" class="py-4">
           <div class="flex flex-row justify-between">
@@ -21,33 +18,11 @@
             </button>
           </div>
 
-          {% if user.is_authenticated and subscription.status == "active" %}
-            <div class="hidden" data-dropdown-target="menu">
-              <div class="mb-2">
-                <label for="title" class="text-sm text-gray-700">Title</label>
-                {% render_field filter.form.title id="title" name="title" class="-mt-1 block w-full rounded border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-200 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6" %}
-              </div>
-              <div class="mb-2">
-                <label for="description" class="text-sm text-gray-700">Description</label>
-                {% render_field filter.form.description id="description" name="description" class="-mt-1 block w-full rounded border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-200 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6" %}
-              </div>
-              {% comment %} <div class="mb-2">
-                <label for="location" class="text-sm text-gray-700">Location</label>
-                {% render_field filter.form.location id="location" name="location" class="-mt-1 block w-full rounded border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-200 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6" %}
-              </div> {% endcomment %}
+          <div class="hidden" data-dropdown-target="menu">
+            <div class="my-2">
+              {% render_field filter.form.description id="description" placeholder="e.g. green tech" name="description" class="-mt-1 block w-full rounded border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-200 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6" %}
             </div>
-          {% else %}
-            <a class="group flex items-center bg-gray-50 max-w-sm border border-gray-300 hover:border-gray-400 border-dashed rounded-lg mt-2 p-1.5 px-2.5" href="{% url 'pricing' %}" style="">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2 text-gray-400 group-hover:hidden" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
-                </svg>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 mr-2 rotate-[-8deg] transition hidden group-hover:block" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              <path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2H7V7a3 3 0 015.905-.75 1 1 0 001.937-.5A5.002 5.002 0 0010 2z"></path>
-            </svg>
-
-                <span class="block text-xs font-medium text-gray-600">Text search requires a paid account</span>
-            </a>
-          {% endif %}
+          </div>
         </div>
         <div data-controller="dropdown" class="py-4 border-t border-gray-200">
           <div class="flex flex-row justify-between">
@@ -59,70 +34,8 @@
             </button>
           </div>
           <div data-dropdown-target="menu" class="hidden">
-            <div class="pb-2">
-              <label for="city" class="text-sm text-gray-900">City</label>
-              <div class="px-2 -mt-1 overflow-auto border border-gray-200 rounded max-h-40">
-                {% render_field filter.form.city id="city" name="city" class="text-gray-600 rounded" %}
-              </div>
-            </div>
-            <div class="pb-2">
-              <label for="state" class="text-sm text-gray-900">State</label>
-              <div class="px-2 -mt-1 overflow-auto border border-gray-200 rounded max-h-40">
-                {% render_field filter.form.state id="state" name="state" class="text-gray-600 rounded" %}
-              </div>
-            </div>
-            <div class="pb-2">
-              <label for="country" class="text-sm text-gray-900">Country</label>
-              <div class="px-2 -mt-1 overflow-auto border border-gray-200 rounded max-h-40">
-                {% render_field filter.form.country id="country" name="country" class="text-gray-600 rounded" %}
-              </div>
-            </div>
-          </div>
-        </div>
-        <div data-controller="dropdown" class="py-4 border-t border-gray-200">
-          <div class="flex flex-row justify-between">
-            <label for="level" class="font-medium text-gray-900">Level</label>
-            <button type="button" class="p-1 rounded-full hover:bg-gray-100" data-action="dropdown#toggle click->dropdown#hide">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-              </svg>
-            </button>
-          </div>
-
-          <div class="hidden p-2 mt-2 border border-gray-200 rounded" data-dropdown-target="menu">
-            {% render_field filter.form.level id="level" name="level" class="text-gray-600 rounded" %}
-          </div>
-        </div>
-        <div data-controller="dropdown" class="py-4 border-t border-gray-200">
-          <div class="flex flex-row justify-between">
-            <label for="capacity" class="font-medium text-gray-900">Capacity</label>
-            <button type="button" class="p-1 rounded-full hover:bg-gray-100" data-action="dropdown#toggle click->dropdown#hide">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-              </svg>
-            </button>
-          </div>
-          <div class="p-2 mt-2 border border-gray-200 rounded" data-dropdown-target="menu">
-            {% render_field filter.form.capacity id="capacity" name="capacity" class="text-gray-600 rounded" %}
-          </div>
-        </div>
-        <div data-controller="dropdown" class="py-4 border-t border-gray-200">
-          <div class="flex flex-row justify-between">
-            <label class="font-medium text-gray-900">Years of Experience</label>
-            <button type="button" class="p-1 rounded-full hover:bg-gray-100" data-action="dropdown#toggle click@window->dropdown#hide">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-              </svg>
-            </button>
-          </div>
-          <div class="p-2 mt-2" data-dropdown-target="menu">
-            <div>
-              <label for="years_of_experience__gt" class="text-sm text-gray-700">Greater than</label>
-              {% render_field filter.form.years_of_experience__gt id="years_of_experience__gt" name="years_of_experience__gt" class="mt-2 block w-full rounded border-0 py-1.5 pl-3 text-gray-900 ring-1 ring-inset ring-gray-200 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6" %}
-            </div>
-            <div>
-              <label for="years_of_experience__lt" class="text-sm text-gray-700">Less than</label>
-              {% render_field filter.form.years_of_experience__lt id="years_of_experience__lt" name="years_of_experience__lt" class="mt-2 block w-full rounded border-0 py-1.5 pl-3 text-gray-900 ring-1 ring-inset ring-gray-200 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6" %}
+            <div class="my-2">
+            {% render_field filter.form.locations id="locations" placeholder="e.g. New York" name="locations" class="-mt-1 block w-full rounded border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-200 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6" %}
             </div>
           </div>
         </div>
@@ -136,39 +49,32 @@
             </button>
           </div>
           <div class="px-2 mt-2 overflow-auto border border-gray-200 rounded max-h-64" data-dropdown-target="menu">
-            {% render_field filter.form.technologies_used id="technologies_used" name="technologies_used" class="my-2 text-gray-600 rounded" %}
+            {% render_field filter.form.technologies id="technologies" name="technologies" class="my-2 text-gray-600 rounded" %}
           </div>
         </div>
-        <div data-controller="dropdown" class="py-4 border-t border-gray-200">
+        <div class="py-4 border-t border-gray-200" data-controller="dropdown">
           <div class="flex flex-row justify-between">
-            <label for="who_is_hiring_title" class="font-medium text-gray-900">Month/Year</label>
-            <button type="button" class="p-1 rounded-full hover:bg-gray-100" data-action="dropdown#toggle click@window->dropdown#hide">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-              </svg>
-            </button>
-          </div>
-          <div class="p-2 mt-2 border border-gray-200 rounded" data-dropdown-target="menu">
-            {% render_field filter.form.who_is_hiring_title id="who_is_hiring_title" name="who_is_hiring_title" class="text-gray-600 rounded" %}
-          </div>
-        </div>
-        <div data-controller="dropdown" class="py-4 border-t border-gray-200">
-          <div class="flex flex-row justify-between">
-            <label for="willing_to_relocate" class="font-medium text-gray-900">Willing to Relocate</label>
+            <label for="is_remote" class="font-medium text-gray-900">Remote</label>
             <button type="button" class="p-1 rounded-full hover:bg-gray-100" data-action="dropdown#toggle click->dropdown#hide">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
               </svg>
             </button>
           </div>
-          <div data-dropdown-target="menu" class="px-2 mt-2 overflow-auto border border-gray-200 rounded max-h-64">
-            {% render_field filter.form.willing_to_relocate id="willing_to_relocate" name="willing_to_relocate" class="text-gray-600 rounded" %}
+          {% render_field filter.form.is_remote id="is_remote" name="is_remote" data-dropdown-target="menu" class="mt-2 block w-full rounded border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-200 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6" %}
+        </div>
+        <div class="py-4 border-t border-gray-200" data-controller="dropdown">
+          <div class="flex flex-row justify-between">
+            <label for="is_onsite" class="font-medium text-gray-900">Onsite</label>
+            <button type="button" class="p-1 rounded-full hover:bg-gray-100" data-action="dropdown#toggle click->dropdown#hide">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+              </svg>
+            </button>
           </div>
+          {% render_field filter.form.is_onsite id="is_onsite" name="is_onsite" data-dropdown-target="menu" class="mt-2 block w-full rounded border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-200 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6" %}
         </div>
-        <div class="py-4 border-t border-gray-200">
-          <label for="is_remote" class="font-medium text-gray-900">Remote</label>
-          {% render_field filter.form.is_remote id="is_remote" name="is_remote" class="mt-2 block w-full rounded border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-200 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6" %}
-        </div>
+
         <div class="flex space-x-2">
           <a href="{% url 'posts' %}" class="px-4 py-2 mb-4 text-base font-semibold bg-gray-100 rounded-md shadow-sm hover:bg-gray-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">Reset</a>
           <button type="submit" class="px-4 py-2 mb-4 text-base font-semibold text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">Filter</button>
@@ -176,82 +82,61 @@
     </form>
   </div>
 
-  <div class="col-span-12 border-l md:col-span-9">
-    <ul role="list" class="divide-y divide-gray-300">
-      {% for job in page_obj %}
-      <li>
-        <a class="flex px-6 py-4 space-x-4 bg-white hover:bg-gray-50 sm:space-x-8" href="#">
-          <div class="self-start flex-1 min-w-0 space-y-3">
-            <div class="flex items-baseline">
-              <h2 class="text-xl font-medium text-gray-900 sm:text-xl line-clamp-2 break-word" title="{{ job.title }}">{{ job.title }}</h2>
-            </div>
-            <div class="flex flex-col items-start space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
-              <div class="space-x-2 space-y-2 text-lg text-gray-700 sm:text-base">
-                {% if job.location %}
-                <span class="inline-flex items-center rounded-md bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="-ml-0.5 mr-1.5 h-4 w-4 text-blue-400">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                  </svg>
-                  {% if job.city and job.country %}
-                    {{ job.city }}, {{ job.country }}
-                  {% elif job.location %}
-                    {{ job.location }}
-                  {% endif %}
-                </span>
-                {% endif %}
-
-                {% if job.level %}
-                <span class="inline-flex items-center rounded-md bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="-ml-0.5 mr-1.5 h-4 w-4 text-blue-400">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l7.5-7.5 7.5 7.5m-15 6l7.5-7.5 7.5 7.5" />
-                  </svg>
-                  {{ job.level }}
-                </span>
-                {% endif %}
-
-                {% if job.willing_to_relocate == 'Yes' %}
-                <span class="inline-flex items-center rounded-md bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="-ml-0.5 mr-1.5 h-4 w-4 text-blue-400">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12.75 3.03v.568c0 .334.148.65.405.864l1.068.89c.442.369.535 1.01.216 1.49l-.51.766a2.25 2.25 0 01-1.161.886l-.143.048a1.107 1.107 0 00-.57 1.664c.369.555.169 1.307-.427 1.605L9 13.125l.423 1.059a.956.956 0 01-1.652.928l-.679-.906a1.125 1.125 0 00-1.906.172L4.5 15.75l-.612.153M12.75 3.031a9 9 0 00-8.862 12.872M12.75 3.031a9 9 0 016.69 14.036m0 0l-.177-.529A2.25 2.25 0 0017.128 15H16.5l-.324-.324a1.453 1.453 0 00-2.328.377l-.036.073a1.586 1.586 0 01-.982.816l-.99.282c-.55.157-.894.702-.8 1.267l.073.438c.08.474.49.821.97.821.846 0 1.598.542 1.865 1.345l.215.643m5.276-3.67a9.012 9.012 0 01-5.276 3.67m0 0a9 9 0 01-10.275-4.835M15.75 9c0 .896-.393 1.7-1.016 2.25" />
-                  </svg>
-                  Willing to Relocate
-                </span>
-                {% endif %}
-
-                {% if job.is_remote %}
-                <span class="inline-flex items-center rounded-md bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="-ml-0.5 mr-1.5 h-4 w-4 text-blue-400">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
-                  </svg>
-                  Remote
-                </span>
-                {% endif %}
-
-                <span class="inline-flex items-center rounded-md bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="-ml-0.5 mr-1.5 h-4 w-4 text-blue-400">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z" />
-                  </svg>
-                  {{ job.who_is_hiring_title }}
-                </span>
+  <div class="col-span-12 md:col-span-9">
+    <ul role="list" class="flex flex-col space-y-2">
+      {% for object in page_obj %}
+        <li class="border border-gray-400 rounded-md">
+          <a class="flex flex-col px-6 py-4 space-y-2 bg-white divide-y rounded-md hover:bg-gray-50" href="{% url 'post' object.id %}">
+            <div class="flex items-center justify-between w-full py-2">
+              <div class="flex-1">
+                <div class="flex items-center space-x-3">
+                  <h3 class="text-lg font-medium text-gray-900 truncate">
+                    {{ object.company.name }}
+                  </h3>
+                </div>
+                <p class="text-sm text-gray-600">
+                  {{ object.description | truncatechars:250 }}
+                </p>
               </div>
             </div>
-            <div class="flex items-center justify-between">
-              <div class="text-lg text-gray-700 sm:text-base">
-                <p class="break-words line-clamp-3">{{ job.description | truncatechars:400 | markdown | safe }}</p>
-              </div>
+
+            {% if object.jobs.all.count == 1 and object.jobs.all.0.name == "" %}
+            {% elif object.jobs.all.count >= 1 %}
+            <div class="flex w-full py-2">
+                <div>
+                  <h4 class="text-base">Roles</h4>
+                  {% for title in object.jobs.all %}
+                  <span class="inline-flex items-center px-2 py-1 my-1 text-sm font-medium text-green-700 rounded-md bg-green-50 ring-1 ring-inset ring-green-600/20">
+                    {{ title.name }}
+                  </span>
+                  {% endfor %}
+                </div>
             </div>
-          </div>
-        </a>
-      </li>
-      {% empty %}
+            {% endif %}
+
+            {% if object.technologies.all.count == 1 and object.technologies.all.0.name == "" %}
+            {% elif object.technologies.all.count > 0 %}
+              <div class="flex w-full py-2">
+                  <div>
+                    <h4 class="text-base">Tech Stack</h4>
+                    {% for technology in object.technologies.all %}
+                    <span class="inline-flex items-center px-2 py-1 my-1 text-sm font-medium text-green-700 rounded-md bg-green-50 ring-1 ring-inset ring-green-600/20">
+                      {{ technology.name }}
+                    </span>
+                    {% endfor %}
+                  </div>
+              </div>
+            {% endif %}
+          </a>
+        </li>
+        {% empty %}
         <div class="max-w-2xl mx-auto my-16 text-center">
-          <p class="text-4xl font-semibold tracking-tight text-gray-900">Unfortunately such uniqie candidated don't exist yet.</p>
+          <p class="text-4xl font-semibold tracking-tight text-gray-900">No such jobs exist :(.</p>
         </div>
       {% endfor %}
     </ul>
 
-    <nav class="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6" aria-label="Pagination">
+    <nav class="flex items-center justify-between py-3 bg-white" aria-label="Pagination">
       <div class="hidden sm:block">
         <p class="text-sm text-gray-700">
           Showing page
@@ -280,7 +165,5 @@
       </div>
     </nav>
   </div>
-
-
 </div>
 {% endblock content %}

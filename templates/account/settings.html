@@ -1,10 +1,9 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load widget_tweaks %}
 
 {% block content %}
 
-
-<main class="flex-1">
+<main class="bg-white lg:min-w-0 md:pt-10 lg:flex-1">
   <div class="relative max-w-4xl mx-auto">
     {% include "components/email-not-verified.html" with email_verified=email_verified %}
     <div class="pt-10 pb-16">
@@ -13,74 +12,68 @@
       </div>
       <div class="px-4 sm:px-6 lg:px-0">
         <div class="py-6">
-          <div class="block">
-            <div class="border-b border-gray-200">
-              <nav class="flex -mb-px space-x-8">
-                <!-- Current: "border-purple-500 text-purple-600", Default: "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700" -->
-                <a href="#" class="px-1 py-4 text-sm font-medium text-purple-600 border-b-2 border-purple-500 whitespace-nowrap">General</a>
-                <a href="#" class="px-1 py-4 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:border-gray-300 hover:text-gray-700 whitespace-nowrap">Templates</a>
-              </nav>
+
+          <div class="mt-4">
+            <div class="md:grid md:grid-cols-3 md:gap-6">
+              <div class="md:col-span-1">
+                <div class="px-4 sm:px-0">
+                  <h3 class="text-lg font-medium leading-6 text-gray-900">Personal Information</h3>
+                  <p class="mt-1 text-sm text-gray-600">
+                    This information is used only by us to improve the communication. People outside don't have access to this information.
+                  </p>
+                </div>
+              </div>
+              <div class="mt-5 md:col-span-2 md:mt-0">
+                {% include "account/components/personal-information-form.html" with form=form %}
+              </div>
             </div>
           </div>
 
-          <!-- Description list with inline editing -->
-          <div class="mt-10">
-            <div class="space-y-1">
-              <h3 class="text-lg font-medium leading-6 text-gray-900">Job</h3>
-            </div>
-            <div class="mt-6">
-                {% include "account/components/general.html" with form=form %}
+          <div class="block" aria-hidden="true">
+            <div class="py-5">
+              <div class="border-t border-gray-200"></div>
             </div>
           </div>
 
-          <div class="mt-10 divide-y divide-gray-200">
-            <div class="space-y-1">
-              <h3 class="text-lg font-medium leading-6 text-gray-900">Billing</h3>
-              <p class="max-w-2xl text-sm text-gray-500">Manage how information is displayed on your account.</p>
-            </div>
-            <div class="mt-6">
-              <dl class="divide-y divide-gray-200">
-                <div class="py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-5">
-                  <dt class="text-sm font-medium text-gray-500">Language</dt>
-                  <dd class="flex mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0">
-                    <span class="flex-grow">English</span>
-                    <span class="flex-shrink-0 ml-4">
-                      <button type="button" class="font-medium text-purple-600 bg-white rounded-md hover:text-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">Update</button>
+          <div class="mt-4">
+            <div class="md:grid md:grid-cols-3 md:gap-6">
+              <div class="md:col-span-1">
+                <div class="px-4 sm:px-0">
+                  <h3 class="text-lg font-medium leading-6 text-gray-900">
+                    Subscription:
+                    <span class="text-green-700">
+                      {% if user.paid %}
+                        Pro
+                      {% else %}
+                        Free
+                      {% endif %}
                     </span>
-                  </dd>
+                  </h3>
+                  <p class="mt-1 text-sm text-gray-600">
+                    Here you can upgrade, cancel or change your payments information.
+                  </p>
                 </div>
-                <div class="py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-5 sm:pt-5">
-                  <dt class="text-sm font-medium text-gray-500">Date format</dt>
-                  <dd class="flex mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0">
-                    <span class="flex-grow">DD-MM-YYYY</span>
-                    <span class="flex items-start flex-shrink-0 ml-4 space-x-4">
-                      <button type="button" class="font-medium text-purple-600 bg-white rounded-md hover:text-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">Update</button>
-                      <span class="text-gray-300" aria-hidden="true">|</span>
-                      <button type="button" class="font-medium text-purple-600 bg-white rounded-md hover:text-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">Remove</button>
-                    </span>
-                  </dd>
-                </div>
-                <div class="py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-5 sm:pt-5">
-                  <dt class="text-sm font-medium text-gray-500" id="timezone-option-label">Automatic timezone</dt>
-                  <dd class="flex mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0">
-                    <!-- Enabled: "bg-purple-600", Not Enabled: "bg-gray-200" -->
-                    <button type="button" class="relative inline-flex flex-shrink-0 h-6 transition-colors duration-200 ease-in-out bg-gray-200 border-2 border-transparent rounded-full cursor-pointer w-11 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 sm:ml-auto" role="switch" aria-checked="true" aria-labelledby="timezone-option-label">
-                      <!-- Enabled: "translate-x-5", Not Enabled: "translate-x-0" -->
-                      <span aria-hidden="true" class="inline-block w-5 h-5 transition duration-200 ease-in-out transform translate-x-0 bg-white rounded-full shadow ring-0"></span>
+              </div>
+              <div class="flex items-center px-4 mt-5 md:col-span-2 md:mt-0">
+                {% if subscription.status %}
+                  <form method="post" action="{% url 'create-customer-portal-session' %}">
+                    {% csrf_token %}
+                    <button
+                      class="inline-flex items-center px-3 py-2 text-white bg-green-600 border-2 border-transparent rounded-md hover:bg-green-700"
+                      type="submit"
+                    >
+                      Manage
                     </button>
-                  </dd>
-                </div>
-                <div class="py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:border-b sm:border-gray-200 sm:py-5">
-                  <dt class="text-sm font-medium text-gray-500" id="auto-update-option-label">Auto-update applicant data</dt>
-                  <dd class="flex mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0">
-                    <!-- Enabled: "bg-purple-600", Not Enabled: "bg-gray-200" -->
-                    <button type="button" class="relative inline-flex flex-shrink-0 h-6 transition-colors duration-200 ease-in-out bg-gray-200 border-2 border-transparent rounded-full cursor-pointer w-11 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 sm:ml-auto" role="switch" aria-checked="false" aria-labelledby="auto-update-option-label">
-                      <!-- Enabled: "translate-x-5", Not Enabled: "translate-x-0" -->
-                      <span aria-hidden="true" class="inline-block w-5 h-5 transition duration-200 ease-in-out transform translate-x-0 bg-white rounded-full shadow ring-0"></span>
-                    </button>
-                  </dd>
-                </div>
-              </dl>
+                  </form>
+                {% else %}
+                    <a
+                      class="inline-flex items-center px-3 py-2 text-white bg-green-600 border-2 border-transparent rounded-md hover:bg-green-700"
+                      href="{% url 'upgrade-user' %}"
+                    >
+                      Upgrade
+                    </a>
+                {% endif %}
+              </div>
             </div>
           </div>
         </div>

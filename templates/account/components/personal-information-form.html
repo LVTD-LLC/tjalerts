@@ -13,6 +13,11 @@
           <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
           {% render_field form.name id="name" name="name" type="text" autocomplete="given-name" class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm" %}
         </div>
+        <div class="col-span-6 sm:col-span-3">
+          {{ form.email.errors | safe }}
+          <label for="email-address" class="block text-sm font-medium text-gray-700">Email</label>
+          {% render_field form.email id="email-address" name="email-address" type="text" autocomplete="email" class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm" %}
+        </div>
       </div>
     </div>
     <div class="px-4 py-3 text-right bg-gray-50 sm:px-6">

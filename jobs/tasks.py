@@ -1,3 +1,4 @@
+import datetime
 import json
 import logging
 import re
@@ -43,6 +44,7 @@ def analyze_hn_page(who_is_hiring_post_id):
 
             who_is_hiring_comment_id = int(json_job["id"])
             hn_username = str(json_job["by"])
+            unix_timestamp = int(json_job["time"])
 
             logger.info(f"JSON for comment {comment_id}: {json_job}")
             request = f""""Convert the text below into json object with the following valid keys (give me an empty string if there is no info, ignore the content in  brackets, it is only to explain what I need):
@@ -119,6 +121,7 @@ def analyze_hn_page(who_is_hiring_post_id):
                 who_is_hiring_id=who_is_hiring_id,
                 who_is_hiring_title=who_is_hiring_title,
                 who_is_hiring_comment_id=who_is_hiring_comment_id,
+                submitted_datetime=datetime.datetime.fromtimestamp(unix_timestamp),
                 company=company_obj,
                 hn_username=hn_username,
                 description=cleaned_data["description"],
@@ -146,15 +149,6 @@ def analyze_hn_page(who_is_hiring_post_id):
             logger.info(f"Job for {comment_id} already exists.")
 
     return "Task Completed"
-
-
-# Schedule.objects.create(
-#     func=analyze_hn_page,
-#     args=34983765,
-#     hook="hooks.print_result",
-#     schedule_type=Schedule.CRON,
-#     cron = '0 0 * * *'
-# )
 
 
 def create_valid_emails():

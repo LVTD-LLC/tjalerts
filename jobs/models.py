@@ -13,6 +13,7 @@ class Post(TimeStampedModel):
     who_is_hiring_title = models.CharField(max_length=25)
     who_is_hiring_comment_id = models.IntegerField()
     hn_username = models.CharField(max_length=50, blank=True)
+    submitted_datetime = models.DateTimeField()
 
     jobs = models.ManyToManyField("Title", related_name="post", blank=True, through="PostTitle")
     description = models.TextField(blank=True)
@@ -41,7 +42,11 @@ class Post(TimeStampedModel):
     job_titles = models.ManyToManyField("Title", related_name="job", blank=True)
 
     def get_absolute_url(self):
-        return reverse("job", kwargs={"pk": self.id})
+        return reverse("post", kwargs={"pk": self.id})
+
+    def split_application_links(self):
+        links = self.company_job_application_link.split(",")
+        return [link.strip() for link in links]
 
 
 class Technology(TimeStampedModel):
@@ -49,11 +54,17 @@ class Technology(TimeStampedModel):
     name = models.CharField(max_length=256)
     slug = AutoSlugField(populate_from="name", always_update=True)
 
+    def __str__(self):
+        return self.name
+
 
 class Title(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=256)
     slug = AutoSlugField(populate_from="name", always_update=True)
+
+    def __str__(self):
+        return self.name
 
 
 class Company(TimeStampedModel):
@@ -63,6 +74,16 @@ class Company(TimeStampedModel):
     slug = AutoSlugField(populate_from="name", always_update=True)
     emails = models.TextField(blank=True)
     compliment = models.TextField(blank=True)
+
+    @property
+    def fixed_company_homepage_link(self):
+        if not self.company_homepage_link.startswith("http"):
+            self.company_homepage_link = "https://" + self.company_homepage_link
+
+        return self.company_homepage_link
+
+    def __str__(self):
+        return self.name
 
 
 class Email(TimeStampedModel):

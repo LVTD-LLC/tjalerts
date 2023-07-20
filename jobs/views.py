@@ -2,26 +2,31 @@ import logging
 
 from django import forms
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.db.models import Count
 from django.urls import reverse_lazy
-from django.views.generic import FormView
+from django.views.generic import DetailView, FormView
 from django_filters.views import FilterView
 from django_q.tasks import async_task
 
 from hn_jobs.utils import add_users_context, floor_to_tens
 
+from .constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
 from .filters import PostFilter
-from .models import Post
+from .models import Post, Technology, Title
 from .tasks import analyze_hn_page
 
 logger = logging.getLogger(__file__)
+
+excluded_tech = Technology.objects.filter(name__in=EXCLUDED_TECHNOLOGIES)
+excluded_titles = Title.objects.filter(name__in=EXCLUDED_TITLES)
 
 
 class PostListView(FilterView):
     model = Post
     template_name = "jobs/all_jobs.html"
-    queryset = Post.objects.all()
+    queryset = Post.objects.all().annotate(num_technologies=Count("technologies"), num_jobs=Count("jobs"))
     filterset_class = PostFilter
-    paginate_by = 11
+    paginate_by = 6
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -34,21 +39,18 @@ class PostListView(FilterView):
         return context
 
 
-# class JobDetailView(DetailView):
-#     model = Job
-#     template_name = "jobs/Job_detail.html"
+class PostDetailView(DetailView):
+    model = Post
+    template_name = "jobs/post_detail.html"
 
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
 
-#         user = self.request.user
-#         if user.is_authenticated:
-#             add_users_context(context, user)
+        user = self.request.user
+        if user.is_authenticated:
+            add_users_context(context, user)
 
-#         if self.object:
-#             context["Job_capacity"] = self.object.capacity.split(",")
-
-#         return context
+        return context
 
 
 class GenericForm(forms.Form):

@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
     "webpack_boilerplate",
     "widget_tweaks",
     "allauth",
@@ -49,7 +50,6 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "django_q",
     "django_filters",
-    "djstripe",
     "anymail",
     "pages.apps.PagesConfig",
     "users.apps.UsersConfig",
@@ -61,7 +61,9 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.cache.UpdateCacheMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "django.middleware.cache.FetchFromCacheMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -203,21 +205,14 @@ LOGGING = {
 # django-q
 Q_CLUSTER = {
     "name": "hn_jobs-q",
-    "orm": "default",
     "timeout": 90,
     "retry": 120,
     "workers": 4,
     "max_attempts": 2,
+    "redis": env("REDIS_URL"),
 }
 
 OPENAI_KEY = env("OPENAI_KEY")
-
-STRIPE_LIVE_SECRET_KEY = env("STRIPE_LIVE_SECRET_KEY")
-STRIPE_TEST_SECRET_KEY = env("STRIPE_TEST_SECRET_KEY")
-STRIPE_LIVE_MODE = env("STRIPE_LIVE_MODE", bool)
-DJSTRIPE_USE_NATIVE_JSONFIELD = True
-DJSTRIPE_FOREIGN_KEY_TO_FIELD = "id"
-DJSTRIPE_WEBHOOK_VALIDATION = "retrieve_event"
 
 ANYMAIL = {
     "MAILGUN_API_KEY": env("MAILGUN_API_KEY"),
@@ -227,10 +222,22 @@ DEFAULT_FROM_EMAIL = "rasul@hn-jobs.com"
 SERVER_EMAIL = "error@hn-jobs.com"
 
 if DEBUG:
-    EMAIL_HOST = "localhost"
-    EMAIL_PORT = 1025
-    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 else:
     EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"
 
 API_TOKEN = env("API_TOKEN")
+
+if DEBUG:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+        }
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": env("REDIS_URL"),
+        }
+    }

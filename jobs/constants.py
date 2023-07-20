@@ -48,3 +48,7 @@ GENERIC_KEYWORDS = [
     "earninhiring",
     "career",
 ]
+
+EXCLUDED_TECHNOLOGIES = ["", " "]
+
+EXCLUDED_TITLES = ["", " "]
