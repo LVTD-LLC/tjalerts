@@ -1,11 +1,11 @@
-from django.db.models import Count, Max
+from django.db.models import Count
 
 from jobs.constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
 from jobs.models import Post, Technology, Title
 
 
 def get_latest_submissions(number_of: int, for_homepage: bool = False):
-    posts = Post.objects.annotate(latest_datetime=Max("submitted_datetime")).order_by("-latest_datetime")
+    posts = Post.objects.all().order_by("submitted_datetime")
 
     if for_homepage:
         excluded_tech = Technology.objects.filter(name__in=EXCLUDED_TECHNOLOGIES)
