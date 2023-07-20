@@ -75,3 +75,21 @@ class SupportView(FormView):
         kwargs = super().get_form_kwargs()
         kwargs["current_user"] = self.request.user
         return kwargs
+
+
+class ProductHuntView(TemplateView):
+    template_name = "pages/product_hunt.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+
+        context["latest_job_submissions"] = get_latest_submissions(9, for_homepage=True)
+        context["popular_titles"] = get_most_popular_titles()
+        context["popular_technologies"] = get_most_popular_technologies(min_count=2)
+        context["create_alert_form"] = CreateAlertForm
+
+        if user.is_authenticated:
+            add_users_context(context, user)
+
+        return context
