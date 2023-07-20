@@ -24,7 +24,11 @@ excluded_titles = Title.objects.filter(name__in=EXCLUDED_TITLES)
 class PostListView(FilterView):
     model = Post
     template_name = "jobs/all_jobs.html"
-    queryset = Post.objects.all().annotate(num_technologies=Count("technologies"), num_jobs=Count("jobs"))
+    queryset = (
+        Post.objects.all()
+        .annotate(num_technologies=Count("technologies"), num_jobs=Count("jobs"))
+        .order_by("-submitted_datetime")
+    )
     filterset_class = PostFilter
     paginate_by = 6
 
