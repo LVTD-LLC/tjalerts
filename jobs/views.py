@@ -9,6 +9,7 @@ from django_filters.views import FilterView
 from django_q.tasks import async_task
 
 from hn_jobs.utils import add_users_context, floor_to_tens
+from users.forms import CreateAlertForm
 
 from .constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
 from .filters import PostFilter
@@ -53,6 +54,8 @@ class PostDetailView(DetailView):
         user = self.request.user
         if user.is_authenticated:
             add_users_context(context, user)
+
+        context["create_alert_form"] = CreateAlertForm
 
         return context
 
