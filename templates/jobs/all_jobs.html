@@ -124,19 +124,11 @@
 
       <div class="flex justify-between flex-1 sm:justify-end">
         {% if page_obj.has_previous %}
-          {% if 'title' in request.get_full_path %}
             <a href="{{ request.get_full_path }}&page={{ page_obj.previous_page_number }}" class="relative inline-flex items-center px-3 py-2 text-sm font-semibold text-gray-900 bg-white rounded-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline-offset-0">Previous</a>
-          {% else %}
-            <a href="?page={{ page_obj.previous_page_number }}" class="relative inline-flex items-center px-3 py-2 text-sm font-semibold text-gray-900 bg-white rounded-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline-offset-0">Previous</a>
-          {% endif %}
         {% endif %}
 
         {% if page_obj.has_next %}
-          {% if 'title' in request.get_full_path %}
             <a href="{{ request.get_full_path }}&page={{ page_obj.next_page_number }}" class="relative inline-flex items-center px-3 py-2 ml-3 text-sm font-semibold text-gray-900 bg-white rounded-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline-offset-0">Next</a>
-          {% else %}
-            <a href="?page={{ page_obj.next_page_number }}" class="relative inline-flex items-center px-3 py-2 ml-3 text-sm font-semibold text-gray-900 bg-white rounded-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline-offset-0">Next</a>
-          {% endif %}
         {% endif %}
       </div>
     </nav>
