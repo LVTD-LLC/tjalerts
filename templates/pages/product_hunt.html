@@ -90,7 +90,7 @@
 </div>
 
 <div class="mx-auto mt-16 overflow-hidden sm:mt-24 max-w-7xl">
-  <h2 class="mb-2 text-2xl font-semibold leading-6 text-center text-gray-900">Companies looking for employers...</h2>
+  <h2 class="mb-2 text-2xl font-semibold leading-6 text-center text-gray-900">Companies looking for employees...</h2>
   <ul role="list" class="grid grid-cols-1 gap-6 py-2 sm:grid-cols-2 lg:grid-cols-3">
     {% for object in latest_job_submissions %}
     {% if object.technologies.all.count > 0 or object.jobs.all.count > 0 %}
