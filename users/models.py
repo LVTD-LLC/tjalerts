@@ -20,6 +20,7 @@ class Subscriber(TimeStampedModel):
 
     email = models.EmailField()
     confirmed = models.BooleanField(default=False)
+    unsubscribed = models.BooleanField(default=False)
 
     technology_selected = models.CharField(max_length=256)
 

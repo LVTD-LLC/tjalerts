@@ -47,7 +47,9 @@ def find_subs_to_alert():
     seven_days_ago = datetime.now() - timedelta(days=7)
 
     waiting_subscribers = (
-        Subscriber.objects.filter(confirmed=True).exclude(alert__created__gte=seven_days_ago).distinct()
+        Subscriber.objects.filter(confirmed=True, unsubscribed=False)
+        .exclude(alert__created__gte=seven_days_ago)
+        .distinct()
     )
 
     count = 0
