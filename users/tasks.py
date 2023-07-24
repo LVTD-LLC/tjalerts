@@ -32,7 +32,7 @@ def send_alert(subscriber: Subscriber):
     email = EmailMultiAlternatives(
         subject,
         text_content,
-        f"TJ Alerts <{settings.DEFAULT_FROM_EMAIL}>",
+        settings.DEFAULT_FROM_EMAIL,
         [subscriber.email],
     )
     email.attach_alternative(html_content, "text/html")

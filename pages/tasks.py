@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.core.mail import send_mail
 
 logger = logging.getLogger(__file__)
@@ -14,7 +15,7 @@ def email_support_request(instance):
     send_mail(
         f"Support Request from {instance['current_user'].username}",
         message,
-        "rasul@builtwithdjango.com",
-        ["rasul@builtwithdjango.com"],
+        settings.DEFAULT_FROM_EMAIL,
+        [settings.DEFAULT_FROM_EMAIL],
         fail_silently=False,
     )

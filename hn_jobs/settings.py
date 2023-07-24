@@ -219,8 +219,8 @@ ANYMAIL = {
     "MAILGUN_API_KEY": env("MAILGUN_API_KEY"),
     "MAILGUN_SENDER_DOMAIN": "mg.gettjalerts.com",
 }
-DEFAULT_FROM_EMAIL = "rasul@gettjalerts.com"
-SERVER_EMAIL = "error@gettjalerts.com"
+DEFAULT_FROM_EMAIL = "TJ Alerts <rasul@gettjalerts.com>"
+SERVER_EMAIL = "TJ Alerts <error@gettjalerts.com>"
 
 if DEBUG:
     EMAIL_HOST = "localhost"
