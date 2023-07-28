@@ -8,6 +8,7 @@ import openai
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from django.db.models import Count
 from django_q.tasks import async_task
 
 from .models import Company, Email, Post, Technology, Title
@@ -37,7 +38,7 @@ def get_hn_pages_to_analyze(who_is_hiring_post_id):
                 data,
                 comment_id,
                 hook="jobs.hooks.print_result",
-                group="analyze_hn_page",
+                group="Analyze HN Page",
             )
             count += 1
         else:
@@ -212,3 +213,46 @@ def create_valid_emails():
                 is_approved=is_approved,
             )
             logger.info(f"Email for {post} was created.")
+
+
+def find_bad_submitted_dates():
+    list_of_repeated_datetimes = list(
+        Post.objects.values("submitted_datetime")
+        .annotate(count=Count("submitted_datetime"))
+        .filter(count__gt=1)
+        .values_list("submitted_datetime", flat=True)
+        .distinct()
+    )
+
+    posts = Post.objects.filter(submitted_datetime__in=list_of_repeated_datetimes)
+
+    count = 0
+    for post in posts:
+        async_task(
+            fix_submitted_date,
+            post,
+            hook="jobs.hooks.print_result",
+            group="Fix Bad Post Datetime",
+        )
+        count += 1
+
+    return f"{count} post have been scheduled for correction."
+
+
+def fix_submitted_date(post):
+    json_job = httpx.get(f"https://hacker-news.firebaseio.com/v0/item/{post.who_is_hiring_comment_id}.json").json()
+
+    try:
+        if json_job["deleted"] is True:
+            return "Comment was deleted"
+    except KeyError:
+        pass
+
+    unix_timestamp = datetime.datetime.fromtimestamp(int(json_job["time"]))
+
+    if post.submitted_datetime != unix_timestamp:
+        post.submitted_datetime = unix_timestamp
+        post.save()
+        return "Date has been Corrected"
+    else:
+        return "Date is Correct"

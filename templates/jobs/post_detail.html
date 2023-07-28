@@ -22,17 +22,20 @@
 <main class="max-w-4xl mx-auto mt-16 overflow-hidden">
     <div>
       <div class="pb-2 border-b">
-        <div class="flex items-center space-x-3">
-          <h3 class="text-lg font-medium text-gray-900 truncate">
-            <a href="{% url 'post' object.id %}">
-              {{ object.company.name }}
+        <div class="flex justify-between">
+          <div class="flex items-center space-x-3">
+            <h3 class="text-lg font-medium text-gray-900 truncate">
+              <a href="{% url 'post' object.id %}">
+                {{ object.company.name }}
+              </a>
+            </h3>
+            {% if object.company.company_homepage_link %}
+            <a href="{{ object.company.fixed_company_homepage_link }}" target="_blank">
+              <img class="w-4 h-4" src="{% static 'vendors/images/external_link.svg' %}" alt="External Link" />
             </a>
-          </h3>
-          {% if object.company.company_homepage_link %}
-          <a href="{{ object.company.fixed_company_homepage_link }}" target="_blank">
-            <img class="w-4 h-4" src="{% static 'vendors/images/external_link.svg' %}" alt="External Link" />
-          </a>
-          {% endif %}
+            {% endif %}
+          </div>
+          <p class="text-gray-500">Posted {{ object.submitted_datetime|timesince }} ago</p>
         </div>
         {% if object.company_job_application_link %}
         <a href="{{ object.split_application_links.0 }}" target="_blank"

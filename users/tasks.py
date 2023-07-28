@@ -58,7 +58,7 @@ def find_subs_to_alert():
             send_alert,
             subscriber,
             hook="jobs.hooks.print_result",
-            group="send_alert",
+            group="Send Alert",
         )
         count += 1
 

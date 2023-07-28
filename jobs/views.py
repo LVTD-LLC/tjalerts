@@ -3,6 +3,7 @@ import logging
 from django import forms
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Count
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import DetailView, FormView
 from django_filters.views import FilterView
@@ -15,7 +16,7 @@ from .constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
 from .filters import PostFilter
 from .models import Post, Technology, Title
 from .queries import get_most_popular_technologies, get_most_popular_titles
-from .tasks import get_hn_pages_to_analyze
+from .tasks import find_bad_submitted_dates, get_hn_pages_to_analyze
 
 logger = logging.getLogger(__file__)
 
@@ -80,3 +81,9 @@ class TriggerAsyncTask(LoginRequiredMixin, UserPassesTestMixin, FormView):
         who_is_hiring_post_id = form.cleaned_data.get("who_is_hiring_post_id")  # noqa: F841
         async_task(get_hn_pages_to_analyze, who_is_hiring_post_id, hook="hooks.print_result")
         return super(TriggerAsyncTask, self).form_valid(form)
+
+
+def find_bad_submitted_dates_view(request):
+    async_task(find_bad_submitted_dates, hook="jobs.hooks.print_result", group="Find Bad Datetimes to Fix")
+
+    return redirect("trigger_task")
