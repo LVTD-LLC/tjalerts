@@ -21,6 +21,7 @@ schedules = [
         "name": "Create Valid Emails for Marketing",
         "func_path": "jobs.tasks.create_valid_emails",
         "hook": "jobs.hooks.print_result",
+        "args": "",
         "type": Schedule.DAILY,
     },
 ]
