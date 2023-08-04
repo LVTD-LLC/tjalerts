@@ -16,7 +16,7 @@
             {% render_field filter.form.description id="description" placeholder="e.g. green tech" name="description" class="-mt-1 block w-full rounded border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-200 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6" %}
           </div>
         </div>
-        <div class="py-2 border-t border-gray-200">
+        <div class="py-2">
           <div class="flex flex-row justify-between">
             <div class="font-medium text-gray-900">Location</div>
           </div>
@@ -24,19 +24,25 @@
           {% render_field filter.form.locations id="locations" placeholder="e.g. New York" name="locations" class="-mt-1 block w-full rounded border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-200 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6" %}
           </div>
         </div>
-        <div class="py-2 border-t border-gray-200">
+        <div class="py-2">
           <div class="flex flex-row justify-between">
             <label for="is_remote" class="font-medium text-gray-900">Remote</label>
           </div>
           {% render_field filter.form.is_remote id="is_remote" name="is_remote" class="mt-2 block w-full rounded border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-200 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6" %}
         </div>
-        <div class="py-2 border-t border-gray-200">
+        <div class="py-2">
+          <div class="flex flex-row justify-between">
+            <label for="compensation_summary__isempty" class="font-medium text-gray-900">Has Compensation Summary</label>
+          </div>
+          {% render_field filter.form.compensation_summary__isempty id="compensation_summary__isempty" name="compensation_summary__isempty" class="mt-2 block w-full rounded border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-200 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6" %}
+        </div>
+        <div class="py-2">
           <div class="flex flex-row justify-between">
             <label for="is_onsite" class="font-medium text-gray-900">Onsite</label>
           </div>
           {% render_field filter.form.is_onsite id="is_onsite" name="is_onsite" class="mt-2 block w-full rounded border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-200 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6" %}
         </div>
-        <div data-controller="reveal" class="py-2 border-t border-gray-200">
+        <div data-controller="reveal" class="py-2">
           <div class="flex flex-row justify-between p-2 rounded-md hover:bg-slate-100" data-action="click->reveal#toggle">
             <label for="technologies_used" class="font-medium text-gray-900">Tech Stack</label>
             <button type="button" class="p-1 rounded-full hover:bg-gray-100">

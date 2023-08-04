@@ -202,8 +202,6 @@ LOGGING = {
     },
 }
 
-
-# django-q
 Q_CLUSTER = {
     "name": "hn_jobs-q",
     "timeout": 90,

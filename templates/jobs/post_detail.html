@@ -62,6 +62,17 @@
       </div>
       {% endif %}
 
+      {% if object.compensation_summary %}
+      <div class="flex w-full py-2 border-b">
+        <div>
+          <h2 class="text-base">Compensation Summary</h2>
+          <div class="prose max-w-none">
+            <p>{{ object.compensation_summary }}</p>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
       {% if object.technologies.all.count == 1 and object.technologies.all.0.name == "" %}
       {% elif object.technologies.all.count > 0 %}
       <div class="flex w-full py-2 border-b">
