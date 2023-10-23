@@ -53,11 +53,14 @@ INSTALLED_APPS = [
     "django_filters",
     "anymail",
     "mjml",
+    "storages",
+    # Custom
     "pages.apps.PagesConfig",
     "users.apps.UsersConfig",
     "jobs.apps.JobsConfig",
     "api.apps.ApiConfig",
     "utils.apps.UtilsConfig",
+    "blog.apps.BlogConfig",
 ]
 
 MIDDLEWARE = [
@@ -136,9 +139,6 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR.joinpath("media/")
-
 STATIC_URL = "/static/"
 
 STATIC_ROOT = BASE_DIR.joinpath("static/")
@@ -148,11 +148,22 @@ STATICFILES_DIRS = [
 ]
 
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
 
+AWS_S3_REGION_NAME = "eu-east-1"
+AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL")
+AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
+AWS_STORAGE_BUCKET_NAME = f"hnjobs-{ENVIRONMENT}"
+AWS_S3_FILE_OVERWRITE = False
+
+MEDIA_URL = f"{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media/")
 
 WEBPACK_LOADER = {
     "MANIFEST_FILE": BASE_DIR.joinpath("frontend/build/manifest.json"),
 }
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
