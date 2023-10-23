@@ -26,7 +26,11 @@
           <div class="flex items-center space-x-3">
             <h3 class="text-lg font-medium text-gray-900 truncate">
               <a href="{% url 'post' object.id %}">
-                {{ object.company.name }}
+                {% if object.company.name %}
+                  {{ object.company.name }}
+                {% else %}
+                  Stealth
+                {% endif %}
               </a>
             </h3>
             {% if object.company.company_homepage_link %}
