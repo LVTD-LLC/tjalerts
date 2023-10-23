@@ -8,6 +8,7 @@ import openai
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from django.db import transaction
 from django.db.models import Count
 from django_q.tasks import async_task
 
@@ -260,3 +261,16 @@ def fix_submitted_date(post):
         return "Date has been Corrected"
     else:
         return "Date is Correct"
+
+
+@transaction.atomic
+def delete_duplicate_jobs_posts():
+    duplicate_ids = (
+        Post.objects.values("who_is_hiring_comment_id")
+        .annotate(count=Count("who_is_hiring_comment_id"))
+        .filter(count__gt=1)
+    )
+    duplicate_ids = [item["who_is_hiring_comment_id"] for item in duplicate_ids]
+    Post.objects.filter(who_is_hiring_comment_id__in=duplicate_ids).delete()
+
+    return f"{len(duplicate_ids)} comments have been deleted"

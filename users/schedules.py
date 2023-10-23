@@ -24,4 +24,11 @@ schedules = [
         "args": "",
         "type": Schedule.DAILY,
     },
+    {
+        "name": "Delete Duplicate Comments",
+        "func_path": "jobs.tasks.delete_duplicate_jobs_posts",
+        "hook": "jobs.hooks.print_result",
+        "args": "",
+        "type": Schedule.DAILY,
+    },
 ]

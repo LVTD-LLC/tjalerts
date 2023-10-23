@@ -11,7 +11,7 @@ class Post(TimeStampedModel):
 
     who_is_hiring_id = models.IntegerField()
     who_is_hiring_title = models.CharField(max_length=25)
-    who_is_hiring_comment_id = models.IntegerField(unique=True)
+    who_is_hiring_comment_id = models.IntegerField()
     hn_username = models.CharField(max_length=50, blank=True)
     submitted_datetime = models.DateTimeField()
 
