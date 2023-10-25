@@ -33,7 +33,10 @@ def get_hn_pages_to_analyze(who_is_hiring_post_id):
 
     count = 0
     for comment_id in list_of_comment_ids:
-        if not Post.objects.filter(who_is_hiring_comment_id=comment_id).exists():
+        if (
+            not Post.objects.filter(who_is_hiring_comment_id=comment_id).exists()
+            and comment_id != who_is_hiring_post_id
+        ):
             async_task(
                 analyze_hn_page,
                 data,
