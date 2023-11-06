@@ -6,7 +6,7 @@ from django_q.tasks import async_task
 from ninja import NinjaAPI, Query
 from ninja.security import HttpBearer
 
-from jobs.models import Company, Email
+from jobs.models import Company, Email, Post
 from jobs.tasks import create_valid_emails
 
 from .schemas import ReadCompany, ReadEmails
@@ -67,4 +67,37 @@ def get_emails(
     return {
         "count": len(unique_emails_queryset),
         "emails": list(unique_emails_queryset),
+    }
+
+
+@api.get("/jobs")
+def get_jobs(request, technologies=Query(None)):
+    posts = Post.objects.prefetch_related("company", "technologies", "jobs")
+
+    user_submitted_technologies = technologies.split(",")
+    user_submitted_technologies = [item.strip() for item in user_submitted_technologies]
+
+    posts_list = []
+    for post in posts:
+        post_technologies = [technology.name for technology in post.technologies.all()]
+
+        if not set(user_submitted_technologies).issubset(post_technologies):
+            continue
+
+        post_titles = [title.name for title in post.jobs.all()]
+
+        entry = {
+            "company_name": post.company.name,
+            "description": post.description,
+            "compensation_summary": post.compensation_summary,
+            "technologies": post_technologies,
+            "title": post_titles,
+            "who_is_hiring_comment_id": post.who_is_hiring_comment_id,
+        }
+
+        posts_list.append(entry)
+
+    return {
+        "count": len(posts_list),
+        "jobs": posts_list,
     }
