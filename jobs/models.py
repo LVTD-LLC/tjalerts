@@ -25,7 +25,7 @@ class Post(TimeStampedModel):
     compensation_summary = models.TextField(blank=True, null=True)
     min_salary = models.IntegerField(null=True, default=None)
     max_salary = models.IntegerField(null=True, default=None)
-    currency = models.CharField(max_length=3, blank=True)
+    currency = models.CharField(blank=True)
 
     # GEO
     locations = models.TextField(blank=True)
