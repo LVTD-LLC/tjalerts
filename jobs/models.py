@@ -4,6 +4,7 @@ from autoslug import AutoSlugField
 from django.db import models
 from django.urls import reverse
 from model_utils.models import TimeStampedModel
+from pgvector.django import VectorField
 
 
 class Post(TimeStampedModel):
@@ -21,6 +22,7 @@ class Post(TimeStampedModel):
     technologies = models.ManyToManyField("Technology", related_name="post", blank=True, through="PostTechnology")
     capacity = models.TextField(blank=True)
     years_of_experience = models.TextField(blank=True)
+    vector = VectorField(null=True)
 
     compensation_summary = models.TextField(blank=True, null=True)
     min_salary = models.IntegerField(null=True, default=None)

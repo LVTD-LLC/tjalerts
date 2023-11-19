@@ -16,7 +16,12 @@ from .constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
 from .filters import PostFilter
 from .models import Post, Technology, Title
 from .queries import get_most_popular_technologies, get_most_popular_titles
-from .tasks import find_bad_submitted_dates, get_hn_pages_to_analyze, update_min_and_max_salary
+from .tasks import (
+    create_backfill_vector_data_jobs,
+    create_update_min_and_max_salary_jobs,
+    find_bad_submitted_dates,
+    get_hn_pages_to_analyze,
+)
 
 logger = logging.getLogger(__file__)
 
@@ -90,6 +95,16 @@ def find_bad_submitted_dates_view(request):
 
 
 def update_min_and_max_salary_view(request):
-    async_task(update_min_and_max_salary, hook="jobs.hooks.print_result", group="Populate min and max salary")
+    async_task(
+        create_update_min_and_max_salary_jobs, hook="jobs.hooks.print_result", group="Populate min and max salary"
+    )
+
+    return redirect("trigger_task")
+
+
+def create_backfill_vector_data_jobs_view(request):
+    async_task(
+        create_backfill_vector_data_jobs, hook="jobs.hooks.print_result", group="Create Jobs to Update Vector Data."
+    )
 
     return redirect("trigger_task")

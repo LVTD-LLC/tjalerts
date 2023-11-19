@@ -285,7 +285,7 @@ def delete_duplicate_jobs_posts():
     return f"{len(duplicate_ids)} comments have been deleted"
 
 
-def update_min_and_max_salary():
+def create_update_min_and_max_salary_jobs():
     jobs = Post.objects.filter(min_salary=None)
 
     # if working in dev don't want to go through all the comments
@@ -293,57 +293,109 @@ def update_min_and_max_salary():
         jobs = jobs[:25]
 
     count = 0
-    error_count = 0
     for job in jobs:
+
         if job.compensation_summary == "" or not has_number(job.compensation_summary):
+            job.min_salary = 0
+            job.max_salary = 0
+            job.currency = ""
+            job.save()
             continue
 
-        try:
-            request = f"""Find the minimum and maximum salary for the job, based on the following information: '{job.compensation_summary}'.
+        async_task(
+            update_min_and_max_salary,
+            job,
+            hook="jobs.hooks.print_result",
+            group="Update Job Salary",
+        )
+        count += 1
+
+    return f"{count} have been sent to be analyzed."
+
+
+def update_min_and_max_salary(job):
+
+    request = f"""Find the minimum and maximum salary for the job, based on the following information: '{job.compensation_summary}'.
 If there is no minimum or maximum salary, return 0. Do not lie, or make up numbers.
 If the summary states that sarlary is weekly or monthly, convert it to annualy please.
 Return a valid JSON Object with the following format:
 {{
-  min_salary: (integer, if not available return 0),
-  max_salary: (integer, if not available return 0),
-  currency: (string, e.g "USD", "EUR", etc. if not available return "")
+min_salary: (integer, if not available return 0),
+max_salary: (integer, if not available return 0),
+currency: (string, e.g "USD", "EUR", etc. if not available return "")
 }}
 Do not return anything else. Just the JSON Object."""  # noqa: E501
-            completion = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                temperature=0,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a helpful assistant.",
-                    },
-                    {"role": "user", "content": request},
-                ],
-            )
-            converted_comment_response = completion.choices[0].message
-        except (openai.error.RateLimitError, openai.error.APIError):
-            error_count += 1
-            continue
 
-        try:
-            json_converted_comment_response = json.loads(converted_comment_response.content)
-        except json.decoder.JSONDecodeError:
-            error_count += 1
-            continue
+    completion = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        temperature=0,
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a helpful assistant.",
+            },
+            {"role": "user", "content": request},
+        ],
+    )
+    converted_comment_response = completion.choices[0].message
 
-        min_salary = json_converted_comment_response["min_salary"]
-        max_salary = json_converted_comment_response["max_salary"]
+    json_converted_comment_response = json.loads(converted_comment_response.content)
 
-        if min_salary == 0 and max_salary != 0:
-            min_salary = max_salary
-        elif max_salary == 0 and min_salary != 0:
-            max_salary = min_salary
+    min_salary = json_converted_comment_response["min_salary"]
+    max_salary = json_converted_comment_response["max_salary"]
 
-        job.min_salary = min_salary
-        job.max_salary = max_salary
+    if min_salary == 0 and max_salary != 0:
+        min_salary = max_salary
+    elif max_salary == 0 and min_salary != 0:
+        max_salary = min_salary
 
-        job.currency = json_converted_comment_response["currency"]
-        job.save(update_fields=["min_salary", "max_salary", "currency"])
+    job.min_salary = min_salary
+    job.max_salary = max_salary
+
+    job.currency = json_converted_comment_response["currency"]
+    job.save(update_fields=["min_salary", "max_salary", "currency"])
+
+    return f"Job {job.id} has been updated."
+
+
+def create_backfill_vector_data_jobs():
+    jobs = Post.objects.filter(vector=None)
+
+    if settings.DEBUG:
+        jobs = jobs[:10]
+
+    count = 0
+    for job in jobs:
+        async_task(
+            backfill_vector_data,
+            job,
+            hook="jobs.hooks.print_result",
+            group="Backfill Vector Data",
+        )
         count += 1
 
-    return f"{count}/{jobs.count()} jobs have been updated. {error_count} errors occured."
+    return f"{count} have been sent to be analyzed."
+
+
+def backfill_vector_data(job):
+    json_job = httpx.get(f"https://hacker-news.firebaseio.com/v0/item/{job.who_is_hiring_comment_id}.json").json()
+
+    try:
+        if json_job["deleted"] is True:
+            return "Comment was deleted"
+    except KeyError:
+        pass
+
+    text = json_job["text"].replace("\n", " ")
+
+    embedding = openai.Embedding.create(
+        input=[text],
+        model="text-embedding-ada-002",
+        temperature=0,
+    )
+    vector = embedding["data"][0]["embedding"]
+
+    job.vector = vector
+    job.save(update_fields=["vector"])
+
+    return f"Job {job.id} has been updated."

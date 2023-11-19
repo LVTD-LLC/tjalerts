@@ -31,6 +31,7 @@ psycopg2-binary = "^2.9.9"
 django-mjml = "^1.1"
 django-storages = {extras = ["s3"], version = "^1.14.2"}
 sentry-sdk = {extras = ["django"], version = "^1.32.0"}
+pgvector = "^0.2.3"
 
 [tool.poetry.dev-dependencies]
 
