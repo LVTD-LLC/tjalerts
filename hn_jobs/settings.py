@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "anymail",
     "mjml",
     "storages",
+    "debug_toolbar",
     # Custom
     "pages.apps.PagesConfig",
     "users.apps.UsersConfig",
@@ -68,6 +69,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.cache.UpdateCacheMiddleware",
@@ -77,6 +79,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "kolo.middleware.KoloMiddleware",
 ]
 
 ROOT_URLCONF = "hn_jobs.urls"
@@ -268,3 +271,7 @@ MJML_HTTPSERVERS = [
 
 if not DEBUG:
     sentry_sdk.init(dsn=env("SENTRY_DSN"), integrations=[DjangoIntegration()])
+
+INTERNAL_IPS = [
+    "127.0.0.1",
+]

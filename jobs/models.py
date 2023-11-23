@@ -54,6 +54,9 @@ class Post(TimeStampedModel):
         links = self.company_job_application_link.split(",")
         return [link.strip() for link in links]
 
+    class Meta:
+        ordering = ("-submitted_datetime",)
+
 
 class Technology(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -63,6 +66,15 @@ class Technology(TimeStampedModel):
     def __str__(self):
         return self.name
 
+    class Meta:
+        indexes = [
+            models.Index(
+                fields=[
+                    "name",
+                ]
+            ),
+        ]
+
 
 class Title(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -71,6 +83,15 @@ class Title(TimeStampedModel):
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        indexes = [
+            models.Index(
+                fields=[
+                    "name",
+                ]
+            ),
+        ]
 
 
 class Company(TimeStampedModel):
@@ -90,6 +111,15 @@ class Company(TimeStampedModel):
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        indexes = [
+            models.Index(
+                fields=[
+                    "name",
+                ]
+            ),
+        ]
 
 
 class Email(TimeStampedModel):

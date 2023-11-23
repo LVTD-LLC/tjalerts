@@ -2,14 +2,13 @@ import logging
 
 from django import forms
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.db.models import Count
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import DetailView, FormView
 from django_filters.views import FilterView
 from django_q.tasks import async_task
 
-from hn_jobs.utils import add_users_context, floor_to_tens
+from hn_jobs.utils import add_users_context
 from users.forms import CreateAlertForm
 
 from .constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
@@ -32,17 +31,11 @@ excluded_titles = Title.objects.filter(name__in=EXCLUDED_TITLES)
 class PostListView(FilterView):
     model = Post
     template_name = "jobs/all_jobs.html"
-    queryset = (
-        Post.objects.all()
-        .annotate(num_technologies=Count("technologies"), num_jobs=Count("jobs"))
-        .order_by("-submitted_datetime")
-    )
     filterset_class = PostFilter
     paginate_by = 6
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["num_of_jobs"] = floor_to_tens(len(Post.objects.all()))
 
         user = self.request.user
         if user.is_authenticated:
