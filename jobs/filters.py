@@ -38,6 +38,7 @@ class PostFilter(FilterSet):
         queryset=get_most_popular_technologies(), widget=forms.CheckboxSelectMultiple(), conjoined=True
     )
     compensation_summary__isempty = EmptyStringFilter(field_name="compensation_summary")
+    emails__isempty = EmptyStringFilter(field_name="emails")
 
     o = OrderingFilter(
         choices=(
