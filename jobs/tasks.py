@@ -290,10 +290,6 @@ def delete_duplicate_jobs_posts():
 def create_update_min_and_max_salary_jobs():
     jobs = Post.objects.filter(min_salary=None)
 
-    # if working in dev don't want to go through all the comments
-    if settings.DEBUG:
-        jobs = jobs[:25]
-
     count = 0
     for job in jobs:
 
