@@ -91,7 +91,7 @@
         </div>
       </div>
       {% endif %}
-      {% if object.names_of_the_contact_person %}
+      {% if object.names_of_the_contact_person or object.emails %}
       <div class="flex w-full py-2 border-b">
         <div>
           <h2 class="text-base">Contacts</h2>
