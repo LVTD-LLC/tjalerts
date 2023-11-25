@@ -17,11 +17,7 @@ class VectorEmbeddingFilter(Filter):
         if not value:
             return qs
 
-        logger.info(f"Search: {value}")
-        qs = qs.annotate(distance=L2Distance("vector", get_embedding(value))).filter(distance__lt=0.7)
-        logger.info(f"Distance: {qs[0].distance}")
-
-        return qs
+        return qs.annotate(distance=L2Distance("vector", get_embedding(value))).filter(distance__lt=0.7)
 
 
 class EmptyStringFilter(BooleanFilter):
