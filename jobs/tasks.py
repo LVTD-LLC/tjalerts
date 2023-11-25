@@ -363,9 +363,6 @@ Do not return anything else. Just the JSON Object."""  # noqa: E501
 def create_backfill_vector_data_jobs():
     jobs = Post.objects.filter(vector=None)
 
-    if settings.DEBUG:
-        jobs = jobs[:10]
-
     count = 0
     for job in jobs:
         async_task(
