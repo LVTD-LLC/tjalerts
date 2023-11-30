@@ -2,14 +2,16 @@ import logging
 
 from django import forms
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.db.models import Max
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
-from django.views.generic import DetailView, FormView
+from django.views.generic import DetailView, FormView, ListView, TemplateView
 from django_filters.views import FilterView
 from django_q.tasks import async_task
 
 from hn_jobs.utils import add_users_context
 from users.forms import CreateAlertForm
+from utils.constants import HIRABLE_TECH_LIST
 
 from .constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
 from .filters import PostFilter
@@ -101,3 +103,32 @@ def create_backfill_vector_data_jobs_view(request):
     )
 
     return redirect("trigger_task")
+
+
+class HighestPaidBlogPostListView(TemplateView):
+    template_name = "jobs/highest-paid-blog-post-list.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context["hirable_tech_list"] = HIRABLE_TECH_LIST
+
+        return context
+
+
+class HighestPaidJobsView(ListView):
+    template_name = "jobs/highest-paid-job.html"
+    model = Post
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        subquery = Post.objects.values("company").annotate(latest_post=Max("submitted_datetime")).values("latest_post")
+
+        return (
+            queryset.filter(technologies__name__icontains=self.kwargs.get("name"))
+            .exclude(max_salary=0)
+            .order_by("-max_salary")
+            .filter(submitted_datetime__in=subquery)
+            .distinct()[:20]
+        )

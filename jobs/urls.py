@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    HighestPaidJobsView,
     PostDetailView,
     PostListView,
     TriggerAsyncTask,
@@ -20,4 +21,6 @@ urlpatterns = [
         create_backfill_vector_data_jobs_view,
         name="create_backfill_vector_data_jobs",
     ),
+    # path("highest-paid-list", HighestPaidBlogPostListView.as_view(), name="highest-paid-blog-posts"),
+    path("<slug:name>/highest-paid/", HighestPaidJobsView.as_view(), name="highest-paid-job-blog-post"),
 ]
