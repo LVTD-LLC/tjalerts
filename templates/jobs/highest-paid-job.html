@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load markdown_extras %}
+{% load widget_tweaks %}
+{% load webpack_loader static %}
+{% load url_utils %}
+
+{% block content %}
+
+<div class="px-6 py-20 bg-white lg:px-8">
+  <div class="max-w-3xl mx-auto text-base leading-7 text-gray-700">
+    <h1 class="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Highest Paid {{ view.kwargs.name|capfirst }} Jobs</h1>
+    <div class="max-w-2xl mt-2">
+      <ul role="list" class="mt-4 space-y-4 text-gray-600">
+        {% for object in object_list %}
+          <li>
+            <a class="flex flex-col space-y-2 bg-white divide-y rounded-md" href="{% url 'post' object.id %}">
+              <div class="flex items-center justify-between w-full py-2">
+                <div class="flex-1">
+                  <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-medium text-gray-900 truncate">
+                      {% if object.company.name %}
+                        {{ object.company.name }}
+                      {% else %}
+                        Stealth
+                      {% endif %}
+                    </h2>
+                  </div>
+                  <p class="mt-2">
+                    Here is what thay pay you: {{ object.compensation_summary }}
+                  </p>
+
+                  <p class="mt-2">
+                    {{ object.submitted_datetime|timesince }} ago {{ object.company.name }} created a job listing looking for
+                    {% for title in object.jobs.all %}
+                    <span>{{ title.name }}{% include "components/comma.html" %}</span>
+                    {% endfor %}
+                  </p>
+
+                  <p class="mt-2">
+                    Folks at {{ object.company.name }} use
+                    {% for technology in object.technologies.all %}
+                      <span>{{ technology.name }}{% include "components/comma.html" %}</span>
+                    {% endfor %} in their day to day.
+                  </p>
+
+                  <p class="mt-2">
+                    {{ object.description }}
+                  </p>
+
+                </div>
+              </div>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+
+{% endblock content %}

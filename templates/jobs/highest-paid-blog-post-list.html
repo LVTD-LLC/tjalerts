@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load markdown_extras %}
+{% load widget_tweaks %}
+{% load webpack_loader static %}
+{% load url_utils %}
+
+{% block content %}
+
+  <div class="mx-auto max-w-7xl">
+    {% for post in object_list %}
+      {{ post.title }}
+    {% endfor %}
+    {% for tech_item in hirable_tech_list %}
+      <div>
+        <a href="{% url 'highest-paid-job-blog-post' tech_item|slugify %}">Highest paid {{ tech_item }} Jobs</a>
+      </div>
+    {% endfor %}
+  </div>
+
+{% endblock content %}

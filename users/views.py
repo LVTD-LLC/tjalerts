@@ -41,7 +41,7 @@ class UserSettingsView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
 
-        add_users_context(context, user)
+        add_users_context(context, user, self)
 
         return context
 

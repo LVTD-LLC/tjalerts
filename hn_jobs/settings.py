@@ -14,7 +14,9 @@ import os
 from pathlib import Path
 
 import environ
+import posthog
 import sentry_sdk
+from posthog.sentry.posthog_integration import PostHogIntegration
 from sentry_sdk.integrations.django import DjangoIntegration
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -81,6 +83,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "posthog.sentry.django.PosthogDistinctIdMiddleware",
     "kolo.middleware.KoloMiddleware",
 ]
 
@@ -295,8 +298,15 @@ MJML_HTTPSERVERS = [
 ]
 
 if not DEBUG:
-    sentry_sdk.init(dsn=env("SENTRY_DSN"), integrations=[DjangoIntegration()])
+    sentry_sdk.init(dsn=env("SENTRY_DSN"), integrations=[DjangoIntegration(), PostHogIntegration()])
 
 INTERNAL_IPS = [
     "127.0.0.1",
 ]
+
+posthog.project_api_key = env("POSTHOG_API_KEY")
+posthog.host = "https://app.posthog.com"
+if DEBUG:
+    posthog.debug = True
+
+POSTHOG_DJANGO = {"distinct_id": lambda request: request.user and request.user.distinct_id}

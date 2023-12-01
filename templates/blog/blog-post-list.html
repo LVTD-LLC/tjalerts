@@ -6,14 +6,38 @@
 
 {% block content %}
 
-  {% for post in object_list %}
-    {{ post.title }}
-  {% endfor %}
+<div class="mx-auto mb-16 overflow-hidden bg-white sm:mb-24 max-w-7xl">
 
-  {% for tech_item in hirable_tech_list %}
-    <div>
-      <a href="">Highest paid {{ tech_item }} Jobs</a>
+  <div class="py-24 bg-white">
+    <div class="px-6 mx-auto max-w-7xl lg:px-8">
+      <div class="max-w-2xl mx-auto">
+        <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Blog</h2>
+        <p class="mt-2 text-lg leading-8 text-gray-600">Learn how to grow your business with our expert advice.</p>
+
+        <div class="pt-10 mt-10 space-y-16 border-t border-gray-200 sm:mt-16 sm:pt-16">
+          <article class="flex flex-col items-start justify-between max-w-xl">
+            <div class="flex items-center text-xs gap-x-4">
+              <time datetime="2020-03-16" class="text-gray-500">Mar 16, 2020</time>
+              <a href="#" class="relative z-10 rounded-full bg-gray-50 px-3 py-1.5 font-medium text-gray-600 hover:bg-gray-100">Marketing</a>
+            </div>
+            <div class="relative group">
+              <h3 class="mt-3 text-lg font-semibold leading-6 text-gray-900 group-hover:text-gray-600">
+                <a href="#">
+                  <span class="absolute inset-0"></span>
+                  Boost your conversion rate
+                </a>
+              </h3>
+              <p class="mt-5 text-sm leading-6 text-gray-600 line-clamp-3">Illo sint voluptas. Error voluptates culpa eligendi. Hic vel totam vitae illo. Non aliquid explicabo necessitatibus unde. Sed exercitationem placeat consectetur nulla deserunt vel iusto corrupti dicta laboris incididunt.</p>
+            </div>
+          </article>
+
+          <!-- More posts... -->
+        </div>
+
+      </div>
     </div>
-  {% endfor %}
+  </div>
+
+</div>
 
 {% endblock content %}

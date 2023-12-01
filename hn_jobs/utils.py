@@ -1,17 +1,27 @@
+import json
 import logging
 import math
+from urllib.parse import unquote
 
+import posthog
 from allauth.account.models import EmailAddress
 from django.forms.utils import ErrorList
 
 logger = logging.getLogger(__file__)
 
 
-def add_users_context(context, user):
+def add_users_context(context, user, self=None):
     try:
         context["email_verified"] = EmailAddress.objects.get_for_user(user, user.email).verified
     except EmailAddress.DoesNotExist as e:
         logger.error(f"Email Error: {e}")
+
+    if self:
+        posthog_cookie = self.request.COOKIES.get(f"ph_{posthog.project_api_key}_posthog")
+        if posthog_cookie:
+            cookie_dict = json.loads(unquote(posthog_cookie))
+            if cookie_dict["distinct_id"] and self.request.user.is_authenticated:
+                posthog.alias(cookie_dict["distinct_id"], self.request.user.email)
 
     return context
 

@@ -28,7 +28,7 @@ class HomeView(TemplateView):
         context["create_alert_form"] = CreateAlertForm
 
         if user.is_authenticated:
-            add_users_context(context, user)
+            add_users_context(context, user, self)
 
         return context
 
@@ -49,7 +49,7 @@ class PricingView(TemplateView):
         user = self.request.user
 
         if user.is_authenticated:
-            add_users_context(context, user)
+            add_users_context(context, user, self)
 
         return context
 
@@ -71,7 +71,7 @@ class SupportView(FormView):
 
         user = self.request.user
         if user.is_authenticated:
-            add_users_context(context, user)
+            add_users_context(context, user, self)
 
         return context
 
@@ -98,6 +98,6 @@ class ProductHuntView(TemplateView):
         context["create_alert_form"] = CreateAlertForm
 
         if user.is_authenticated:
-            add_users_context(context, user)
+            add_users_context(context, user, self)
 
         return context
