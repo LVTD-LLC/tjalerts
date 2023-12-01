@@ -25,11 +25,7 @@ api = NinjaAPI(auth=GlobalAuth())
 
 @api.get("/companies", response=List[ReadCompany])
 def companies(request):
-    logger.info(f"request: {request}")
-
-    companies = Company.objects.all()
-    logger.info(f"companies: {companies}")
-    return companies
+    return Company.objects.all()
 
 
 @api.get("/create-emails")
