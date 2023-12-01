@@ -11,7 +11,7 @@ from django_q.tasks import async_task
 
 from hn_jobs.utils import add_users_context
 from users.forms import CreateAlertForm
-from utils.constants import HIRABLE_TECH_LIST
+from utils.constants import HIRABLE_TECH_LIST_SLUGS
 
 from .constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
 from .filters import PostFilter
@@ -111,7 +111,7 @@ class HighestPaidBlogPostListView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context["hirable_tech_list"] = HIRABLE_TECH_LIST
+        context["hirable_tech_list"] = HIRABLE_TECH_LIST_SLUGS
 
         return context
 
@@ -123,12 +123,13 @@ class HighestPaidJobsView(ListView):
     def get_queryset(self):
         queryset = super().get_queryset()
 
+        tech_id = Technology.objects.filter(slug=self.kwargs.get("slug")).first().id
         subquery = Post.objects.values("company").annotate(latest_post=Max("submitted_datetime")).values("latest_post")
 
         return (
-            queryset.filter(technologies__name__icontains=self.kwargs.get("name"))
+            queryset.filter(technologies__id=tech_id)
             .exclude(max_salary=0)
             .order_by("-max_salary")
             .filter(submitted_datetime__in=subquery)
-            .distinct()[:20]
+            .distinct()[:10]
         )

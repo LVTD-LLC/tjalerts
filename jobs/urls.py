@@ -22,5 +22,5 @@ urlpatterns = [
         name="create_backfill_vector_data_jobs",
     ),
     # path("highest-paid-list", HighestPaidBlogPostListView.as_view(), name="highest-paid-blog-posts"),
-    path("<slug:name>/highest-paid/", HighestPaidJobsView.as_view(), name="highest-paid-job-blog-post"),
+    path("<slug:slug>/highest-paid/", HighestPaidJobsView.as_view(), name="highest-paid-job-blog-post"),
 ]
