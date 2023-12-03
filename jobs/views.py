@@ -83,28 +83,6 @@ class TriggerAsyncTask(LoginRequiredMixin, UserPassesTestMixin, FormView):
         return super(TriggerAsyncTask, self).form_valid(form)
 
 
-def find_bad_submitted_dates_view(request):
-    async_task(find_bad_submitted_dates, hook="jobs.hooks.print_result", group="Find Bad Datetimes to Fix")
-
-    return redirect("trigger_task")
-
-
-def update_min_and_max_salary_view(request):
-    async_task(
-        create_update_min_and_max_salary_jobs, hook="jobs.hooks.print_result", group="Populate min and max salary"
-    )
-
-    return redirect("trigger_task")
-
-
-def create_backfill_vector_data_jobs_view(request):
-    async_task(
-        create_backfill_vector_data_jobs, hook="jobs.hooks.print_result", group="Create Jobs to Update Vector Data."
-    )
-
-    return redirect("trigger_task")
-
-
 class HighestPaidBlogPostListView(TemplateView):
     template_name = "jobs/highest-paid-blog-post-list.html"
 
@@ -133,3 +111,26 @@ class HighestPaidJobsView(ListView):
             .filter(submitted_datetime__in=subquery)
             .distinct()[:10]
         )
+
+
+# One time views
+def find_bad_submitted_dates_view(request):
+    async_task(find_bad_submitted_dates, hook="jobs.hooks.print_result", group="Find Bad Datetimes to Fix")
+
+    return redirect("trigger_task")
+
+
+def update_min_and_max_salary_view(request):
+    async_task(
+        create_update_min_and_max_salary_jobs, hook="jobs.hooks.print_result", group="Populate min and max salary"
+    )
+
+    return redirect("trigger_task")
+
+
+def create_backfill_vector_data_jobs_view(request):
+    async_task(
+        create_backfill_vector_data_jobs, hook="jobs.hooks.print_result", group="Create Jobs to Update Vector Data."
+    )
+
+    return redirect("trigger_task")
