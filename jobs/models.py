@@ -6,6 +6,8 @@ from django.urls import reverse
 from model_utils.models import TimeStampedModel
 from pgvector.django import VectorField
 
+from utils.models import BaseModel
+
 
 class Post(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -143,3 +145,14 @@ class PostTechnology(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
     technology = models.ForeignKey(Technology, on_delete=models.CASCADE)
+
+
+class Alert(BaseModel):
+    user = models.ForeignKey("users.CustomUser", on_delete=models.CASCADE, null=True, blank=True)
+
+    email = models.EmailField()
+    confirmed = models.BooleanField(default=False)
+    unsubscribed = models.BooleanField(default=False)
+
+    name = models.CharField(max_length=100, blank=True)
+    filter = models.JSONField()

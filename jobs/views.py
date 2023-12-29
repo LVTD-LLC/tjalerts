@@ -36,6 +36,16 @@ class PostListView(FilterView):
     filterset_class = PostFilter
     paginate_by = 6
 
+    def get(self, request, *args, **kwargs):
+        params = request.GET.copy()
+
+        del params["page"]
+        del params["o"]
+
+        logger.info(f"params: {params}")
+
+        return super().get(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
