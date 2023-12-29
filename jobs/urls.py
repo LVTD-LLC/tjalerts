@@ -1,6 +1,8 @@
 from django.urls import path
 
 from .views import (
+    AlertCreateView,
+    AlertUpdateView,
     HighestPaidJobsView,
     PostDetailView,
     PostListView,
@@ -22,5 +24,7 @@ urlpatterns = [
         name="create_backfill_vector_data_jobs",
     ),
     # path("highest-paid-list", HighestPaidBlogPostListView.as_view(), name="highest-paid-blog-posts"),
+    path("create-alert", AlertCreateView.as_view(), name="create-alert"),
+    path("confirm/<uuid:pk>/", AlertUpdateView.as_view(), name="confirm_subscription"),
     path("<slug:slug>/highest-paid/", HighestPaidJobsView.as_view(), name="highest-paid-job-blog-post"),
 ]
