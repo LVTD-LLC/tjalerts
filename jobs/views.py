@@ -13,7 +13,6 @@ from django_filters.views import FilterView
 from django_q.tasks import async_task
 
 from hn_jobs.utils import add_users_context, validate_technology_selected
-from users.tasks import find_subs_to_alert, send_confirmation_email
 from utils.constants import HIRABLE_TECH_LIST_SLUGS
 
 from .constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
@@ -25,7 +24,9 @@ from .tasks import (
     create_backfill_vector_data_jobs,
     create_update_min_and_max_salary_jobs,
     find_bad_submitted_dates,
+    find_users_to_alert,
     get_hn_pages_to_analyze,
+    send_confirmation_email,
 )
 
 logger = logging.getLogger(__file__)
@@ -205,6 +206,6 @@ class AlertUpdateView(SuccessMessageMixin, UpdateView):
 
     def form_valid(self, form):
         response = super(AlertUpdateView, self).form_valid(form)
-        async_task(find_subs_to_alert)
+        async_task(find_users_to_alert)
 
         return response

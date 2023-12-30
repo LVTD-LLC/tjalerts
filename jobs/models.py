@@ -156,3 +156,8 @@ class Alert(BaseModel):
 
     name = models.CharField(max_length=100, blank=True)
     filter = models.JSONField()
+
+
+class AlertEmailSend(BaseModel):
+    user = models.ForeignKey("users.CustomUser", on_delete=models.CASCADE, null=True, blank=True)
+    email = models.EmailField()

@@ -1,18 +1,19 @@
-import datetime
 import json
 import logging
 import re
+from datetime import datetime, timedelta
 
 import httpx
 import openai
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
 from django.core.validators import validate_email
 from django.db import transaction
 from django.db.models import Count
 from django_q.tasks import async_task
 
-from .models import Company, Email, Post, Technology, Title
+from .models import Alert, AlertEmailSend, Company, Email, Post, Technology, Title
 from .utils import clean_job_json_object, fix_email, get_embedding, has_number, is_generic
 
 logger = logging.getLogger(__file__)
@@ -146,7 +147,7 @@ def analyze_hn_page(orig_data, comment_id):
         who_is_hiring_id=who_is_hiring_id,
         who_is_hiring_title=who_is_hiring_title,
         who_is_hiring_comment_id=who_is_hiring_comment_id,
-        submitted_datetime=datetime.datetime.fromtimestamp(unix_timestamp),
+        submitted_datetime=datetime.fromtimestamp(unix_timestamp),
         company=company_obj,
         hn_username=hn_username,
         description=cleaned_data["description"],
@@ -264,7 +265,7 @@ def fix_submitted_date(post):
     except KeyError:
         pass
 
-    unix_timestamp = datetime.datetime.fromtimestamp(int(json_job["time"]))
+    unix_timestamp = datetime.fromtimestamp(int(json_job["time"]))
 
     if post.submitted_datetime != unix_timestamp:
         post.submitted_datetime = unix_timestamp
@@ -387,3 +388,53 @@ def backfill_vector_data(job):
     job.save(update_fields=["vector"])
 
     return f"Job {job.id} has been updated."
+
+
+def send_confirmation_email(instance, confirmation_url):
+    message = f"""
+      Hey there,
+
+      Thanks a ton for the alert subscription for {instance["technology_selected"]} jobs.
+
+      To make sure you start receving weekly alerts,
+      please confirm your subscription by clicking the link below:
+
+      {confirmation_url}
+    """
+    send_mail(
+        "Confirm Your Job Alert Subscription",
+        message,
+        settings.DEFAULT_FROM_EMAIL,
+        [instance["email"]],
+        fail_silently=False,
+    )
+
+
+def find_users_to_alert():
+    seven_days_ago = datetime.now() - timedelta(days=7)
+
+    alert_emails = (
+        Alert.objects.filter(confirmed=True, unsubscribed=False, email__isnull=False)
+        .values_list("email", flat=True)
+        .distinct()
+    )
+
+    recent_alert_emails = AlertEmailSend.objects.exclude(created__gte=seven_days_ago).values_list("email", flat=True)
+    emails_to_send_to = alert_emails.difference(recent_alert_emails)
+
+    count = 0
+    for email in emails_to_send_to:
+        async_task(
+            send_alerts,
+            email,
+            Alert.objects.filter(email=email),
+            hook="jobs.hooks.print_result",
+            group="Send Alert",
+        )
+        count += 1
+
+    return f"{count} alerts have been sent."
+
+
+def send_alerts(email, alerts):
+    return
