@@ -7,6 +7,7 @@ from .views import (
     PostDetailView,
     PostListView,
     TriggerAsyncTask,
+    authed_weekly_digest_view,
     create_backfill_vector_data_jobs_view,
     find_bad_submitted_dates_view,
     unauthed_weekly_digest_view,
@@ -29,4 +30,5 @@ urlpatterns = [
     path("confirm/<uuid:pk>/", AlertUpdateView.as_view(), name="confirm_subscription"),
     path("<slug:slug>/highest-paid/", HighestPaidJobsView.as_view(), name="highest-paid-job-blog-post"),
     path("digest/<uuid:alert_email_send_id>/", unauthed_weekly_digest_view, name="unauthed_weekly_digest"),
+    path("digest/", authed_weekly_digest_view, name="authed_weekly_digest"),
 ]

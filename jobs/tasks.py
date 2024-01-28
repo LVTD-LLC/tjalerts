@@ -425,7 +425,7 @@ def find_users_to_alert():
         .distinct()
     )
 
-    recent_alert_emails = AlertEmailSend.objects.exclude(created__gte=seven_days_ago).values_list("email", flat=True)
+    recent_alert_emails = AlertEmailSend.objects.filter(created__gte=seven_days_ago).values_list("email", flat=True)
     emails_to_send_to = alert_emails.difference(recent_alert_emails)
 
     count = 0
@@ -448,11 +448,13 @@ def send_alerts(email, alerts):
     formatted_date = current_date.strftime("%B %Y, Week {}".format(week_number))
     subject = f"Job Alerts for {formatted_date}"
 
-    user_status = "guest"
     if CustomUser.objects.filter(email=email).exists():
-        user_status = "ser"
+        user_status = "free"
+        alert_email_send = AlertEmailSend.objects.create(email=email, user=CustomUser.objects.get(email=email))
+    else:
+        user_status = "guest"
+        alert_email_send = AlertEmailSend.objects.create(email=email)
 
-    alert_email_send = AlertEmailSend.objects.create(email=email)
     context = {
         "alerts": [],
         "new_jobs_count": 0,

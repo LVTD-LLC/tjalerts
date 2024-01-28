@@ -44,7 +44,7 @@
           {% if user_status == "guest" %}
             <a href="https://{{ site_url }}{% url 'unauthed_weekly_digest' alert_email_send.id %}">weekly digest</a>
           {% else %}
-            <a href="https://{{ site_url }}">weekly digest</a>
+            <a href="https://{{ site_url }}{% url 'authed_weekly_digest' %}">weekly digest</a>
           {% endif %}
 
           is ready!

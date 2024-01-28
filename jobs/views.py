@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from django import forms
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import ValidationError
@@ -223,4 +224,34 @@ def unauthed_weekly_digest_view(request, alert_email_send_id):
     queryset = post_filter.qs.filter(created__gte=alert_email_send.created - timedelta(days=7))
 
     context = {"alert": alert, "queryset": queryset}
+    return render(request, template_name, context)
+
+
+@login_required(login_url="account_login")
+def authed_weekly_digest_view(request):
+    template_name = "jobs/authed_weekly_digest.html"
+
+    user = request.user
+
+    email_send = AlertEmailSend.objects.filter(user=user).latest("created")
+    alerts = Alert.objects.filter(email=user.email)
+
+    context = {"alerts": []}
+
+    for idx, alert in enumerate(alerts):
+        post_filter = PostFilter(alert.filter)
+        queryset = post_filter.qs.filter(created__gte=email_send.created - timedelta(days=7))
+
+        if "technologies" in alert.filter and len(alert.filter) == 1 and alert.filter["technologies"][0]:
+            name = f"{Technology.objects.get(id=alert.filter['technologies'][0]).name} Alert"
+        else:
+            name = alert.name if alert.name else f"Alert #{idx+1}"
+
+        context["alerts"].append(
+            {
+                "name": name,
+                "queryset": queryset,
+            }
+        )
+
     return render(request, template_name, context)
