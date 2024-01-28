@@ -1,3 +1,5 @@
+# ruff: noqa: E402
+
 import json
 import logging
 import re
@@ -15,6 +17,7 @@ from django.db.models import Count
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django_q.tasks import async_task
+from openai import OpenAI
 
 from users.models import CustomUser
 
@@ -23,7 +26,8 @@ from .models import Alert, AlertEmailSend, Company, Email, Post, Technology, Tit
 from .utils import clean_job_json_object, fix_email, get_embedding, has_number, is_generic
 
 logger = logging.getLogger(__file__)
-openai.api_key = settings.OPENAI_KEY
+
+client = OpenAI(api_key=settings.OPENAI_KEY)
 
 
 def get_hn_pages_to_analyze(who_is_hiring_post_id):
@@ -108,7 +112,7 @@ def analyze_hn_page(orig_data, comment_id):
     """  # noqa: E501
 
     try:
-        completion = openai.ChatCompletion.create(
+        completion = client.chat.completions.create(
             model="gpt-3.5-turbo",
             temperature=0,
             messages=[
@@ -120,7 +124,7 @@ def analyze_hn_page(orig_data, comment_id):
             ],
         )
         converted_comment_response = completion.choices[0].message
-    except (openai.error.RateLimitError, openai.error.APIError) as e:
+    except (openai.RateLimitError, openai.error.APIError) as e:
         return logger.error(e)
 
     try:
@@ -331,7 +335,7 @@ Return a valid JSON Object with the following format:
 }}
 Do not return anything else. Just the JSON Object."""  # noqa: E501
 
-    completion = openai.ChatCompletion.create(
+    completion = client.chat.completions.create(
         model="gpt-3.5-turbo",
         temperature=0,
         messages=[

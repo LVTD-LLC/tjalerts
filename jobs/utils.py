@@ -2,7 +2,9 @@ import logging
 import re
 from datetime import datetime
 
-import openai
+from openai import OpenAI
+
+client = OpenAI()
 
 from .constants import GENERIC_KEYWORDS
 
@@ -150,10 +152,6 @@ def has_number(input_string):
 def get_embedding(text):
     text = text.replace("\n", " ")
 
-    embedding = openai.Embedding.create(
-        input=[text],
-        model="text-embedding-ada-002",
-        temperature=0,
-    )
+    embedding = client.embeddings.create(input=[text], model="text-embedding-ada-002", temperature=0)
 
     return embedding["data"][0]["embedding"]
