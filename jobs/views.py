@@ -1,27 +1,34 @@
 import logging
+from datetime import timedelta
 
 from django import forms
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.messages.views import SuccessMessageMixin
+from django.core.exceptions import ValidationError
 from django.db.models import Max
-from django.shortcuts import redirect
-from django.urls import reverse_lazy
-from django.views.generic import DetailView, FormView, ListView, TemplateView
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse, reverse_lazy
+from django.views.generic import CreateView, DetailView, FormView, ListView, TemplateView, UpdateView
 from django_filters.views import FilterView
 from django_q.tasks import async_task
 
-from hn_jobs.utils import add_users_context
-from users.forms import CreateAlertForm
+from hn_jobs.utils import add_users_context, validate_technology_selected
 from utils.constants import HIRABLE_TECH_LIST_SLUGS
 
 from .constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
 from .filters import PostFilter
-from .models import Post, Technology, Title
+from .forms import CreateAlertForm, UpdateAlertForm
+from .models import Alert, AlertEmailSend, Post, Technology, Title
 from .queries import get_most_popular_technologies, get_most_popular_titles
 from .tasks import (
     create_backfill_vector_data_jobs,
     create_update_min_and_max_salary_jobs,
     find_bad_submitted_dates,
+    find_users_to_alert,
     get_hn_pages_to_analyze,
+    send_confirmation_email,
 )
 
 logger = logging.getLogger(__file__)
@@ -35,6 +42,17 @@ class PostListView(FilterView):
     template_name = "jobs/all_jobs.html"
     filterset_class = PostFilter
     paginate_by = 6
+
+    def get(self, request, *args, **kwargs):
+        params = request.GET.copy()
+
+        try:
+            del params["page"]
+            del params["o"]
+        except KeyError:
+            pass
+
+        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -83,28 +101,6 @@ class TriggerAsyncTask(LoginRequiredMixin, UserPassesTestMixin, FormView):
         return super(TriggerAsyncTask, self).form_valid(form)
 
 
-def find_bad_submitted_dates_view(request):
-    async_task(find_bad_submitted_dates, hook="jobs.hooks.print_result", group="Find Bad Datetimes to Fix")
-
-    return redirect("trigger_task")
-
-
-def update_min_and_max_salary_view(request):
-    async_task(
-        create_update_min_and_max_salary_jobs, hook="jobs.hooks.print_result", group="Populate min and max salary"
-    )
-
-    return redirect("trigger_task")
-
-
-def create_backfill_vector_data_jobs_view(request):
-    async_task(
-        create_backfill_vector_data_jobs, hook="jobs.hooks.print_result", group="Create Jobs to Update Vector Data."
-    )
-
-    return redirect("trigger_task")
-
-
 class HighestPaidBlogPostListView(TemplateView):
     template_name = "jobs/highest-paid-blog-post-list.html"
 
@@ -133,3 +129,129 @@ class HighestPaidJobsView(ListView):
             .filter(submitted_datetime__in=subquery)
             .distinct()[:10]
         )
+
+
+# One time views
+def find_bad_submitted_dates_view(request):
+    async_task(find_bad_submitted_dates, hook="jobs.hooks.print_result", group="Find Bad Datetimes to Fix")
+
+    return redirect("trigger_task")
+
+
+def update_min_and_max_salary_view(request):
+    async_task(
+        create_update_min_and_max_salary_jobs, hook="jobs.hooks.print_result", group="Populate min and max salary"
+    )
+
+    return redirect("trigger_task")
+
+
+def create_backfill_vector_data_jobs_view(request):
+    async_task(
+        create_backfill_vector_data_jobs, hook="jobs.hooks.print_result", group="Create Jobs to Update Vector Data."
+    )
+
+    return redirect("trigger_task")
+
+
+class AlertCreateView(SuccessMessageMixin, CreateView):
+    template_name = "jobs/create-alert.html"
+    model = Alert
+    form_class = CreateAlertForm
+    success_url = reverse_lazy("home")
+
+    def form_valid(self, form):
+        user = self.request.user
+        existing_alerts = Alert.objects.filter(email=form.instance.email)
+
+        if user.is_authenticated:
+            form.instance.user = user
+
+        technology_id = str(Technology.objects.get(name=form.cleaned_data["technology_selected"]).id)
+
+        form.instance.filter = {"technologies": [technology_id]}
+
+        try:
+            validate_technology_selected(form.cleaned_data["technology_selected"])
+        except ValidationError:
+            messages.add_message(self.request, messages.WARNING, "Please use a Technology from the dropdown list.")
+            return redirect("home")
+
+        if user.is_authenticated and existing_alerts.count() >= 3:
+            messages.add_message(self.request, messages.WARNING, "Free users can only have 3 alerts.")
+            return redirect("home")
+        elif not user.is_authenticated and existing_alerts.exists():
+            messages.add_message(self.request, messages.WARNING, "Sign up to create multiple alerts.")
+            return redirect("home")
+
+        if user.is_authenticated and existing_alerts.exists():
+            if existing_alerts.latest("modified").confirmed is True:
+                form.instance.confirmed = True
+                messages.add_message(
+                    self.request, messages.SUCCESS, "Alert has been added, you will start getting jobs soon!"
+                )
+        else:
+            confirmation_url = self.request.build_absolute_uri(reverse("confirm_subscription", args=[form.instance.id]))
+            async_task(send_confirmation_email, form.cleaned_data, confirmation_url)
+            messages.add_message(
+                self.request, messages.SUCCESS, "Thank for creating an alert! Check your emails to confirm!"
+            )
+
+        return super(AlertCreateView, self).form_valid(form)
+
+
+class AlertUpdateView(SuccessMessageMixin, UpdateView):
+    model = Alert
+    form_class = UpdateAlertForm
+    template_name = "jobs/subscription-confirmation.html"
+    success_url = reverse_lazy("home")
+    success_message = "Thanks for confirming :) You will receive your alerts soon!"
+
+    def form_valid(self, form):
+        response = super(AlertUpdateView, self).form_valid(form)
+        async_task(find_users_to_alert)
+
+        return response
+
+
+def unauthed_weekly_digest_view(request, alert_email_send_id):
+    template_name = "jobs/unauthed_weekly_digest.html"
+
+    alert_email_send = get_object_or_404(AlertEmailSend, id=alert_email_send_id)
+    alert = Alert.objects.get(email=alert_email_send.email)
+
+    post_filter = PostFilter(alert.filter)
+    queryset = post_filter.qs.filter(created__gte=alert_email_send.created - timedelta(days=7))
+
+    context = {"alert": alert, "queryset": queryset}
+    return render(request, template_name, context)
+
+
+@login_required(login_url="account_login")
+def authed_weekly_digest_view(request):
+    template_name = "jobs/authed_weekly_digest.html"
+
+    user = request.user
+
+    email_send = AlertEmailSend.objects.filter(user=user).latest("created")
+    alerts = Alert.objects.filter(email=user.email)
+
+    context = {"alerts": []}
+
+    for idx, alert in enumerate(alerts):
+        post_filter = PostFilter(alert.filter)
+        queryset = post_filter.qs.filter(created__gte=email_send.created - timedelta(days=7))
+
+        if "technologies" in alert.filter and len(alert.filter) == 1 and alert.filter["technologies"][0]:
+            name = f"{Technology.objects.get(id=alert.filter['technologies'][0]).name} Alert"
+        else:
+            name = alert.name if alert.name else f"Alert #{idx+1}"
+
+        context["alerts"].append(
+            {
+                "name": name,
+                "queryset": queryset,
+            }
+        )
+
+    return render(request, template_name, context)

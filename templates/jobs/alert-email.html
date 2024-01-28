@@ -1,0 +1,91 @@
+{% load mjml %}
+
+{% mjml %}
+<mjml>
+  <mj-head>
+    <mj-style>
+      .item {
+        display: inline-flex;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 14px;
+        line-height: 18px;
+        font-weight: 500;
+        color: #047857;
+        background-color: #ECFDF5;
+      }
+      .message-border {
+      border: 2px solid #D50000 !important;
+      border-radius: 6px !important;
+      }
+      .margin-vertical-20px {
+        margin-top: 20px !important;
+        margin-bottom: 20px !important;
+      }
+    </mj-style>
+    <mj-style>
+    </mj-style>
+  </mj-head>
+
+  <mj-body>
+    <mj-section background-color="#f9f9f9">
+      <mj-column>
+        <mj-text font-size="24px" font-weight="800" color="#333333" align="center" padding="20px 0">
+          Tech Job Alerts
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section>
+      <mj-column>
+        <mj-text font-size="18px" font-weight="600" color="#333333" padding="10px 0" align="center">
+          Your
+
+          {% if user_status == "guest" %}
+            <a href="https://{{ site_url }}{% url 'unauthed_weekly_digest' alert_email_send.id %}">weekly digest</a>
+          {% else %}
+            <a href="https://{{ site_url }}{% url 'authed_weekly_digest' %}">weekly digest</a>
+          {% endif %}
+
+          is ready!
+        </mj-text>
+        <mj-text font-size="18px" font-weight="600" color="#333333" padding="10px 0" align="center">
+          You have {{ alerts | length }} alerts set up and there are {{ new_jobs_count }} jobs total.
+        </mj-text>
+        <mj-image src="https://www.reactiongifs.com/r/cheering_minions.gif"></mj-image>
+      </mj-column>
+    </mj-section>
+
+    {% if user_status == "guest" %}
+    <mj-section css-class="message-border margin-vertical-20px" padding="20px 0">
+      <mj-column>
+          <mj-text font-size="18px" font-weight="bold" color="#333333" css-class="header">
+            Friendly Reminder
+          </mj-text>
+          <mj-text font-size="16px" color="#666666">
+            Right now you are not a registered user, which means you can only create one alert.
+          </mj-text>
+          <mj-text font-size="16px" color="#666666">
+            If you <a href="https://{{ site_url }}{% url 'account_signup' %}">sign up</a>, you can create a total of 3 alerts!
+          </mj-text>
+      </mj-column>
+    </mj-section>
+    {% endif %}
+
+    <mj-section background-color="#f9f9f9" padding="20px 0">
+      <mj-column>
+          <mj-text font-size="18px" font-weight="bold" color="#333333" css-class="header">
+            Best Ad in the World™
+          </mj-text>
+          <mj-text font-size="16px" color="#666666">
+            If you are a company looking for the best employees, check out
+            <a href="https://gettalentleads.com?utm_source=gettjalerts.com" target="_blank" font-size="16px" color="#007bff">
+              TalentLeads
+            </a>
+          </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>
+{% endmjml %}

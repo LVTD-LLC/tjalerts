@@ -17,6 +17,7 @@ class CustomUser(AbstractUser):
 
 class Subscriber(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    owner = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
 
     email = models.EmailField()
     confirmed = models.BooleanField(default=False)

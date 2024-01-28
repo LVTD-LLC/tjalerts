@@ -5,7 +5,10 @@ from urllib.parse import unquote
 
 import posthog
 from allauth.account.models import EmailAddress
+from django.core.exceptions import ValidationError
 from django.forms.utils import ErrorList
+
+from jobs.models import Technology
 
 logger = logging.getLogger(__file__)
 
@@ -56,3 +59,9 @@ class DivErrorList(ErrorList):
               </div>
             </div>
          """  # noqa: E501
+
+
+def validate_technology_selected(value):
+    technologies = Technology.objects.values_list("name", flat=True)
+    if value not in technologies:
+        raise ValidationError(f"{value} is not a valid technology name.")
