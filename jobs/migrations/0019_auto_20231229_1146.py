@@ -22,6 +22,8 @@ def migrate_data(apps, schema_editor):
         }
 
         Alert.objects.create(
+            created=subscriber.created,
+            modified=subscriber.modified,
             user=subscriber.owner,
             email=subscriber.email,
             confirmed=subscriber.confirmed,
