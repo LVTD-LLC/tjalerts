@@ -469,7 +469,14 @@ def send_alerts(email, alerts):
     for idx, alert in enumerate(alerts):
         name = alert.name if alert.name else idx
         context["alerts"].append(name)
-        context["new_jobs_count"] += PostFilter(alert.filter).qs.count()
+        context["new_jobs_count"] += (
+            PostFilter(alert.filter)
+            .qs.filter(submitted_datetime__gte=alert_email_send.created - timedelta(days=7))
+            .count()
+        )
+
+    if context["new_jobs_count"] == 0:
+        return f"{email} has no new jobs"
 
     html_content = render_to_string("jobs/alert-email.html", context)
     text_content = strip_tags(html_content)
