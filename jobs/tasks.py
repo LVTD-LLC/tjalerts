@@ -48,7 +48,8 @@ def get_hn_pages_to_analyze(who_is_hiring_post_id):
         ):
             async_task(
                 analyze_hn_page,
-                data,
+                int(data["id"]),
+                str(re.search("\(([^)]+)", data["title"]).group(1)),
                 comment_id,
                 hook="jobs.hooks.print_result",
                 group="Analyze HN Page",
@@ -60,10 +61,7 @@ def get_hn_pages_to_analyze(who_is_hiring_post_id):
     return f"{count} have been sent to be analyzed."
 
 
-def analyze_hn_page(orig_data, comment_id):
-    who_is_hiring_id = int(orig_data["id"])
-    who_is_hiring_title = str(re.search("\(([^)]+)", orig_data["title"]).group(1))
-
+def analyze_hn_page(who_is_hiring_id, who_is_hiring_title, comment_id):
     logger.info(f"Analyzing comment {comment_id}")
     json_job = httpx.get(f"https://hacker-news.firebaseio.com/v0/item/{comment_id}.json").json()
 
