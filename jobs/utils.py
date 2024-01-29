@@ -152,6 +152,6 @@ def has_number(input_string):
 def get_embedding(text):
     text = text.replace("\n", " ")
 
-    embedding = client.embeddings.create(input=[text], model="text-embedding-ada-002", temperature=0)
+    embedding = client.embeddings.create(input=[text], model="text-embedding-3-small")
 
-    return embedding["data"][0]["embedding"]
+    return embedding.data[0].embedding

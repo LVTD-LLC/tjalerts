@@ -258,7 +258,7 @@ Q_CLUSTER = {
     "redis": env("REDIS_URL"),
 }
 
-OPENAI_KEY = env("OPENAI_KEY")
+OPENAI_API_KEY = env("OPENAI_API_KEY")
 
 ANYMAIL = {
     "MAILGUN_API_KEY": env("MAILGUN_API_KEY"),

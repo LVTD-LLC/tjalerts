@@ -1,5 +1,3 @@
-# ruff: noqa: E402
-
 import json
 import logging
 import re
@@ -27,7 +25,7 @@ from .utils import clean_job_json_object, fix_email, get_embedding, has_number, 
 
 logger = logging.getLogger(__file__)
 
-client = OpenAI(api_key=settings.OPENAI_KEY)
+client = OpenAI()
 
 
 def get_hn_pages_to_analyze(who_is_hiring_post_id):
@@ -113,8 +111,9 @@ def analyze_hn_page(orig_data, comment_id):
 
     try:
         completion = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-3.5-turbo-1106",
             temperature=0,
+            response_format={"type": "json_object"},
             messages=[
                 {
                     "role": "system",
@@ -124,13 +123,13 @@ def analyze_hn_page(orig_data, comment_id):
             ],
         )
         converted_comment_response = completion.choices[0].message
-    except (openai.RateLimitError, openai.error.APIError) as e:
-        return logger.error(e)
+    except (openai.RateLimitError, openai.APIError) as e:
+        raise e
 
     try:
         json_converted_comment_response = json.loads(converted_comment_response.content)
-    except json.decoder.JSONDecodeError:
-        return "Data was not in the JSON format"
+    except json.decoder.JSONDecodeError as e:
+        raise e
 
     cleaned_data = clean_job_json_object(json_job, json_converted_comment_response)
 
@@ -336,8 +335,9 @@ Return a valid JSON Object with the following format:
 Do not return anything else. Just the JSON Object."""  # noqa: E501
 
     completion = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-3.5-turbo-1106",
         temperature=0,
+        response_format={"type": "json_object"},
         messages=[
             {
                 "role": "system",
