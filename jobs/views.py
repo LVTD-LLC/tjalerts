@@ -197,6 +197,8 @@ class AlertCreateView(SuccessMessageMixin, CreateView):
                 self.request, messages.SUCCESS, "Thank for creating an alert! Check your emails to confirm!"
             )
 
+        async_task(find_users_to_alert, group="Find Users to Alert")
+
         return super(AlertCreateView, self).form_valid(form)
 
 
