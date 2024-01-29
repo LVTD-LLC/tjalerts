@@ -222,8 +222,9 @@ def unauthed_weekly_digest_view(request, alert_email_send_id):
 
     post_filter = PostFilter(alert.filter)
     queryset = post_filter.qs.filter(submitted_datetime__gte=alert_email_send.created - timedelta(days=7))
+    name = f"{Technology.objects.get(id=alert.filter['technologies'][0]).name} Alert"
 
-    context = {"alert": alert, "queryset": queryset}
+    context = {"alert": alert, "queryset": queryset, "name": name}
     return render(request, template_name, context)
 
 

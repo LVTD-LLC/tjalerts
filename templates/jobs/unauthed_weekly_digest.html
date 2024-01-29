@@ -6,65 +6,77 @@
 
 {% block content %}
 
-<div class="grid grid-cols-12 gap-2 mx-auto mt-10 mb-16 overflow-hidden bg-white sm:mb-24 max-w-7xl">
-  <div class="col-span-12">
-    <ul role="list" class="flex flex-col space-y-2">
-      {% for object in queryset %}
-        <li class="border border-gray-400 rounded-md">
-          <a class="flex flex-col px-6 py-4 space-y-2 bg-white divide-y rounded-md hover:bg-gray-50" href="{% url 'post' object.id %}">
-            <div class="flex items-center justify-between w-full py-2">
-              <div class="flex-1">
-                <div class="flex items-center justify-between">
-                  <h3 class="text-lg font-medium text-gray-900 truncate">
-                    {% if object.company.name %}
-                      {{ object.company.name }}
-                    {% else %}
-                      Stealth
-                    {% endif %}
-                  </h3>
-                  <p class="-mt-10 -mr-3 text-xs text-gray-500">Posted {{ object.submitted_datetime|timesince }} ago</p>
+<div data-controller="reveal" class="mx-auto mb-4 max-w-7xl">
+  <div class="flex flex-row items-center pb-5 space-x-2">
+    <h3 class="text-2xl font-semibold leading-6 text-gray-900">{{ alert.name }}</h3>
+    <button type="button" data-action="click->reveal#toggle" class="p-2 bg-gray-100 rounded-full hover:bg-gray-200">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+      </svg>
+    </button>
+  </div>
+
+  <div data-reveal-target="item" class="grid grid-cols-12 gap-2 mx-auto mt-10 mb-16 overflow-hidden bg-white sm:mb-24 max-w-7xl">
+    <div class="col-span-12">
+      <ul role="list" class="flex flex-col space-y-2">
+        {% for object in queryset %}
+          <li class="border border-gray-400 rounded-md">
+            <a class="flex flex-col px-6 py-4 space-y-2 bg-white divide-y rounded-md hover:bg-gray-50" href="{% url 'post' object.id %}">
+              <div class="flex items-center justify-between w-full py-2">
+                <div class="flex-1">
+                  <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-medium text-gray-900 truncate">
+                      {% if object.company.name %}
+                        {{ object.company.name }}
+                      {% else %}
+                        Stealth
+                      {% endif %}
+                    </h3>
+                    <p class="-mt-10 -mr-3 text-xs text-gray-500">Posted {{ object.submitted_datetime|timesince }} ago</p>
+                  </div>
+                  <p class="text-sm text-gray-600">
+                    {{ object.description }}
+                  </p>
                 </div>
-                <p class="text-sm text-gray-600">
-                  {{ object.description }}
-                </p>
               </div>
-            </div>
 
-            {% if object.jobs.all.count == 1 and object.jobs.all.0.name == "" %}
-            {% elif object.jobs.all.count >= 1 %}
-            <div class="flex w-full py-2">
-                <div>
-                  <h4 class="text-base">Roles</h4>
-                  {% for title in object.jobs.all %}
-                  <span class="inline-flex items-center px-2 py-1 my-1 text-sm font-medium text-green-700 rounded-md bg-green-50 ring-1 ring-inset ring-green-600/20">
-                    {{ title.name }}
-                  </span>
-                  {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            {% if object.technologies.all.count == 1 and object.technologies.all.0.name == "" %}
-            {% elif object.technologies.all.count > 0 %}
+              {% if object.jobs.all.count == 1 and object.jobs.all.0.name == "" %}
+              {% elif object.jobs.all.count >= 1 %}
               <div class="flex w-full py-2">
                   <div>
-                    <h4 class="text-base">Tech Stack</h4>
-                    {% for technology in object.technologies.all %}
+                    <h4 class="text-base">Roles</h4>
+                    {% for title in object.jobs.all %}
                     <span class="inline-flex items-center px-2 py-1 my-1 text-sm font-medium text-green-700 rounded-md bg-green-50 ring-1 ring-inset ring-green-600/20">
-                      {{ technology.name }}
+                      {{ title.name }}
                     </span>
                     {% endfor %}
                   </div>
               </div>
-            {% endif %}
-          </a>
-        </li>
-        {% empty %}
-        <div class="max-w-2xl mx-auto my-16 text-center">
-          <p class="text-4xl font-semibold tracking-tight text-gray-900">No such jobs exist :(.</p>
-        </div>
-      {% endfor %}
-    </ul>
+              {% endif %}
+
+              {% if object.technologies.all.count == 1 and object.technologies.all.0.name == "" %}
+              {% elif object.technologies.all.count > 0 %}
+                <div class="flex w-full py-2">
+                    <div>
+                      <h4 class="text-base">Tech Stack</h4>
+                      {% for technology in object.technologies.all %}
+                      <span class="inline-flex items-center px-2 py-1 my-1 text-sm font-medium text-green-700 rounded-md bg-green-50 ring-1 ring-inset ring-green-600/20">
+                        {{ technology.name }}
+                      </span>
+                      {% endfor %}
+                    </div>
+                </div>
+              {% endif %}
+            </a>
+          </li>
+          {% empty %}
+          <div class="max-w-2xl mx-auto my-16 text-center">
+            <p class="text-4xl font-semibold tracking-tight text-gray-900">No such jobs exist :(.</p>
+          </div>
+        {% endfor %}
+      </ul>
+    </div>
   </div>
 </div>
+
 {% endblock content %}
