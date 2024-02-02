@@ -22,7 +22,11 @@
           {% csrf_token %}
             <div>
               <label for="email" class="block text-sm font-medium leading-6 text-left text-gray-900">Email</label>
-              {% render_field create_alert_form.email id="email" name="email" type="email" value=request.user.email autocomplete="email" placeholder="you@example.com" required="True" class="block w-full px-2 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-green-600 sm:text-sm sm:leading-6" %}
+              {% if request.user.is_authenticated %}
+                {% render_field create_alert_form.email id="email" name="email" type="email" value=request.user.email autocomplete="email" readonly="True" required="True" class="block w-full px-2 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-green-600 sm:text-sm sm:leading-6" %}
+              {% else %}
+                {% render_field create_alert_form.email id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required="True" class="block w-full px-2 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-green-600 sm:text-sm sm:leading-6" %}
+              {% endif %}
             </div>
 
             <div>
