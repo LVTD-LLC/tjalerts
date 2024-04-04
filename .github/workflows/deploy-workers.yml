@@ -1,4 +1,4 @@
-name: Deploy Prod Server
+name: Deploy Prod Workers
 
 on:
   push:
@@ -31,13 +31,13 @@ jobs:
         with:
           context: .
           push: true
-          file: deployment/Dockerfile.server
-          tags: ghcr.io/${{ github.repository }}
+          file: deployment/Dockerfile.workers
+          tags: ghcr.io/${{ github.repository }}-workers
 
       - name: Deploy to CapRover
         uses: caprover/deploy-from-github@main
         with:
-            server: ${{ secrets.CAPROVER_SERVER }}
-            app: ${{ env.PROJECT_NAME }}
-            token: '${{ secrets.APP_TOKEN }}'
-            image: ghcr.io/${{ github.repository }}
+          server: ${{ secrets.CAPROVER_SERVER }}
+          app: ${{ env.PROJECT_NAME }}-workers
+          token: '${{ secrets.WORKERS_APP_TOKEN }}'
+          image: ghcr.io/${{ github.repository }}-workers
