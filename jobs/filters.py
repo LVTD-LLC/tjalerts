@@ -17,7 +17,7 @@ class VectorEmbeddingFilter(Filter):
         if not value:
             return qs
 
-        return qs.annotate(distance=L2Distance("vector", get_embedding(value))).filter(distance__lt=0.7)
+        return qs.annotate(distance=L2Distance("vector", get_embedding(value))).filter(distance__lt=1.1)
 
 
 class EmptyStringFilter(BooleanFilter):
