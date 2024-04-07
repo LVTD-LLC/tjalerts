@@ -42,6 +42,8 @@ def clean_job_json_object(original_comment: dict, nlp_data: dict) -> dict:
         nlp_data["years_of_experience"], original_comment["text"]
     )
 
+    nlp_data["original_text"] = original_comment["text"]
+
     check_boolean_value(nlp_data["is_remote"])
     check_boolean_value(nlp_data["is_onsite"])
 

@@ -62,7 +62,6 @@ def get_hn_pages_to_analyze(who_is_hiring_post_id):
 
 
 def analyze_hn_page(who_is_hiring_id, who_is_hiring_title, comment_id):
-    logger.info("Analyzing HN Comment", comment_id=comment_id)
     json_job = httpx.get(f"https://hacker-news.firebaseio.com/v0/item/{comment_id}.json").json()
 
     try:
@@ -155,7 +154,7 @@ def analyze_hn_page(who_is_hiring_id, who_is_hiring_title, comment_id):
         who_is_hiring_comment_id=who_is_hiring_comment_id,
         submitted_datetime=datetime.fromtimestamp(unix_timestamp),
         company=company_obj,
-        original_text=cleaned_data["text"],
+        original_text=cleaned_data["original_text"],
         hn_username=hn_username,
         description=cleaned_data["description"],
         locations=cleaned_data["locations"],
