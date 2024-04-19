@@ -88,7 +88,9 @@ def get_jobs(request, technologies=Query(None)):
             "compensation_summary": post.compensation_summary,
             "technologies": post_technologies,
             "title": post_titles,
+            "id": str(post.id),
             "who_is_hiring_comment_id": post.who_is_hiring_comment_id,
+            "submitted_datetime": post.submitted_datetime,
         }
 
         posts_list.append(entry)
