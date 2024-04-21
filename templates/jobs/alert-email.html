@@ -92,7 +92,7 @@
             {% if user_status == "guest" %}
               <a href="https://{{ site_url }}{% url 'unauthed_alert_unsubscribe' alert_email_send.id %}">Unsubscribe</a>
             {% else %}
-              <a href="https://{{ site_url }}{% url 'authed_weekly_digest' %}">Unsubscribe</a>
+              <a href="https://{{ site_url }}{% url 'settings' %}">Unsubscribe</a>
             {% endif %}
           </mj-text>
       </mj-column>
