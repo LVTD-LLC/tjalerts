@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load widget_tweaks %}
+{% load alert_extras %}
 
 {% block content %}
 
@@ -36,22 +37,42 @@
           </div>
 
           <div class="mt-4">
-            <div class="md:grid md:grid-cols-3 md:gap-6">
-              <div class="md:col-span-1">
-                <div class="px-4 sm:px-0">
-                  <h3 class="text-lg font-medium leading-6 text-gray-900">
-                    Status:
-                    <span class="text-green-700">
-                      {% if user.paid %}
-                        Pro
-                      {% else %}
-                        Free
-                      {% endif %}
-                    </span>
-                  </h3>
-                  <p class="mt-1 text-sm text-gray-600">
-                    Here you can upgrade, cancel or change your payments information.
-                  </p>
+            <div class="px-4 sm:px-0">
+              <h3 class="text-xl font-medium leading-6 text-gray-900">
+                Alerts
+              </h3>
+              <div class="flow-root mt-4">
+                <div class="-mx-4 -my-2 overflow-x-auto">
+                  <div class="inline-block min-w-full px-2 py-2 align-middle">
+                    <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+                      <table class="min-w-full divide-y divide-gray-300">
+                        <tbody class="bg-white divide-y divide-gray-200">
+                          {% for alert in alerts %}
+                          <tr>
+                            <td class="py-4 pl-4 pr-3 text-sm font-medium text-gray-900 whitespace-nowrap sm:pl-6">{{ alert | show_default_alert_name:forloop.counter }}</td>
+                            <td class="px-3 py-4 text-sm text-right text-gray-500 whitespace-nowrap">
+                              <form method="post" action="{% url 'toggle_subscription_from_authed_alert' alert.id %}">
+                                {% csrf_token %}
+                                <button
+                                  class="
+                                    rounded-md px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2
+                                    {% if alert.unsubscribed %}
+                                    bg-green-600 focus-visible:outline-green-600 hover:bg-green-500
+                                    {% else %}
+                                    bg-red-600 focus-visible:outline-red-600 hover:bg-red-500
+                                    {% endif %}
+                                  "
+                                  type="submit">
+                                  {% if alert.unsubscribed %}Subscribe{% else %}Unsubscribe{% endif %}
+                                </button>
+                              </form>
+                            </td>
+                          </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

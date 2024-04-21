@@ -1,9 +1,10 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.sites.models import Site
 from django.core.mail import EmailMultiAlternatives, send_mail
 from django.template.loader import render_to_string
+from django.utils import timezone
 from django.utils.html import strip_tags
 from django_q.tasks import async_task
 
@@ -13,7 +14,7 @@ from .models import Alert, Subscriber
 
 
 def send_alert(subscriber: Subscriber):
-    current_date = datetime.now()
+    current_date = timezone.now()
     week_number = (current_date.day - 1) // 7 + 1
     formatted_date = current_date.strftime("%B %Y, Week {}".format(week_number))
     subject = f"Your Job Alerts for {subscriber.technology_selected} - {formatted_date}"
@@ -49,7 +50,7 @@ def send_alert(subscriber: Subscriber):
 
 
 def find_subs_to_alert():
-    seven_days_ago = datetime.now() - timedelta(days=7)
+    seven_days_ago = timezone.now() - timedelta(days=7)
 
     waiting_subscribers = (
         Subscriber.objects.filter(confirmed=True, unsubscribed=False)

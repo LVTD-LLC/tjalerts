@@ -8,6 +8,7 @@ from django.urls import reverse_lazy
 from django.views.generic import UpdateView
 
 from hn_jobs.utils import add_users_context
+from jobs.models import Alert
 
 from .models import CustomUser
 
@@ -28,8 +29,9 @@ class UserSettingsView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
-
         add_users_context(context, user, self)
+
+        context["alerts"] = Alert.objects.filter(email=user.email)
 
         return context
 

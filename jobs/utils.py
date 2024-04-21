@@ -7,6 +7,7 @@ from openai import OpenAI
 client = OpenAI()
 
 from .constants import GENERIC_KEYWORDS
+from .models import Technology
 
 logger = logging.getLogger(__file__)
 
@@ -157,3 +158,10 @@ def get_embedding(text):
     embedding = client.embeddings.create(input=[text], model="text-embedding-3-small")
 
     return embedding.data[0].embedding
+
+
+def default_alert_name(alert, idx):
+    if "technologies" in alert.filter and len(alert.filter) == 1 and alert.filter["technologies"][0]:
+        return f"{Technology.objects.get(id=alert.filter['technologies'][0]).name} Alert"
+    else:
+        return alert.name if alert.name else f"Alert #{idx+1}"

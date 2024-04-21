@@ -1,4 +1,3 @@
-import logging
 from datetime import timedelta
 
 from django import forms
@@ -14,12 +13,13 @@ from django.views.generic import CreateView, DetailView, FormView, ListView, Tem
 from django_filters.views import FilterView
 from django_q.tasks import async_task
 
-from hn_jobs.utils import add_users_context, validate_technology_selected
+from hn_jobs.utils import add_users_context, get_tjalerts_logger, validate_technology_selected
+from jobs.utils import default_alert_name
 from utils.constants import HIRABLE_TECH_LIST_SLUGS
 
 from .constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
 from .filters import PostFilter
-from .forms import CreateAlertForm, UpdateAlertForm
+from .forms import ConfirmAlertForm, CreateAlertForm
 from .models import Alert, AlertEmailSend, Post, Technology, Title
 from .queries import get_most_popular_technologies, get_most_popular_titles
 from .tasks import (
@@ -31,7 +31,7 @@ from .tasks import (
     send_confirmation_email,
 )
 
-logger = logging.getLogger(__file__)
+logger = get_tjalerts_logger(__name__)
 
 excluded_tech = Technology.objects.filter(name__in=EXCLUDED_TECHNOLOGIES)
 excluded_titles = Title.objects.filter(name__in=EXCLUDED_TITLES)
@@ -177,10 +177,11 @@ class AlertCreateView(SuccessMessageMixin, CreateView):
             messages.add_message(self.request, messages.WARNING, "Please use a Technology from the dropdown list.")
             return redirect("home")
 
-        if user.is_authenticated and existing_alerts.count() >= 3:
-            messages.add_message(self.request, messages.WARNING, "Free users can only have 3 alerts.")
-            return redirect("home")
-        elif not user.is_authenticated and existing_alerts.exists():
+        # if user.is_authenticated and existing_alerts.count() >= 3:
+        #     messages.add_message(self.request, messages.WARNING, "Free users can only have 3 alerts.")
+        #     return redirect("home")
+
+        if not user.is_authenticated and existing_alerts.exists():
             messages.add_message(self.request, messages.WARNING, "Sign up to create multiple alerts.")
             return redirect("home")
 
@@ -202,15 +203,15 @@ class AlertCreateView(SuccessMessageMixin, CreateView):
         return super(AlertCreateView, self).form_valid(form)
 
 
-class AlertUpdateView(SuccessMessageMixin, UpdateView):
+class ConfirmAlertView(SuccessMessageMixin, UpdateView):
     model = Alert
-    form_class = UpdateAlertForm
+    form_class = ConfirmAlertForm
     template_name = "jobs/subscription-confirmation.html"
     success_url = reverse_lazy("home")
     success_message = "Thanks for confirming :) You will receive your alerts soon!"
 
     def form_valid(self, form):
-        response = super(AlertUpdateView, self).form_valid(form)
+        response = super(ConfirmAlertView, self).form_valid(form)
         async_task(find_users_to_alert, group="Find Users to Alert")
 
         return response
@@ -230,6 +231,38 @@ def unauthed_weekly_digest_view(request, alert_email_send_id):
     return render(request, template_name, context)
 
 
+def unsubscribe_from_unauthed_alert(request, alert_email_send_id):
+    alert_email_send = get_object_or_404(AlertEmailSend, id=alert_email_send_id)
+    alert = Alert.objects.get(email=alert_email_send.email, user__isnull=True)
+
+    if request.method == "POST":
+        alert.unsubscribed = True
+        alert.save()
+        messages.success(request, "You have been unsubscribed from the alert successfully.")
+        return redirect(reverse("home"))
+
+    return render(request, "jobs/unsubscribe_from_unauthed_alert.html", {"alert_email_send": alert_email_send})
+
+
+@login_required(login_url="account_login")
+def toggle_subscription_from_authed_alert(request, alert_id):
+    alert = get_object_or_404(Alert, id=alert_id)
+
+    if request.method == "POST":
+        alert.unsubscribed = not alert.unsubscribed
+        alert.save()
+
+        custom_message = (
+            "You have been unsubscribed from the alert successfully."
+            if alert.unsubscribed
+            else "You have been subscribed to the alert successfully."
+        )
+        messages.success(request, custom_message)
+        return redirect(reverse("settings"))
+
+    return render(request, "jobs/toggle_subscription_from_authed_alert.html", {"alert": alert})
+
+
 @login_required(login_url="account_login")
 def authed_weekly_digest_view(request):
     template_name = "jobs/authed_weekly_digest.html"
@@ -245,10 +278,7 @@ def authed_weekly_digest_view(request):
         post_filter = PostFilter(alert.filter)
         queryset = post_filter.qs.filter(submitted_datetime__gte=email_send.created - timedelta(days=7))
 
-        if "technologies" in alert.filter and len(alert.filter) == 1 and alert.filter["technologies"][0]:
-            name = f"{Technology.objects.get(id=alert.filter['technologies'][0]).name} Alert"
-        else:
-            name = alert.name if alert.name else f"Alert #{idx+1}"
+        name = default_alert_name(alert, idx)
 
         context["alerts"].append(
             {

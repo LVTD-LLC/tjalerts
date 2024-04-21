@@ -1,5 +1,4 @@
 import json
-import logging
 import re
 from datetime import datetime, timedelta
 
@@ -13,17 +12,19 @@ from django.core.validators import validate_email
 from django.db import transaction
 from django.db.models import Count
 from django.template.loader import render_to_string
+from django.utils import timezone
 from django.utils.html import strip_tags
 from django_q.tasks import async_task
 from openai import OpenAI
 
+from hn_jobs.utils import get_tjalerts_logger
 from users.models import CustomUser
 
 from .filters import PostFilter
 from .models import Alert, AlertEmailSend, Company, Email, Post, Technology, Title
 from .utils import clean_job_json_object, fix_email, get_embedding, has_number, is_generic
 
-logger = logging.getLogger(__file__)
+logger = get_tjalerts_logger(__name__)
 
 client = OpenAI()
 
@@ -426,7 +427,7 @@ def send_confirmation_email(instance, confirmation_url):
 
 
 def find_users_to_alert():
-    seven_days_ago = datetime.now() - timedelta(days=7)
+    seven_days_ago = timezone.now() - timedelta(days=7)
 
     alert_emails = (
         Alert.objects.filter(confirmed=True, unsubscribed=False, email__isnull=False)
@@ -452,7 +453,7 @@ def find_users_to_alert():
 
 
 def send_alerts(email, alerts):
-    current_date = datetime.now()
+    current_date = timezone.now()
     week_number = (current_date.day - 1) // 7 + 1
     formatted_date = current_date.strftime("%B %Y, Week {}".format(week_number))
     subject = f"Job Alerts for {formatted_date}"

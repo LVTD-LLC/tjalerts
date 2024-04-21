@@ -65,3 +65,10 @@ def validate_technology_selected(value):
     technologies = Technology.objects.values_list("name", flat=True)
     if value not in technologies:
         raise ValidationError(f"{value} is not a valid technology name.")
+
+
+def get_tjalerts_logger(name):
+    """This will add a `tjalerts` prefix to logger for easy configuration."""
+    import structlog
+
+    return structlog.getLogger(f"tjalerts.{name}")

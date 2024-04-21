@@ -14,7 +14,7 @@ class CreateAlertForm(ModelForm):
         ]
 
 
-class UpdateAlertForm(ModelForm):
+class ConfirmAlertForm(ModelForm):
     class Meta:
         model = Alert
         fields = ["confirmed"]
