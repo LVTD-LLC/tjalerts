@@ -74,4 +74,4 @@ ignore = "H031,H006,H023"
 line-length = 120
 
 [tool.ruff.lint]
-ignore = ["E402"]
+ignore = ["E402", "F601"]
