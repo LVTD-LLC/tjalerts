@@ -16,6 +16,7 @@ from pathlib import Path
 import environ
 import posthog
 import sentry_sdk
+import structlog
 from posthog.sentry.posthog_integration import PostHogIntegration
 from sentry_sdk.integrations.django import DjangoIntegration
 
@@ -62,6 +63,7 @@ INSTALLED_APPS = [
     "mjml",
     "storages",
     "debug_toolbar",
+    "django_structlog",
     # Custom
     "pages.apps.PagesConfig",
     "users.apps.UsersConfig",
@@ -84,6 +86,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "posthog.sentry.django.PosthogDistinctIdMiddleware",
+    "django_structlog.middlewares.RequestMiddleware",
 ]
 
 if DEBUG:
@@ -315,3 +318,62 @@ if DEBUG:
 POSTHOG_DJANGO = {"distinct_id": lambda request: request.user and request.user.distinct_id}
 
 HEALTHCHECKS_HOST = "https://healthchecks.cr.lvtd.dev/ping"
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "json_formatter": {
+            "()": structlog.stdlib.ProcessorFormatter,
+            "processor": structlog.processors.JSONRenderer(),
+        },
+        "plain_console": {
+            "()": structlog.stdlib.ProcessorFormatter,
+            "processor": structlog.dev.ConsoleRenderer(),
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "plain_console",
+            "level": "DEBUG",
+        },
+        "prod_console": {
+            "class": "logging.StreamHandler",
+            "formatter": "plain_console",
+            "level": "DEBUG",
+        },
+        "json_console": {
+            "class": "logging.StreamHandler",
+            "formatter": "json_formatter",
+            "level": "DEBUG",
+        },
+    },
+    "loggers": {
+        "django_structlog": {
+            "handlers": ["console", "json_console"],
+            "level": "INFO",
+        },
+        "tjalerts": {
+            "handlers": ["console", "json_console"],
+            "level": "INFO",
+        },
+    },
+}
+
+structlog.configure(
+    processors=[
+        structlog.contextvars.merge_contextvars,
+        structlog.stdlib.filter_by_level,
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.processors.UnicodeDecoder(),
+        structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+    ],
+    logger_factory=structlog.stdlib.LoggerFactory(),
+    cache_logger_on_first_use=True,
+)
