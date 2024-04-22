@@ -20,7 +20,7 @@ import structlog
 from posthog.sentry.posthog_integration import PostHogIntegration
 from sentry_sdk.integrations.django import DjangoIntegration
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
 env = environ.Env(
@@ -233,28 +233,6 @@ SOCIALACCOUNT_PROVIDERS = {
     },
 }
 
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "root": {"level": "INFO", "handlers": ["console"]},
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "app",
-            "level": "INFO",
-        },
-    },
-    "loggers": {
-        "django": {"handlers": ["console"], "level": "INFO", "propagate": True},
-    },
-    "formatters": {
-        "app": {
-            "format": ("%(asctime)s [%(levelname)-8s] " "(%(module)s.%(funcName)s) %(message)s"),
-            "datefmt": "%Y-%m-%d %H:%M:%S",
-        },
-    },
-}
-
 Q_CLUSTER = {
     "name": "hn_jobs-q",
     "timeout": 90,
@@ -313,7 +291,8 @@ INTERNAL_IPS = [
 posthog.project_api_key = env("POSTHOG_API_KEY")
 posthog.host = "https://app.posthog.com"
 if DEBUG:
-    posthog.debug = True
+    # posthog.debug = True
+    posthog.disabled = True
 
 POSTHOG_DJANGO = {"distinct_id": lambda request: request.user and request.user.distinct_id}
 
@@ -331,14 +310,13 @@ LOGGING = {
             "()": structlog.stdlib.ProcessorFormatter,
             "processor": structlog.dev.ConsoleRenderer(),
         },
+        "key_value": {
+            "()": structlog.stdlib.ProcessorFormatter,
+            "processor": structlog.processors.KeyValueRenderer(key_order=["timestamp", "level", "event", "logger"]),
+        },
     },
     "handlers": {
         "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "plain_console",
-            "level": "DEBUG",
-        },
-        "prod_console": {
             "class": "logging.StreamHandler",
             "formatter": "plain_console",
             "level": "DEBUG",
@@ -351,12 +329,14 @@ LOGGING = {
     },
     "loggers": {
         "django_structlog": {
-            "handlers": ["console", "json_console"],
+            "handlers": ["console"],
             "level": "INFO",
+            "propagate": False,
         },
-        "tjalerts": {
-            "handlers": ["console", "json_console"],
-            "level": "INFO",
+        "hn_jobs": {
+            "level": "DEBUG",
+            "handlers": ["console"],
+            "propagate": False,
         },
     },
 }

@@ -3,28 +3,21 @@ import math
 from urllib.parse import unquote
 
 import posthog
+import structlog
 from allauth.account.models import EmailAddress
 from django.core.exceptions import ValidationError
 from django.forms.utils import ErrorList
 
 from jobs.models import Technology
 
-
-def get_tjalerts_logger(name):
-    """This will add a `tjalerts` prefix to logger for easy configuration."""
-    import structlog
-
-    return structlog.getLogger(f"tjalerts.{name}")
-
-
-logger = get_tjalerts_logger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 def add_users_context(context, user, self=None):
     try:
         context["email_verified"] = EmailAddress.objects.get_for_user(user, user.email).verified
     except EmailAddress.DoesNotExist as e:
-        logger.error("Email Error", error=e)
+        logger.warning("Email Error", error=e)
 
     if self:
         posthog_cookie = self.request.COOKIES.get(f"ph_{posthog.project_api_key}_posthog")
