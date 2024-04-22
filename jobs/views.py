@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import structlog
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -13,7 +14,7 @@ from django.views.generic import CreateView, DetailView, FormView, ListView, Tem
 from django_filters.views import FilterView
 from django_q.tasks import async_task
 
-from hn_jobs.utils import add_users_context, get_tjalerts_logger, validate_technology_selected
+from hn_jobs.utils import add_users_context, validate_technology_selected
 from jobs.utils import default_alert_name
 from utils.constants import HIRABLE_TECH_LIST_SLUGS
 
@@ -31,7 +32,7 @@ from .tasks import (
     send_confirmation_email,
 )
 
-logger = get_tjalerts_logger(__name__)
+logger = structlog.get_logger(__name__)
 
 excluded_tech = Technology.objects.filter(name__in=EXCLUDED_TECHNOLOGIES)
 excluded_titles = Title.objects.filter(name__in=EXCLUDED_TITLES)
