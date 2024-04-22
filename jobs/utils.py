@@ -1,15 +1,16 @@
 import re
 from datetime import datetime
 
-import structlog
 from openai import OpenAI
+
+from hn_jobs.utils import get_tjalerts_logger
 
 client = OpenAI()
 
 from .constants import GENERIC_KEYWORDS
 from .models import Technology
 
-logger = structlog.get_logger(__name__)
+logger = get_tjalerts_logger(__name__)
 
 list_of_expected_keys = [
     "company_name",

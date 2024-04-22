@@ -1,8 +1,9 @@
-import structlog
 from django.conf import settings
 from django.core.mail import send_mail
 
-logger = structlog.get_logger(__name__)
+from hn_jobs.utils import get_tjalerts_logger
+
+logger = get_tjalerts_logger(__name__)
 
 
 def email_support_request(instance):

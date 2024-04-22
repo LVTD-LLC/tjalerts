@@ -1,14 +1,15 @@
-import structlog
 from django import forms
 from django.core.validators import EMPTY_VALUES
 from django_filters import BooleanFilter, CharFilter, Filter, FilterSet, ModelMultipleChoiceFilter, OrderingFilter
 from pgvector.django import L2Distance
 
+from hn_jobs.utils import get_tjalerts_logger
+
 from .models import Post
 from .queries import get_most_popular_technologies
 from .utils import get_embedding
 
-logger = structlog.get_logger(__name__)
+logger = get_tjalerts_logger(__name__)
 
 
 class VectorEmbeddingFilter(Filter):

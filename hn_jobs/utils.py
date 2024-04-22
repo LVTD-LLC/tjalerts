@@ -10,7 +10,14 @@ from django.forms.utils import ErrorList
 
 from jobs.models import Technology
 
-logger = structlog.get_logger(__name__)
+
+def get_tjalerts_logger(name):
+    """This will add a `tjalerts` prefix to logger for easy configuration."""
+
+    return structlog.get_logger(f"tjalerts.{name}")
+
+
+logger = get_tjalerts_logger(__name__)
 
 
 def add_users_context(context, user, self=None):

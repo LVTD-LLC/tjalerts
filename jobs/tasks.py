@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 
 import httpx
 import openai
-import structlog
 from django.conf import settings
 from django.contrib.sites.models import Site
 from django.core.exceptions import ValidationError
@@ -18,13 +17,14 @@ from django.utils.html import strip_tags
 from django_q.tasks import async_task
 from openai import OpenAI
 
+from hn_jobs.utils import get_tjalerts_logger
 from users.models import CustomUser
 
 from .filters import PostFilter
 from .models import Alert, AlertEmailSend, Company, Email, Post, Technology, Title
 from .utils import clean_job_json_object, fix_email, get_embedding, has_number, is_generic
 
-logger = structlog.get_logger(__name__)
+logger = get_tjalerts_logger(__name__)
 
 client = OpenAI()
 

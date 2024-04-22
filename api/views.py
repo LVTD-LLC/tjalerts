@@ -1,17 +1,17 @@
 from typing import List
 
-import structlog
 from django.conf import settings
 from django_q.tasks import async_task
 from ninja import NinjaAPI, Query
 from ninja.security import HttpBearer
 
+from hn_jobs.utils import get_tjalerts_logger
 from jobs.models import Company, Email, Post
 from jobs.tasks import create_valid_emails
 
 from .schemas import ReadCompany, ReadEmails
 
-logger = structlog.get_logger(__name__)
+logger = get_tjalerts_logger(__name__)
 
 
 class GlobalAuth(HttpBearer):

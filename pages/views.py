@@ -1,17 +1,16 @@
-import structlog
 from django.contrib import messages
 from django.urls import reverse_lazy
 from django.views.generic import FormView, TemplateView
 from django_q.tasks import async_task
 
-from hn_jobs.utils import add_users_context
+from hn_jobs.utils import add_users_context, get_tjalerts_logger
 from jobs.forms import CreateAlertForm
 from jobs.queries import get_latest_submissions, get_most_popular_technologies, get_most_popular_titles
 
 from .forms import SupportForm
 from .tasks import email_support_request
 
-logger = structlog.get_logger(__name__)
+logger = get_tjalerts_logger(__name__)
 
 
 class HomeView(TemplateView):

@@ -1,10 +1,10 @@
-import structlog
 from django.core.management.base import BaseCommand
 from django_q.models import Schedule
 
+from hn_jobs.utils import get_tjalerts_logger
 from users.schedules import schedules
 
-logger = structlog.get_logger(__name__)
+logger = get_tjalerts_logger(__name__)
 
 
 class Command(BaseCommand):

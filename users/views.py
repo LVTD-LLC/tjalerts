@@ -1,4 +1,3 @@
-import structlog
 from allauth.account.utils import send_email_confirmation
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
@@ -6,12 +5,12 @@ from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import UpdateView
 
-from hn_jobs.utils import add_users_context
+from hn_jobs.utils import add_users_context, get_tjalerts_logger
 from jobs.models import Alert
 
 from .models import CustomUser
 
-logger = structlog.get_logger(__name__)
+logger = get_tjalerts_logger(__name__)
 
 
 class UserSettingsView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
