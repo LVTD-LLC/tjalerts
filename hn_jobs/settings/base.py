@@ -333,7 +333,7 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
-        "hn_jobs": {
+        "tjalerts": {
             "level": "DEBUG",
             "handlers": ["console"],
             "propagate": False,
