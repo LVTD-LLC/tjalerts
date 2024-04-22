@@ -1,11 +1,10 @@
-import logging
-
 from django.core.management.base import BaseCommand
 from django_q.models import Schedule
 
+from hn_jobs.utils import get_tjalerts_logger
 from users.schedules import schedules
 
-logger = logging.getLogger(__file__)
+logger = get_tjalerts_logger(__name__)
 
 
 class Command(BaseCommand):
@@ -22,4 +21,4 @@ class Command(BaseCommand):
                     schedule_type=schedule["type"],
                 )
             else:
-                logger.info(f"Schedule `{schedule['name']}` already exists.")
+                logger.info("Schedule already exists.", name=schedule["name"])

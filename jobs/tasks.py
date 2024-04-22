@@ -57,12 +57,12 @@ def get_hn_pages_to_analyze(who_is_hiring_post_id):
             )
             count += 1
         else:
-            logger.info(f"Job for {comment_id} already exists.")
+            logger.info("Job object for this comment already exists.", comment_id=comment_id)
 
     try:
         httpx.get(f"{settings.HEALTHCHECKS_HOST}/e79df9c2-8e2d-4e0a-8be8-1723682c375d", timeout=10)
     except httpx.RequestException as e:
-        logger.error("Ping failed: %s" % e)
+        logger.error("Ping failed", error=e)
 
     return f"{count} have been sent to be analyzed."
 
@@ -186,7 +186,7 @@ def analyze_hn_page(who_is_hiring_id, who_is_hiring_title, comment_id):
     post.technologies.add(*technologies)
     post.jobs.add(*job_titles)
 
-    logger.info(f"{post} post was created.")
+    logger.info("Post created.", post=post)
 
     return "Comment is saved."
 
@@ -222,7 +222,7 @@ def create_valid_emails():
             company = post.company
 
             if Email.objects.filter(post=post).exists():
-                logger.info(f"Email for {post} already exists.")
+                logger.info("Email already exists.", post=post)
                 continue
 
             is_approved = False
@@ -239,7 +239,7 @@ def create_valid_emails():
                 is_approved=is_approved,
             )
             count += 1
-            logger.info(f"Email for {post} was created.")
+            logger.info("Email for post was created.", post=post, email=email)
 
     return f"Created {count} emails."
 

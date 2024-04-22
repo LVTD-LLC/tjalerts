@@ -1,15 +1,16 @@
-import logging
 import re
 from datetime import datetime
 
 from openai import OpenAI
+
+from hn_jobs.utils import get_tjalerts_logger
 
 client = OpenAI()
 
 from .constants import GENERIC_KEYWORDS
 from .models import Technology
 
-logger = logging.getLogger(__file__)
+logger = get_tjalerts_logger(__name__)
 
 list_of_expected_keys = [
     "company_name",

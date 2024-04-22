@@ -1,5 +1,4 @@
 import json
-import logging
 import math
 from urllib.parse import unquote
 
@@ -10,14 +9,22 @@ from django.forms.utils import ErrorList
 
 from jobs.models import Technology
 
-logger = logging.getLogger(__file__)
+
+def get_tjalerts_logger(name):
+    """This will add a `tjalerts` prefix to logger for easy configuration."""
+    import structlog
+
+    return structlog.getLogger(f"tjalerts.{name}")
+
+
+logger = get_tjalerts_logger(__name__)
 
 
 def add_users_context(context, user, self=None):
     try:
         context["email_verified"] = EmailAddress.objects.get_for_user(user, user.email).verified
     except EmailAddress.DoesNotExist as e:
-        logger.error(f"Email Error: {e}")
+        logger.error("Email Error", error=e)
 
     if self:
         posthog_cookie = self.request.COOKIES.get(f"ph_{posthog.project_api_key}_posthog")
@@ -65,10 +72,3 @@ def validate_technology_selected(value):
     technologies = Technology.objects.values_list("name", flat=True)
     if value not in technologies:
         raise ValidationError(f"{value} is not a valid technology name.")
-
-
-def get_tjalerts_logger(name):
-    """This will add a `tjalerts` prefix to logger for easy configuration."""
-    import structlog
-
-    return structlog.getLogger(f"tjalerts.{name}")

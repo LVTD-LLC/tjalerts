@@ -1,18 +1,16 @@
-import logging
-
 from django.contrib import messages
 from django.urls import reverse_lazy
 from django.views.generic import FormView, TemplateView
 from django_q.tasks import async_task
 
-from hn_jobs.utils import add_users_context
+from hn_jobs.utils import add_users_context, get_tjalerts_logger
 from jobs.forms import CreateAlertForm
 from jobs.queries import get_latest_submissions, get_most_popular_technologies, get_most_popular_titles
 
 from .forms import SupportForm
 from .tasks import email_support_request
 
-logger = logging.getLogger(__file__)
+logger = get_tjalerts_logger(__name__)
 
 
 class HomeView(TemplateView):
@@ -21,6 +19,8 @@ class HomeView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
+
+        logger.info("Home Page Visit", user=user)
 
         context["latest_job_submissions"] = get_latest_submissions(9, for_homepage=True)
         context["popular_titles"] = get_most_popular_titles()
