@@ -167,3 +167,11 @@ class Alert(BaseModel):
 class AlertEmailSend(BaseModel):
     user = models.ForeignKey("users.CustomUser", on_delete=models.CASCADE, null=True, blank=True)
     email = models.EmailField()
+
+
+class TechnologyMapping(BaseModel):
+    parent = models.ForeignKey(Technology, on_delete=models.CASCADE, related_name="parent")
+    child = models.ForeignKey(Technology, on_delete=models.CASCADE, related_name="child")
+
+    class Meta:
+        unique_together = ("parent", "child")
