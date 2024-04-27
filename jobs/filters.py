@@ -35,7 +35,9 @@ class PostFilter(FilterSet):
     vector = VectorEmbeddingFilter(field_name="vector")
     locations = CharFilter(lookup_expr="icontains")
     technologies = ModelMultipleChoiceFilter(
-        queryset=get_most_popular_technologies(), widget=forms.CheckboxSelectMultiple()
+        queryset=get_most_popular_technologies(),
+        widget=forms.CheckboxSelectMultiple(),
+        method="extend_technology_search",
     )
     compensation_summary__isempty = EmptyStringFilter(field_name="compensation_summary")
     emails__isempty = EmptyStringFilter(field_name="emails")
@@ -47,38 +49,38 @@ class PostFilter(FilterSet):
         )
     )
 
+    def extend_technology_search(self, queryset, name, selected_technologies):
+        if selected_technologies:
+            selected_technology_ids = [tech.id for tech in selected_technologies]
+            child_technology_ids = list(
+                TechnologyMapping.objects.filter(parent_id__in=selected_technology_ids).values_list(
+                    "child_id", flat=True
+                )
+            )
+            selected_technology_ids.extend(child_technology_ids)
+
+            logger.info(
+                "Filtering by all techologies",
+                count_of_selected_technologies=len(selected_technologies),
+                count_of_all_related_techologies=len(selected_technology_ids),
+            )
+
+            return queryset.filter(technologies__id__in=selected_technology_ids).distinct()
+
+        return queryset
+
     class Meta:
         model = Post
         fields = [
             "is_remote",
             "is_onsite",
-            "technologies",
+            # "technologies",
             "locations",
         ]
 
     @property
     def qs(self):
-        queryset = super().qs.exclude(description__exact="")
-
-        selected_technologies_id = self.request.GET.getlist("technologies")
-        if selected_technologies_id:
-            all_related_ids = []
-            child_technology_ids = list(
-                TechnologyMapping.objects.filter(parent_id__in=selected_technologies_id).values_list(
-                    "child_id", flat=True
-                )
-            )
-            all_related_ids.extend(child_technology_ids)
-
-            logger.info(
-                "Filtering by all techologies",
-                count_of_selected_technologies=len(selected_technologies_id),
-                count_of_all_related_techologies=len(all_related_ids),
-            )
-
-            queryset = queryset.filter(technologies__id__in=all_related_ids).distinct()
-
-        return queryset
+        return super().qs.exclude(description__exact="")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
