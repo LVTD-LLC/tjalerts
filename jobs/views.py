@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import ValidationError
-from django.db.models import Max
+from django.db.models import Count, Max
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, DetailView, FormView, ListView, TemplateView, UpdateView
@@ -20,7 +20,7 @@ from utils.constants import HIRABLE_TECH_LIST_SLUGS
 from .constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
 from .filters import PostFilter
 from .forms import ConfirmAlertForm, CreateAlertForm
-from .models import Alert, AlertEmailSend, Post, Technology, Title
+from .models import Alert, AlertEmailSend, Post, Technology, TechnologyMapping, Title
 from .queries import get_most_popular_technologies, get_most_popular_titles
 from .tasks import (
     create_backfill_vector_data_jobs,
@@ -119,11 +119,23 @@ class HighestPaidJobsView(ListView):
     def get_queryset(self):
         queryset = super().get_queryset()
 
-        tech_id = Technology.objects.filter(slug=self.kwargs.get("slug")).first().id
+        tech_id = (
+            Technology.objects.filter(slug__icontains=self.kwargs.get("slug"))
+            .annotate(post_count=Count("post"))
+            .order_by("-post_count")
+            .values_list("id", flat=True)
+            .first()
+        )
+
+        child_ids = list(TechnologyMapping.objects.filter(parent_id=tech_id).values_list("child__id", flat=True))
+        all_related_ids = [tech_id] + child_ids
+
+        logger.info("Got all related tech ids", tech_id=tech_id, number_of_child_ids=len(child_ids))
+
         subquery = Post.objects.values("company").annotate(latest_post=Max("submitted_datetime")).values("latest_post")
 
         return (
-            queryset.filter(technologies__id=tech_id)
+            queryset.filter(technologies__id__in=all_related_ids)
             .exclude(max_salary=0)
             .order_by("-max_salary")
             .filter(submitted_datetime__in=subquery)

@@ -1,10 +1,10 @@
-from django.db.models import Count
+from django.db.models import Count, Exists, OuterRef
 from django.utils import timezone
 
 from users.models import Subscriber
 
 from .constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
-from .models import Post, Technology, Title
+from .models import Post, Technology, TechnologyMapping, Title
 
 
 def get_latest_submissions(number_of: int, for_homepage: bool = False):
@@ -43,6 +43,8 @@ def get_most_popular_technologies(number_of: int = 0, min_count: int = 0):
     technology_objects = (
         Technology.objects.exclude(name__in=EXCLUDED_TECHNOLOGIES)
         .annotate(post_count=Count("posttechnology"))
+        .annotate(is_child=Exists(TechnologyMapping.objects.filter(child=OuterRef("pk"))))
+        .filter(is_child=False)
         .order_by("-post_count")
     )
 

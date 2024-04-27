@@ -5,7 +5,7 @@ from pgvector.django import L2Distance
 
 from hn_jobs.utils import get_tjalerts_logger
 
-from .models import Post
+from .models import Post, TechnologyMapping
 from .queries import get_most_popular_technologies
 from .utils import get_embedding
 
@@ -35,7 +35,7 @@ class PostFilter(FilterSet):
     vector = VectorEmbeddingFilter(field_name="vector")
     locations = CharFilter(lookup_expr="icontains")
     technologies = ModelMultipleChoiceFilter(
-        queryset=get_most_popular_technologies(), widget=forms.CheckboxSelectMultiple(), conjoined=True
+        queryset=get_most_popular_technologies(), widget=forms.CheckboxSelectMultiple()
     )
     compensation_summary__isempty = EmptyStringFilter(field_name="compensation_summary")
     emails__isempty = EmptyStringFilter(field_name="emails")
@@ -58,7 +58,27 @@ class PostFilter(FilterSet):
 
     @property
     def qs(self):
-        return super().qs.exclude(description__exact="")
+        queryset = super().qs.exclude(description__exact="")
+
+        selected_technologies_id = self.request.GET.getlist("technologies")
+        if selected_technologies_id:
+            all_related_ids = []
+            child_technology_ids = list(
+                TechnologyMapping.objects.filter(parent_id__in=selected_technologies_id).values_list(
+                    "child_id", flat=True
+                )
+            )
+            all_related_ids.extend(child_technology_ids)
+
+            logger.info(
+                "Filtering by all techologies",
+                count_of_selected_technologies=len(selected_technologies_id),
+                count_of_all_related_techologies=len(all_related_ids),
+            )
+
+            queryset = queryset.filter(technologies__id__in=all_related_ids).distinct()
+
+        return queryset
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
