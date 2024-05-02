@@ -222,7 +222,7 @@ def create_valid_emails():
             company = post.company
 
             if Email.objects.filter(post=post).exists():
-                logger.info("Email already exists.", post=post)
+                logger.info("Email already exists", post_id=post.id)
                 continue
 
             is_approved = False
@@ -458,6 +458,23 @@ def send_alerts(email, alerts):
     formatted_date = current_date.strftime("%B %Y, Week {}".format(week_number))
     subject = f"Job Alerts for {formatted_date}"
 
+    context = {
+        "alerts": [],
+        "new_jobs_count": 0,
+        "site_url": Site.objects.get_current().domain,
+        "formatted_date": formatted_date,
+    }
+
+    for idx, alert in enumerate(alerts):
+        name = alert.name if alert.name else idx
+        context["alerts"].append(name)
+        context["new_jobs_count"] += (
+            PostFilter(alert.filter).qs.filter(submitted_datetime__gte=timezone.now() - timedelta(days=7)).count()
+        )
+
+    if context["new_jobs_count"] == 0:
+        return f"{email} has no new jobs"
+
     if CustomUser.objects.filter(email=email).exists():
         user_status = "free"
         alert_email_send = AlertEmailSend.objects.create(email=email, user=CustomUser.objects.get(email=email))
@@ -465,26 +482,8 @@ def send_alerts(email, alerts):
         user_status = "guest"
         alert_email_send = AlertEmailSend.objects.create(email=email)
 
-    context = {
-        "alerts": [],
-        "new_jobs_count": 0,
-        "site_url": Site.objects.get_current().domain,
-        "formatted_date": formatted_date,
-        "user_status": user_status,
-        "alert_email_send": alert_email_send,
-    }
-
-    for idx, alert in enumerate(alerts):
-        name = alert.name if alert.name else idx
-        context["alerts"].append(name)
-        context["new_jobs_count"] += (
-            PostFilter(alert.filter)
-            .qs.filter(submitted_datetime__gte=alert_email_send.created - timedelta(days=7))
-            .count()
-        )
-
-    if context["new_jobs_count"] == 0:
-        return f"{email} has no new jobs"
+    context["alert_email_send"] = alert_email_send
+    context["user_status"] = user_status
 
     html_content = render_to_string("jobs/alert-email.html", context)
     text_content = strip_tags(html_content)
