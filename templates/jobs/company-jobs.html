@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% load markdown_extras %}
+{% load widget_tweaks %}
+{% load webpack_loader static %}
+{% load url_utils %}
+
+{% block content %}
+    {% for job in object_list %}
+        <div>{{ job }}</div>
+    {% endfor %}
+{% endblock content %}

@@ -2,6 +2,8 @@ from django.urls import path
 
 from .views import (
     AlertCreateView,
+    CompaniesJobsView,
+    CompanyJobsView,
     ConfirmAlertView,
     HighestPaidJobsView,
     PostDetailView,
@@ -31,6 +33,8 @@ urlpatterns = [
     path("create-alert", AlertCreateView.as_view(), name="create-alert"),
     path("confirm/<uuid:pk>/", ConfirmAlertView.as_view(), name="confirm_subscription"),
     path("<slug:slug>/highest-paid/", HighestPaidJobsView.as_view(), name="highest-paid-job-blog-post"),
+    path("companies/", CompaniesJobsView.as_view(), name="companies"),
+    path("<slug:slug>/", CompanyJobsView.as_view(), name="company-jobs"),
     path("digest/<uuid:alert_email_send_id>/", unauthed_weekly_digest_view, name="unauthed_weekly_digest"),
     path("digest/", authed_weekly_digest_view, name="authed_weekly_digest"),
     path(

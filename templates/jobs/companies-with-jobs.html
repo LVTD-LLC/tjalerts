@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load markdown_extras %}
+{% load widget_tweaks %}
+{% load webpack_loader static %}
+{% load url_utils %}
+
+{% block content %}
+    {% for company in object_list %}
+        <div>
+          <a href="{% url 'company-jobs' company.slug %}">{{ company.name }}</a>
+        </div>
+    {% endfor %}
+{% endblock content %}
