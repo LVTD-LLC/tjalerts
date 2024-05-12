@@ -28,10 +28,15 @@ class HighestPaidJobsListicleSitemap(sitemaps.Sitemap):
     priority = 0.5
 
     def items(self):
-        return Technology.objects.filter(slug__in=HIRABLE_TECH_LIST_SLUGS)
+        return (
+            Technology.objects.filter(slug__in=HIRABLE_TECH_LIST_SLUGS)
+            .annotate(num_posts=Count("post"))
+            .filter(num_posts__gt=0)
+        )
 
     def lastmod(self, obj):
-        return Post.objects.filter(company=obj).aggregate(latest_date=Max("submitted_datetime"))["latest_date"]
+        print(obj)
+        return obj.post.order_by("-submitted_datetime").first().submitted_datetime
 
     def location(self, obj):
         return reverse("highest-paid-job-blog-post", kwargs={"slug": obj.slug})
@@ -51,7 +56,7 @@ class CompaniesJobsListicleSitemap(sitemaps.Sitemap):
         return companies_with_recent_posts
 
     def lastmod(self, obj):
-        return obj.modified
+        return Post.objects.filter(company=obj).aggregate(latest_date=Max("submitted_datetime"))["latest_date"]
 
     def location(self, obj):
         return reverse("company-jobs", kwargs={"slug": obj.slug})
