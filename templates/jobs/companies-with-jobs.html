@@ -5,9 +5,43 @@
 {% load url_utils %}
 
 {% block content %}
-    {% for company in object_list %}
-        <div>
-          <a href="{% url 'company-jobs' company.slug %}">{{ company.name }}</a>
-        </div>
+<div class="px-4 mx-auto space-y-10 max-w-7xl sm:px-6 lg:px-8">
+  <div class="max-w-2xl mx-auto text-center">
+    <h1 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Companies that are hiring right now.</h1>
+  </div>
+  <div class="max-w-xl mx-auto">
+    <ul role="list" class="ml-2 list-disc list-inside">
+      {% for company in object_list %}
+      <li class="mb-2">
+        <a href="{% url 'company-jobs' company.slug %}" class="text-lg font-semibold leading-6 text-gray-900 link">
+          {{ company.name }}
+        </a>
+      </li>
     {% endfor %}
+    </ul>
+  </div>
+</div>
 {% endblock content %}
+
+{% block schema %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "Tech Jobs Alerts - Companies that are hiring right now.",
+  "description": "List of companies currently hiring",
+  "itemListElement": [{% for company in object_list %}
+    {
+      "@type": "ListItem",
+      "position": {{ forloop.counter }},
+      "url": "https://{{ request.get_host }}{% url 'company-jobs' company.slug %}",
+      "item": {
+        "@type": "Organization",
+        "name": "{{ company.name }}"{% if company.company_homepage_link %},
+        "sameAs": "{{ company.company_homepage_link }}"{% endif %}
+      }
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}]
+}
+</script>
+{% endblock schema %}

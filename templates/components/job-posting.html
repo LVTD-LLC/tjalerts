@@ -1,0 +1,57 @@
+<li class="border border-gray-400 rounded-md">
+  <a class="flex flex-col px-6 py-4 space-y-2 bg-white divide-y rounded-md hover:bg-gray-50" href="{% url 'post' object.id %}">
+    <div class="flex items-center justify-between w-full py-2">
+      <div class="flex-1">
+        <div class="flex items-center justify-between">
+          {% if show_name %}
+          <h3 class="text-lg font-medium text-gray-900 truncate">
+            {% if object.company.name %}
+              {{ object.company.name }}
+            {% else %}
+              Stealth
+            {% endif %}
+          </h3>
+          {% endif %}
+          <p class="
+          {% if show_name %}
+          -mt-10 -mr-3 text-xs text-gray-500
+          {% else %}
+          -mt-3 mb-2 text-sm
+          {% endif %}
+          ">Posted {{ object.submitted_datetime|timesince }} ago</p>
+        </div>
+        <p class="text-sm text-gray-600">
+          {{ object.description | truncatechars:250 }}
+        </p>
+      </div>
+    </div>
+
+    {% if object.jobs.all.count == 1 and object.jobs.all.0.name == "" %}
+    {% elif object.jobs.all.count >= 1 %}
+    <div class="flex w-full py-2">
+        <div>
+          <h4 class="text-base">Roles</h4>
+          {% for title in object.jobs.all %}
+          <span class="inline-flex items-center px-2 py-1 my-1 text-sm font-medium text-green-700 rounded-md bg-green-50 ring-1 ring-inset ring-green-600/20">
+            {{ title.name }}
+          </span>
+          {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if object.technologies.all.count == 1 and object.technologies.all.0.name == "" %}
+    {% elif object.technologies.all.count > 0 %}
+      <div class="flex w-full py-2">
+          <div>
+            <h4 class="text-base">Tech Stack</h4>
+            {% for technology in object.technologies.all %}
+            <span class="inline-flex items-center px-2 py-1 my-1 text-sm font-medium text-green-700 rounded-md bg-green-50 ring-1 ring-inset ring-green-600/20">
+              {{ technology.name }}
+            </span>
+            {% endfor %}
+          </div>
+      </div>
+    {% endif %}
+  </a>
+</li>

@@ -332,8 +332,9 @@ class CompanyJobsView(ListView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        two_months_ago = timezone.now() - timezone.timedelta(days=60)
 
-        return queryset.filter(company__slug=self.kwargs.get("slug"))
+        return queryset.filter(company__slug=self.kwargs.get("slug"), submitted_datetime__gte=two_months_ago)
 
 
 class CompaniesJobsView(ListView):
@@ -341,14 +342,16 @@ class CompaniesJobsView(ListView):
     model = Company
 
     def get_queryset(self):
-        three_months_ago = timezone.now() - timezone.timedelta(days=90)
-        recent_posts = Post.objects.filter(created__gte=three_months_ago).values("company")
+        two_months_ago = timezone.now() - timezone.timedelta(days=60)
+        recent_posts = Post.objects.filter(submitted_datetime__gte=two_months_ago).values("company")
 
         queryset = (
             super()
             .get_queryset()
             .annotate(has_recent_posts=Exists(recent_posts.filter(company=OuterRef("pk"))))
             .filter(has_recent_posts=True)
+            .exclude(name="")
+            .order_by("name")
         )
 
         return queryset

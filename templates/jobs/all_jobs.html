@@ -3,6 +3,7 @@
 {% load widget_tweaks %}
 {% load webpack_loader static %}
 {% load url_utils %}
+{% load date_utils %}
 
 {% block content %}
 
@@ -81,55 +82,7 @@
   <div class="col-span-12 md:col-span-9">
     <ul role="list" class="flex flex-col space-y-2">
       {% for object in page_obj %}
-        <li class="border border-gray-400 rounded-md">
-          <a class="flex flex-col px-6 py-4 space-y-2 bg-white divide-y rounded-md hover:bg-gray-50" href="{% url 'post' object.id %}">
-            <div class="flex items-center justify-between w-full py-2">
-              <div class="flex-1">
-                <div class="flex items-center justify-between">
-                  <h3 class="text-lg font-medium text-gray-900 truncate">
-                    {% if object.company.name %}
-                      {{ object.company.name }}
-                    {% else %}
-                      Stealth
-                    {% endif %}
-                  </h3>
-                  <p class="-mt-10 -mr-3 text-xs text-gray-500">Posted {{ object.submitted_datetime|timesince }} ago</p>
-                </div>
-                <p class="text-sm text-gray-600">
-                  {{ object.description | truncatechars:250 }}
-                </p>
-              </div>
-            </div>
-
-            {% if object.jobs.all.count == 1 and object.jobs.all.0.name == "" %}
-            {% elif object.jobs.all.count >= 1 %}
-            <div class="flex w-full py-2">
-                <div>
-                  <h4 class="text-base">Roles</h4>
-                  {% for title in object.jobs.all %}
-                  <span class="inline-flex items-center px-2 py-1 my-1 text-sm font-medium text-green-700 rounded-md bg-green-50 ring-1 ring-inset ring-green-600/20">
-                    {{ title.name }}
-                  </span>
-                  {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            {% if object.technologies.all.count == 1 and object.technologies.all.0.name == "" %}
-            {% elif object.technologies.all.count > 0 %}
-              <div class="flex w-full py-2">
-                  <div>
-                    <h4 class="text-base">Tech Stack</h4>
-                    {% for technology in object.technologies.all %}
-                    <span class="inline-flex items-center px-2 py-1 my-1 text-sm font-medium text-green-700 rounded-md bg-green-50 ring-1 ring-inset ring-green-600/20">
-                      {{ technology.name }}
-                    </span>
-                    {% endfor %}
-                  </div>
-              </div>
-            {% endif %}
-          </a>
-        </li>
+        {% include "components/job-posting.html" with object=object show_name=True %}
         {% empty %}
         <div class="max-w-2xl mx-auto my-16 text-center">
           <p class="text-4xl font-semibold tracking-tight text-gray-900">No such jobs exist :(.</p>
@@ -161,3 +114,33 @@
   </div>
 </div>
 {% endblock content %}
+
+{% block schema %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "Tech Job Alerts - Jobs",
+  "description": "List of filtered job postings.",
+  "itemListElement": [{% for job in page_obj %}
+    {
+      "@type": "ListItem",
+      "position": {{ forloop.counter }},
+      "url": "https://{{ request.get_host }}{% url 'post' job.id %}",
+      "item": {
+        "@type": "JobPosting",
+        "title": "{{ job.jobs.all.0 }}",
+        "description": "{{ job.description|safe }}",
+        "datePosted": "{{ job.submitted_datetime|date:'Y-m-d' }}",
+        "validThrough": "{{ job.submitted_datetime|plus_days:30|date:'Y-m-d' }}",
+        "employmentType": "Full-time",
+        "hiringOrganization": {
+          "@type": "Organization",
+          "name": "{{ object_list.0.company.name }}"
+        }
+      }
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}]
+}
+</script>
+{% endblock schema %}

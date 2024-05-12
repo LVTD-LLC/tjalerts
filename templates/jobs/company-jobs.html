@@ -3,9 +3,48 @@
 {% load widget_tweaks %}
 {% load webpack_loader static %}
 {% load url_utils %}
+{% load date_utils %}
 
 {% block content %}
-    {% for job in object_list %}
-        <div>{{ job }}</div>
-    {% endfor %}
+  <div class="max-w-3xl mx-auto mb-4 text-center">
+    <h1 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">{{ object_list.0.company.name }} Jobs</h1>
+  </div>
+
+  <div class="max-w-3xl mx-auto">
+    <ul role="list" class="flex flex-col space-y-2">
+      {% for job in object_list %}
+        {% include "components/job-posting.html" with object=job show_name=False %}
+      {% endfor %}
+    </ul>
+  </div>
 {% endblock content %}
+
+{% block schema %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "{{ object_list.0.company.name }} Jobs",
+  "description": "List of job postings at {{ object_list.0.company.name }}",
+  "itemListElement": [{% for job in object_list %}
+    {
+      "@type": "ListItem",
+      "position": {{ forloop.counter }},
+      "url": "https://{{ request.get_host }}{% url 'post' job.id %}",
+      "item": {
+        "@type": "JobPosting",
+        "title": "{{ job.jobs.all.0 }}",
+        "description": "{{ job.description|safe }}",
+        "datePosted": "{{ job.submitted_datetime|date:'Y-m-d' }}",
+        "validThrough": "{{ job.submitted_datetime|plus_days:30|date:'Y-m-d' }}",
+        "employmentType": "Full-time",
+        "hiringOrganization": {
+          "@type": "Organization",
+          "name": "{{ object_list.0.company.name }}"
+        }
+      }
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}]
+}
+</script>
+{% endblock schema %}
