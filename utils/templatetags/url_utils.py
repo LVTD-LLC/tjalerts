@@ -9,3 +9,8 @@ def url_replace(request, key, value):
     query_params[key] = value
 
     return query_params.urlencode()
+
+
+@register.filter
+def replace_quotes(value):
+    return value.replace('"', "'")

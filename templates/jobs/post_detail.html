@@ -3,6 +3,7 @@
 {% load webpack_loader static %}
 {% load widget_tweaks %}
 {% load date_utils %}
+{% load url_utils %}
 
 {% block meta %}
 <title>Tech Job Post - {{ object.company.name }}</title>
@@ -140,7 +141,7 @@
         "@type": "Place",
         "address": "{{ object.locations }}"
       },{% endif %}
-      "description": "{{ object.description|safe }}",
+      "description": "{{ object.description|safe|replace_quotes }}",
       "datePosted": "{{ object.submitted_datetime|date:'Y-m-d' }}",
       "validThrough": "{{ object.submitted_datetime|plus_days:30|date:'Y-m-d' }}",
       "employmentType": "Full-time",
