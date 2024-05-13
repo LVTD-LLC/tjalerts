@@ -137,10 +137,10 @@
       "@type": "JobPosting",
       "name":"{{ object.jobs.all.0.name }}",
       "title":"{{ object.jobs.all.0.name }}",
-      {% if object.locations %}"jobLocation": {
+      "jobLocation": {
         "@type": "Place",
-        "address": "{{ object.locations }}"
-      },{% endif %}
+        "address": {% if object.locations %}"{{ object.locations }}"{% else %}Remote{% endif %}
+      },
       "description": "{{ object.description|safe|replace_quotes }}",
       "datePosted": "{{ object.submitted_datetime|date:'Y-m-d' }}",
       "validThrough": "{{ object.submitted_datetime|plus_days:30|date:'Y-m-d' }}",
