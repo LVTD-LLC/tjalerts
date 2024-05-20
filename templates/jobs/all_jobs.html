@@ -129,14 +129,22 @@
       "url": "https://{{ request.get_host }}{% url 'post' job.id %}",
       "item": {
         "@type": "JobPosting",
-        "title": "{{ job.jobs.all.0 }}",
-        "description": "{{ job.description|safe }}",
+        "name":"{% if job.jobs %}{{ job.jobs.all.0.name }}{% else %}Developer{% endif %}",
+        "title":"{% if job.jobs %}{{ job.jobs.all.0.name }}{% else %}Developer{% endif %}",
+        "jobLocation": {
+          "@type": "Place",
+          "address": {% if job.locations %}"{{ job.locations }}"{% else %}"Remote"{% endif %}
+        },
+        "description": "{{ job.description|safe|replace_quotes }}",
         "datePosted": "{{ job.submitted_datetime|date:'Y-m-d' }}",
         "validThrough": "{{ job.submitted_datetime|plus_days:30|date:'Y-m-d' }}",
         "employmentType": "Full-time",
+        {% if job.company_job_application_link %}"url": "{{ job.split_application_links.0 }}",
+        "directApply": true,{% endif %}
         "hiringOrganization": {
           "@type": "Organization",
-          "name": "{{ object_list.0.company.name }}"
+          "name": "{{ job.company.name }}"{% if job.company.company_homepage_link %},
+          "sameAs": "{{ job.company.fixed_company_homepage_link }}"{% endif %}
         }
       }
     }{% if not forloop.last %},{% endif %}

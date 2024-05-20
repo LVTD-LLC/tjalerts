@@ -135,8 +135,8 @@
     {
       "@context": "https://schema.org",
       "@type": "JobPosting",
-      "name":"{% if objects.jobs %}{{ object.jobs.all.0.name }}{% else %}Developer{% endif %}",
-      "title":"{% if objects.jobs %}{{ object.jobs.all.0.name }}{% else %}Developer{% endif %}",
+      "name":"{% if object.jobs %}{{ object.jobs.all.0.name }}{% else %}Developer{% endif %}",
+      "title":"{% if object.jobs %}{{ object.jobs.all.0.name }}{% else %}Developer{% endif %}",
       "jobLocation": {
         "@type": "Place",
         "address": {% if object.locations %}"{{ object.locations }}"{% else %}"Remote"{% endif %}
