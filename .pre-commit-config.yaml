@@ -38,19 +38,3 @@ repos:
         "-o", "requirements.txt",
         "--without-hashes"
       ]
-
-# - repo: local
-#   hooks:
-#     - id: pylint
-#       name: pylint
-#       entry: poetry run pylint
-#       language: system
-#       types: [python]
-#       args:
-#         [
-#           "-rn",
-#           "-sn",
-#           "--load-plugins=pylint_django",
-#           "--django-settings-module=hackernews_developers.settings",
-#           --ignore=manage.py,
-#         ]

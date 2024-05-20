@@ -12,6 +12,7 @@ from utils.constants import HIRABLE_TECH_LIST_SLUGS
 
 class StaticViewSitemap(sitemaps.Sitemap):
     priority = 0.9
+    protocol = "https"
 
     def items(self):
         return [
@@ -26,6 +27,7 @@ class StaticViewSitemap(sitemaps.Sitemap):
 class HighestPaidJobsListicleSitemap(sitemaps.Sitemap):
     changefreq = "weekly"
     priority = 0.8
+    protocol = "https"
 
     def items(self):
         return (
@@ -45,6 +47,7 @@ class HighestPaidJobsListicleSitemap(sitemaps.Sitemap):
 class CompaniesJobsListicleSitemap(sitemaps.Sitemap):
     changefreq = "weekly"
     priority = 0.8
+    protocol = "https"
 
     def items(self):
         companies_with_recent_posts = (
@@ -73,6 +76,7 @@ sitemaps = {
                 "date_field": "modified",
             },
             priority=0.7,
+            protocol="https",
         ),
     }
 }
