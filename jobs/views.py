@@ -1,3 +1,4 @@
+import json
 from datetime import timedelta
 
 from django import forms
@@ -61,6 +62,11 @@ class PostListView(FilterView):
         user = self.request.user
         if user.is_authenticated:
             add_users_context(context, user, self)
+
+        params = self.request.GET.copy()
+
+        context["CustomAlertForm"] = CreateCustomAlertForm
+        context["custom_alert_filters"] = json.dumps(params.dict())
 
         return context
 
@@ -201,8 +207,6 @@ class CreateCustomAlertView(SuccessMessageMixin, CreateView):
         if user.is_authenticated:
             form.instance.user = user
 
-        print(form.cleaned_data)
-
         # if user.is_authenticated and existing_alerts.count() >= 3:
         #     messages.add_message(self.request, messages.WARNING, "Free users can only have 3 alerts.")
         #     return redirect("home")
@@ -232,7 +236,7 @@ class CreateCustomAlertView(SuccessMessageMixin, CreateView):
 class AlertCreateView(SuccessMessageMixin, CreateView):
     template_name = "jobs/create-alert.html"
     model = Alert
-    form_class = CreateCustomAlertForm
+    form_class = CreateAlertForm
     success_url = reverse_lazy("home")
 
     def form_valid(self, form):
