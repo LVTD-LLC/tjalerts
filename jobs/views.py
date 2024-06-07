@@ -16,7 +16,7 @@ from django_filters.views import FilterView
 from django_q.tasks import async_task
 
 from hn_jobs.utils import add_users_context, get_tjalerts_logger, validate_technology_selected
-from jobs.utils import default_alert_name
+from jobs.utils import default_alert_name, is_email_confirmed, remove_params_for_filters
 from utils.constants import HIRABLE_TECH_LIST_SLUGS
 
 from .constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
@@ -45,17 +45,6 @@ class PostListView(FilterView):
     filterset_class = PostFilter
     paginate_by = 6
 
-    def get(self, request, *args, **kwargs):
-        params = request.GET.copy()
-
-        try:
-            del params["page"]
-            del params["o"]
-        except KeyError:
-            pass
-
-        return super().get(request, *args, **kwargs)
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
@@ -63,7 +52,7 @@ class PostListView(FilterView):
         if user.is_authenticated:
             add_users_context(context, user, self)
 
-        params = self.request.GET.copy()
+        params = remove_params_for_filters(self.request.GET.copy())
 
         context["CustomAlertForm"] = CreateCustomAlertForm
         context["custom_alert_filters"] = json.dumps(params.dict())
@@ -216,7 +205,7 @@ class CreateCustomAlertView(SuccessMessageMixin, CreateView):
             return redirect("home")
 
         if user.is_authenticated and existing_alerts.exists():
-            if existing_alerts.latest("modified").confirmed is True:
+            if existing_alerts.latest("modified").confirmed is True or is_email_confirmed(user):
                 form.instance.confirmed = True
                 messages.add_message(
                     self.request, messages.SUCCESS, "Alert has been added, you will start getting jobs soon!"
