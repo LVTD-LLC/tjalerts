@@ -17,6 +17,9 @@ importers:
       '@hotwired/turbo':
         specifier: ^7.3.0
         version: 7.3.0
+      '@stimulus-components/dialog':
+        specifier: ^1.0.1
+        version: 1.0.1(@hotwired/stimulus@3.2.1)
       bootstrap:
         specifier: ^5.3.0
         version: 5.3.0(@popperjs/core@2.11.8)
@@ -38,6 +41,9 @@ importers:
       stimulus-reveal-controller:
         specifier: ^4.1.0
         version: 4.1.0(@hotwired/stimulus@3.2.1)
+      stimulus-transition:
+        specifier: ^1.1.2
+        version: 1.1.2(stimulus@3.2.2)
     devDependencies:
       '@babel/core':
         specifier: ^7.22.8
@@ -854,6 +860,9 @@ packages:
   '@hotwired/stimulus@3.2.1':
     resolution: {integrity: sha512-HGlzDcf9vv/EQrMJ5ZG6VWNs8Z/xMN+1o2OhV1gKiSG6CqZt5MCBB1gRg5ILiN3U0jEAxuDTNPRfBcnZBDmupQ==}
 
+  '@hotwired/stimulus@3.2.2':
+    resolution: {integrity: sha512-eGeIqNOQpXoPAIP7tC1+1Yc1yl1xnwYqg+3mzqxyrbE5pg5YFBZcA6YoTiByJB6DKAEsiWtl6tjTJS4IYtbB7A==}
+
   '@hotwired/turbo@7.3.0':
     resolution: {integrity: sha512-Dcu+NaSvHLT7EjrDrkEmH4qET2ZJZ5IcCWmNXxNQTBwlnE5tBZfN6WxZ842n5cHV52DH/AKNirbPBtcEXDLW4g==}
     engines: {node: '>= 14'}
@@ -920,6 +929,11 @@ packages:
 
   '@popperjs/core@2.11.8':
     resolution: {integrity: sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A==}
+
+  '@stimulus-components/dialog@1.0.1':
+    resolution: {integrity: sha512-7cpazrXeFKVmmuGnJOrykEvjRNRTOhLuI7SzgDdAlKWxM8ivBKziBHwjJGR96vCvSkoKwlGMGRcDzXgVRnr/7w==}
+    peerDependencies:
+      '@hotwired/stimulus': ^3.0.0
 
   '@tailwindcss/forms@0.5.3':
     resolution: {integrity: sha512-y5mb86JUoiUgBjY/o6FJSFZSEttfb3Q5gllE4xoKjAAD+vBrnIhE4dViwUuow3va8mpH4s9jyUbUbrRGoRdc2Q==}
@@ -3521,10 +3535,18 @@ packages:
     peerDependencies:
       '@hotwired/stimulus': ^3.2.1
 
+  stimulus-transition@1.1.2:
+    resolution: {integrity: sha512-4aE5tCDcKXtZNPft/YW/dY4PE3L5uroggk4XNgw9rWzBbtnrfv9lw0jJwzp2GjfLyL+ypKvU5qyJNyRBGJO2QA==}
+    peerDependencies:
+      stimulus: ^2.0.0 || ^3.0.0
+
   stimulus-use@0.51.3:
     resolution: {integrity: sha512-V4YETxMFL4/bpmcqlwFtaOaJg9sLF+XlWsvXrsoWVA5jffsqe7uAvV6gGPPQta7Hgx01vovA0yNsWUe2eU9Jmw==}
     peerDependencies:
       '@hotwired/stimulus': '>= 3'
+
+  stimulus@3.2.2:
+    resolution: {integrity: sha512-sEGK0ofeMuW+B2oPLTigCqxl47P9vRfZxeqzY5Hk1u0QPWS8DZhW+VOEEyngtzdHM+MutXKGBT8BkUKoA0060Q==}
 
   string-width@4.2.3:
     resolution: {integrity: sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==}
@@ -4823,7 +4845,13 @@ snapshots:
     dependencies:
       '@hotwired/stimulus': 3.2.1
 
+  '@hotwired/stimulus-webpack-helpers@1.0.1(@hotwired/stimulus@3.2.2)':
+    dependencies:
+      '@hotwired/stimulus': 3.2.2
+
   '@hotwired/stimulus@3.2.1': {}
+
+  '@hotwired/stimulus@3.2.2': {}
 
   '@hotwired/turbo@7.3.0': {}
 
@@ -4886,6 +4914,10 @@ snapshots:
   '@one-ini/wasm@0.1.1': {}
 
   '@popperjs/core@2.11.8': {}
+
+  '@stimulus-components/dialog@1.0.1(@hotwired/stimulus@3.2.1)':
+    dependencies:
+      '@hotwired/stimulus': 3.2.1
 
   '@tailwindcss/forms@0.5.3(tailwindcss@3.3.2)':
     dependencies:
@@ -7762,10 +7794,19 @@ snapshots:
     dependencies:
       '@hotwired/stimulus': 3.2.1
 
+  stimulus-transition@1.1.2(stimulus@3.2.2):
+    dependencies:
+      stimulus: 3.2.2
+
   stimulus-use@0.51.3(@hotwired/stimulus@3.2.1):
     dependencies:
       '@hotwired/stimulus': 3.2.1
       hotkeys-js: 3.10.4
+
+  stimulus@3.2.2:
+    dependencies:
+      '@hotwired/stimulus': 3.2.2
+      '@hotwired/stimulus-webpack-helpers': 1.0.1(@hotwired/stimulus@3.2.2)
 
   string-width@4.2.3:
     dependencies:

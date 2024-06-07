@@ -1,6 +1,7 @@
 import re
 from datetime import datetime
 
+from allauth.account.models import EmailAddress
 from openai import OpenAI
 
 from hn_jobs.utils import get_tjalerts_logger
@@ -166,3 +167,25 @@ def default_alert_name(alert, idx):
         return f"{Technology.objects.get(id=alert.filter['technologies'][0]).name} Alert"
     else:
         return alert.name if alert.name else f"Alert #{idx+1}"
+
+
+def remove_params_for_filters(params):
+    try:
+        del params["o"]
+    except KeyError:
+        pass
+
+    try:
+        del params["page"]
+    except KeyError:
+        pass
+
+    return params
+
+
+def is_email_confirmed(user):
+    try:
+        email_address = EmailAddress.objects.get(user=user, email=user.email)
+        return email_address.verified
+    except EmailAddress.DoesNotExist:
+        return False

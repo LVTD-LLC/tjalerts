@@ -1,3 +1,4 @@
+import json
 from datetime import timedelta
 
 from django import forms
@@ -15,12 +16,12 @@ from django_filters.views import FilterView
 from django_q.tasks import async_task
 
 from hn_jobs.utils import add_users_context, get_tjalerts_logger, validate_technology_selected
-from jobs.utils import default_alert_name
+from jobs.utils import default_alert_name, is_email_confirmed, remove_params_for_filters
 from utils.constants import HIRABLE_TECH_LIST_SLUGS
 
 from .constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
 from .filters import PostFilter
-from .forms import ConfirmAlertForm, CreateAlertForm
+from .forms import ConfirmAlertForm, CreateAlertForm, CreateCustomAlertForm
 from .models import Alert, AlertEmailSend, Company, Post, Technology, TechnologyMapping, Title
 from .queries import get_most_popular_technologies, get_most_popular_titles
 from .tasks import (
@@ -44,23 +45,17 @@ class PostListView(FilterView):
     filterset_class = PostFilter
     paginate_by = 6
 
-    def get(self, request, *args, **kwargs):
-        params = request.GET.copy()
-
-        try:
-            del params["page"]
-            del params["o"]
-        except KeyError:
-            pass
-
-        return super().get(request, *args, **kwargs)
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
         user = self.request.user
         if user.is_authenticated:
             add_users_context(context, user, self)
+
+        params = remove_params_for_filters(self.request.GET.copy())
+
+        context["CustomAlertForm"] = CreateCustomAlertForm
+        context["custom_alert_filters"] = json.dumps(params.dict())
 
         return context
 
@@ -188,6 +183,43 @@ def create_backfill_vector_data_jobs_view(request):
     )
 
     return redirect("trigger_task")
+
+
+class CreateCustomAlertView(SuccessMessageMixin, CreateView):
+    template_name = "jobs/create-custom-alert.html"
+    model = Alert
+    form_class = CreateCustomAlertForm
+    success_url = reverse_lazy("home")
+
+    def form_valid(self, form):
+        user = self.request.user
+        if user.is_authenticated:
+            form.instance.user = user
+
+        # if user.is_authenticated and existing_alerts.count() >= 3:
+        #     messages.add_message(self.request, messages.WARNING, "Free users can only have 3 alerts.")
+        #     return redirect("home")
+        existing_alerts = Alert.objects.filter(email=form.instance.email)
+        if not user.is_authenticated and existing_alerts.exists():
+            messages.add_message(self.request, messages.WARNING, "Sign up to create multiple alerts.")
+            return redirect("home")
+
+        if user.is_authenticated and existing_alerts.exists():
+            if existing_alerts.latest("modified").confirmed is True or is_email_confirmed(user):
+                form.instance.confirmed = True
+                messages.add_message(
+                    self.request, messages.SUCCESS, "Alert has been added, you will start getting jobs soon!"
+                )
+        else:
+            confirmation_url = self.request.build_absolute_uri(reverse("confirm_subscription", args=[form.instance.id]))
+            async_task(send_confirmation_email, form.cleaned_data, confirmation_url, group="Send Confirmation Email")
+            messages.add_message(
+                self.request, messages.SUCCESS, "Thank for creating an alert! Check your emails to confirm!"
+            )
+
+        async_task(find_users_to_alert, group="Find Users to Alert")
+
+        return super(CreateCustomAlertView, self).form_valid(form)
 
 
 class AlertCreateView(SuccessMessageMixin, CreateView):

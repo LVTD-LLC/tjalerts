@@ -14,6 +14,16 @@ class CreateAlertForm(ModelForm):
         ]
 
 
+class CreateCustomAlertForm(ModelForm):
+    class Meta:
+        model = Alert
+        fields = [
+            "name",
+            "email",
+            "filter",
+        ]
+
+
 class ConfirmAlertForm(ModelForm):
     class Meta:
         model = Alert
