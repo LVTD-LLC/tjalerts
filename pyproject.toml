@@ -30,7 +30,6 @@ django-mjml = "^1.1"
 django-storages = {extras = ["s3"], version = "^1.14.2"}
 sentry-sdk = {extras = ["django"], version = "^1.32.0"}
 pgvector = "^0.2.3"
-kolo = "^2.6.0"
 django-debug-toolbar = "^4.2.0"
 posthog = "^3.0.2"
 ipython = "^8.19.0"
