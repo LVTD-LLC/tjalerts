@@ -88,10 +88,6 @@ MIDDLEWARE = [
     "django_structlog.middlewares.RequestMiddleware",
 ]
 
-if DEBUG:
-    MIDDLEWARE.append("kolo.middleware.KoloMiddleware")
-
-
 ROOT_URLCONF = "hn_jobs.urls"
 
 TEMPLATES = [
