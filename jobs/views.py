@@ -25,6 +25,7 @@ from .forms import ConfirmAlertForm, CreateAlertForm, CreateCustomAlertForm
 from .models import Alert, AlertEmailSend, Company, Post, Technology, TechnologyMapping, Title
 from .queries import get_most_popular_technologies, get_most_popular_titles
 from .tasks import (
+    add_email_to_buttondown,
     create_backfill_vector_data_jobs,
     create_update_min_and_max_salary_jobs,
     find_bad_submitted_dates,
@@ -280,6 +281,7 @@ class ConfirmAlertView(SuccessMessageMixin, UpdateView):
 
     def form_valid(self, form):
         response = super(ConfirmAlertView, self).form_valid(form)
+        async_task(add_email_to_buttondown, self.object.email, tag="user", group="Add Email to Buttondown")
         async_task(find_users_to_alert, group="Find Users to Alert")
 
         return response
