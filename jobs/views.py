@@ -16,15 +16,12 @@ from django_filters.views import FilterView
 from django_q.tasks import async_task
 
 from hn_jobs.utils import add_users_context, get_tjalerts_logger, validate_technology_selected
-from jobs.utils import default_alert_name, is_email_confirmed, remove_params_for_filters
-from utils.constants import HIRABLE_TECH_LIST_SLUGS
-
-from .constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
-from .filters import PostFilter
-from .forms import ConfirmAlertForm, CreateAlertForm, CreateCustomAlertForm
-from .models import Alert, AlertEmailSend, Company, Post, Technology, TechnologyMapping, Title
-from .queries import get_most_popular_technologies, get_most_popular_titles
-from .tasks import (
+from jobs.constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
+from jobs.filters import PostFilter
+from jobs.forms import ConfirmAlertForm, CreateAlertForm, CreateCustomAlertForm
+from jobs.models import Alert, AlertEmailSend, Company, Post, Technology, TechnologyMapping, Title
+from jobs.queries import get_most_popular_technologies, get_most_popular_titles
+from jobs.tasks import (
     add_email_to_buttondown,
     create_backfill_vector_data_jobs,
     create_update_min_and_max_salary_jobs,
@@ -33,6 +30,8 @@ from .tasks import (
     get_hn_pages_to_analyze,
     send_confirmation_email,
 )
+from jobs.utils import default_alert_name, is_email_confirmed, remove_params_for_filters
+from utils.constants import HIRABLE_TECH_LIST_SLUGS
 
 logger = get_tjalerts_logger(__name__)
 
@@ -342,7 +341,9 @@ def authed_weekly_digest_view(request):
     email_send = AlertEmailSend.objects.filter(user=user).latest("created")
     alerts = Alert.objects.filter(email=user.email)
 
-    context = {"alerts": []}
+    context = {
+        "alerts": [],
+    }
 
     for idx, alert in enumerate(alerts):
         post_filter = PostFilter(alert.filter)

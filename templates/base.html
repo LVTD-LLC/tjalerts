@@ -86,6 +86,8 @@
               class="absolute right-0 z-10 w-48 py-1 mt-2 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
               role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" tabindex="-1">
               {% if user.is_authenticated %}
+              <a href="{% url 'authed_weekly_digest' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-300"
+                role="menuitem" data-action="dropdown#toggle" tabindex="-1" id="user-menu-item-0">Latest Digest</a>
               <a href="{% url 'settings' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-300"
                 role="menuitem" data-action="dropdown#toggle" tabindex="-1" id="user-menu-item-0">Settings</a>
               {% endif %}
@@ -128,6 +130,8 @@
                 <a href="{% url 'posts' %}"
                   class="block px-3 py-2 -mx-3 text-base font-semibold leading-7 text-gray-900 rounded-lg hover:bg-gray-50">Jobs</a>
                 {% if user.is_authenticated %}
+                <a href="{% url 'authed_weekly_digest' %}"
+                  class="block px-3 py-2 -mx-3 text-base font-semibold leading-7 text-gray-900 rounded-lg hover:bg-gray-50">Latest Digest</a>
                 <a href="{% url 'settings' %}"
                   class="block px-3 py-2 -mx-3 text-base font-semibold leading-7 text-gray-900 rounded-lg hover:bg-gray-50">Settings</a>
                 {% endif %}

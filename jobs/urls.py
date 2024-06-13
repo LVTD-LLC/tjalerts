@@ -31,14 +31,13 @@ urlpatterns = [
         name="create_backfill_vector_data_jobs",
     ),
     # path("highest-paid-list", HighestPaidBlogPostListView.as_view(), name="highest-paid-blog-posts"),
-    path("create-alert", AlertCreateView.as_view(), name="create-alert"),
-    path("create-custom-alert", CreateCustomAlertView.as_view(), name="create-custom-alert"),
+    path("create-alert/", AlertCreateView.as_view(), name="create-alert"),
+    path("create-custom-alert/", CreateCustomAlertView.as_view(), name="create-custom-alert"),
     path("confirm/<uuid:pk>/", ConfirmAlertView.as_view(), name="confirm_subscription"),
-    path("<slug:slug>/highest-paid/", HighestPaidJobsView.as_view(), name="highest-paid-job-blog-post"),
-    path("companies/", CompaniesJobsView.as_view(), name="companies"),
-    path("<slug:slug>/", CompanyJobsView.as_view(), name="company-jobs"),
-    path("digest/<uuid:alert_email_send_id>/", unauthed_weekly_digest_view, name="unauthed_weekly_digest"),
     path("digest/", authed_weekly_digest_view, name="authed_weekly_digest"),
+    path("digest/<uuid:alert_email_send_id>/", unauthed_weekly_digest_view, name="unauthed_weekly_digest"),
+    path("companies/", CompaniesJobsView.as_view(), name="companies"),
+    path("company/<slug:slug>/", CompanyJobsView.as_view(), name="company-jobs"),
     path(
         "unsubscribe/u/<uuid:alert_email_send_id>/", unsubscribe_from_unauthed_alert, name="unauthed_alert_unsubscribe"
     ),
@@ -47,4 +46,5 @@ urlpatterns = [
         toggle_subscription_from_authed_alert,
         name="toggle_subscription_from_authed_alert",
     ),
+    path("<slug:slug>/highest-paid/", HighestPaidJobsView.as_view(), name="highest-paid-job-blog-post"),
 ]
