@@ -398,6 +398,7 @@ class TechnologyJobsView(ListView):
 
         context["tech_name"] = tech.name
         context["tech_id"] = tech.id
+        context["tech_slug"] = tech.slug
         context["canonical_url"] = self.request.build_absolute_uri(self.request.path).replace("http://", "https://")
         context["latest_date"] = latest_date
         context["create_alert_form"] = CreateAlertForm

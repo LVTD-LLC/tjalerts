@@ -5,6 +5,28 @@
 {% load url_utils %}
 {% load date_utils %}
 
+{% block meta %}
+<title>Jobs at {{ object_list.0.company.name }}</title>
+<meta name="description" content="List of jobs at {{ object_list.0.company.name }}" />
+<meta name="keywords" content="jobs, job postings, {{ object_list.0.company.name }}" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://{{ request.get_host }}/{% url 'company-jobs' object_list.0.company.name %}" />
+
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Jobs at {{ object_list.0.company.name }}" />
+<meta property="og:url" content="https://{{ request.get_host }}/{% url 'company-jobs' object_list.0.company.name %}" />
+<meta property="og:description" content="List of jobs at {{ object_list.0.company.name }}" />
+<meta property="og:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
+<meta property="og:locale" content="en_US" />
+
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:creator" content="@rasulkireev" />
+<meta name="twitter:site" content="@rasulkireev" />
+<meta name="twitter:title" content="Jobs at {{ object_list.0.company.name }}" />
+<meta name="twitter:description" content="List of jobs at {{ object_list.0.company.name }}" />
+<meta name="twitter:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
+{% endblock meta %}
+
 {% block content %}
   <div class="max-w-3xl mx-auto mb-4 text-center">
     <h1 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">{{ object_list.0.company.name }} Jobs</h1>

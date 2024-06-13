@@ -5,6 +5,28 @@
 {% load url_utils %}
 {% load date_utils %}
 
+{% block meta %}
+<title>Jobs with {{ tech_name }}</title>
+<meta name="description" content="List of jobs with {{ tech_name }}" />
+<meta name="keywords" content="jobs, job postings, {{ object_list.0.company.name }}" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://{{ request.get_host }}/{% url 'technology-jobs' tech_slug %}" />
+
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Jobs with {{ tech_name }}" />
+<meta property="og:url" content="https://{{ request.get_host }}/{% url 'technology-jobs' tech_slug %}" />
+<meta property="og:description" content="List of jobs with {{ tech_name }}" />
+<meta property="og:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
+<meta property="og:locale" content="en_US" />
+
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:creator" content="@rasulkireev" />
+<meta name="twitter:site" content="@rasulkireev" />
+<meta name="twitter:title" content="Jobs with {{ tech_name }}" />
+<meta name="twitter:description" content="List of jobs with {{ tech_name }}" />
+<meta name="twitter:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
+{% endblock meta %}
+
 {% block content %}
   <div class="max-w-3xl mx-auto mb-4 text-center">
     <h1 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">{{ tech_name }} Jobs</h1>
@@ -21,5 +43,31 @@
 
 {% block schema %}
 <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "Jobs with {{ tech_name }}",
+  "description": "List of jobs with {{ tech_name }}"",
+  "itemListElement": [{% for job in object_list %}
+    {
+      "@type": "ListItem",
+      "position": {{ forloop.counter }},
+      "url": "https://{{ request.get_host }}{% url 'post' job.id %}",
+      "item": {
+        "@type": "JobPosting",
+        "title": "{{ job.jobs.all.0.name }}",
+        "description": "{{ job.description|safe }}",
+        "datePosted": "{{ job.submitted_datetime|date:'Y-m-d' }}",
+        "validThrough": "{{ job.submitted_datetime|plus_days:30|date:'Y-m-d' }}",
+        "employmentType": "Full-time",
+        "hiringOrganization": {
+          "@type": "Organization",
+          "name": "{{ job.company.name }}"{% if job.company.company_homepage_link %},
+          "sameAs": "{{ job.company.fixed_company_homepage_link }}"{% endif %}
+        }
+      }
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}]
+}
 </script>
 {% endblock schema %}

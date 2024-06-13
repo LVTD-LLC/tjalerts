@@ -4,6 +4,28 @@
 {% load webpack_loader static %}
 {% load url_utils %}
 
+{% block meta %}
+<title>Companies that are hiring right now.</title>
+<meta name="description" content="List of companies that are hiring right now." />
+<meta name="keywords" content="companies, hiring, jobs" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://{{ request.get_host }}/{% url 'companies' %}" />
+
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Companies that are hiring right now." />
+<meta property="og:url" content="https://{{ request.get_host }}/{% url 'companies' %}" />
+<meta property="og:description" content="List of companies that are hiring right now." />
+<meta property="og:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
+<meta property="og:locale" content="en_US" />
+
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:creator" content="@rasulkireev" />
+<meta name="twitter:site" content="@rasulkireev" />
+<meta name="twitter:title" content="Companies that are hiring right now." />
+<meta name="twitter:description" content="List of companies that are hiring right now." />
+<meta name="twitter:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
+{% endblock meta %}
+
 {% block content %}
 <div class="px-4 mx-auto space-y-10 max-w-7xl sm:px-6 lg:px-8">
   <div class="max-w-2xl mx-auto text-center">
@@ -28,7 +50,7 @@
 {
   "@context": "https://schema.org",
   "@type": "ItemList",
-  "name": "Tech Jobs Alerts - Companies that are hiring right now.",
+  "name": "Companies that are hiring right now.",
   "description": "List of companies currently hiring",
   "itemListElement": [{% for company in object_list %}
     {
