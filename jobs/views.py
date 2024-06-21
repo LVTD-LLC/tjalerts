@@ -21,7 +21,6 @@ from jobs.constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
 from jobs.filters import PostFilter
 from jobs.forms import ConfirmAlertForm, CreateAlertForm, CreateCustomAlertForm
 from jobs.models import Alert, AlertEmailSend, Company, Post, Technology, TechnologyMapping, Title
-from jobs.queries import get_most_popular_technologies, get_most_popular_titles
 from jobs.tasks import (
     add_email_to_buttondown,
     create_backfill_vector_data_jobs,
@@ -88,8 +87,6 @@ class PostDetailView(DetailView):
             add_users_context(context, user, self)
 
         context["create_alert_form"] = CreateAlertForm
-        context["popular_titles"] = get_most_popular_titles()
-        context["popular_technologies"] = get_most_popular_technologies(min_count=2)
 
         return context
 

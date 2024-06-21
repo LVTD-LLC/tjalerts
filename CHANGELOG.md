@@ -13,6 +13,12 @@ and this project tries to adhere to [Semantic Versioning](https://semver.org/spe
 **Fixed** for any bug fixes.
 **Security** in case of vulnerabilities.
 
+## [0.0.2] - 2024-06-21
+### Fixed
+- Incorrect count of alerts and jobs in the digest email
+- Hid the navbar items for mobile
+
+
 ## [0.0.1] - 2024-06-13
 ### Added
 - Page to list technologies
