@@ -355,7 +355,7 @@ def authed_weekly_digest_view(request):
     user = request.user
 
     email_send = AlertEmailSend.objects.filter(user=user).latest("created")
-    alerts = Alert.objects.filter(email=user.email)
+    alerts = Alert.objects.filter(email=user.email, unsubscribed=False)
 
     context = {
         "alerts": [],
@@ -367,12 +367,13 @@ def authed_weekly_digest_view(request):
 
         name = default_alert_name(alert, idx)
 
-        context["alerts"].append(
-            {
-                "name": name,
-                "queryset": queryset,
-            }
-        )
+        if queryset.count() > 0:
+            context["alerts"].append(
+                {
+                    "name": name,
+                    "queryset": queryset,
+                }
+            )
 
     return render(request, template_name, context)
 

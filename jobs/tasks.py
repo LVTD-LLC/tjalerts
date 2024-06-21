@@ -444,7 +444,7 @@ def find_users_to_alert():
         async_task(
             send_alerts,
             email,
-            Alert.objects.filter(email=email),
+            Alert.objects.filter(email=email, unsubscribed=False, confirmed=True),
             hook="jobs.hooks.print_result",
             group="Send Alert",
         )
