@@ -14,6 +14,10 @@ and this project tries to adhere to [Semantic Versioning](https://semver.org/spe
 **Security** in case of vulnerabilities.
 
 ## [0.0.2] - 2024-06-21
+### Added
+- Titles page
+- Titles filter
+
 ### Fixed
 - Incorrect count of alerts and jobs in the digest email
 - Hid the navbar items for mobile

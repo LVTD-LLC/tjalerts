@@ -149,6 +149,12 @@
                 >
                   Technologies
                 </a>
+                <a
+                href="{% url 'titles' %}"
+                class="block px-3 py-2 -mx-3 text-base font-semibold leading-7 text-gray-900 rounded-lg hover:bg-gray-50"
+                >
+                  Titles
+                </a>
                 {% if user.is_authenticated %}
                 <a href="{% url 'authed_weekly_digest' %}"
                   class="block px-3 py-2 -mx-3 text-base font-semibold leading-7 text-gray-900 rounded-lg hover:bg-gray-50">Latest Digest</a>
