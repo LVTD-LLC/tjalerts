@@ -28,16 +28,17 @@
 
 {% block content %}
 <div class="px-4 mx-auto space-y-10 max-w-7xl sm:px-6 lg:px-8">
-  <div class="max-w-2xl mx-auto text-center">
+  <div class="mx-auto max-w-2xl text-center">
     <h1 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Technologies that are in demand right now.</h1>
   </div>
-  <div class="max-w-xl mx-auto">
+  <div class="mx-auto max-w-xl">
     <ul role="list" class="ml-2 list-disc list-inside">
       {% for technology in object_list %}
       <li class="mb-2">
-        <a href="{% url 'technology-jobs' technology.slug %}" class="text-lg font-semibold leading-6 text-gray-900 link">
+        <a href="{% url 'technology-jobs' technology.slug %}" class="mr-1 text-lg font-semibold leading-6 text-gray-900 link">
           {{ technology.name }}
         </a>
+        <span>({{ technology.recent_posts_count }})</span>
       </li>
     {% endfor %}
     </ul>

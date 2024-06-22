@@ -7,7 +7,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import ValidationError
-from django.db.models import Count, Exists, Max, OuterRef
+from django.db import models
+from django.db.models import Count, Exists, Max, OuterRef, Subquery
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
@@ -446,7 +447,12 @@ class TechnologiesJobsView(ListView):
 
     def get_queryset(self):
         two_months_ago = timezone.now() - timezone.timedelta(days=60)
-        recent_posts = Post.objects.filter(submitted_datetime__gte=two_months_ago).values("technologies")
+        recent_posts = Post.objects.filter(submitted_datetime__gte=two_months_ago, technologies=OuterRef("pk"))
+
+        recent_posts_count = Subquery(
+            recent_posts.values("technologies").annotate(count=Count("pk")).values("count"),
+            output_field=models.IntegerField(),
+        )
 
         queryset = (
             super()
@@ -455,6 +461,7 @@ class TechnologiesJobsView(ListView):
             .annotate(
                 post_count=Count("posttechnology"),
                 has_recent_posts=Exists(recent_posts.filter(technologies=OuterRef("pk"))),
+                recent_posts_count=recent_posts_count,
             )
             .filter(has_recent_posts=True, post_count__gt=5)
             .order_by("name")
@@ -469,7 +476,12 @@ class TitlesJobsView(ListView):
 
     def get_queryset(self):
         two_months_ago = timezone.now() - timezone.timedelta(days=60)
-        recent_posts = Post.objects.filter(submitted_datetime__gte=two_months_ago).values("titles")
+        recent_posts = Post.objects.filter(submitted_datetime__gte=two_months_ago, titles=OuterRef("pk"))
+
+        recent_posts_count = Subquery(
+            recent_posts.values("titles").annotate(count=Count("pk")).values("count"),
+            output_field=models.IntegerField(),
+        )
 
         queryset = (
             super()
@@ -477,6 +489,7 @@ class TitlesJobsView(ListView):
             .annotate(
                 post_count=Count("posttitle"),
                 has_recent_posts=Exists(recent_posts.filter(titles=OuterRef("pk"))),
+                recent_posts_count=recent_posts_count,
             )
             .filter(has_recent_posts=True, post_count__gt=5)
             .order_by("name")
