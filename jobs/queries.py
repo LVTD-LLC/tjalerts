@@ -33,8 +33,10 @@ def get_latest_submissions(number_of: int, for_homepage: bool = False):
 def get_most_popular_titles(number_of: int = 0, min_count: int = 0):
     title_objects = Title.objects.exclude(name__in=EXCLUDED_TITLES)
 
-    if number_of > 0:
+    if number_of > 0 or min_count > 0:
         title_objects = title_objects.annotate(post_count=Count("posttitle")).order_by("-post_count")
+
+    if number_of > 0:
         title_objects = title_objects[:number_of]
 
     if min_count > 0:
@@ -50,8 +52,10 @@ def get_most_popular_technologies(number_of: int = 0, min_count: int = 0):
         .filter(is_child=False)
     )
 
-    if number_of > 0:
+    if number_of > 0 or min_count > 0:
         technology_objects = technology_objects.annotate(post_count=Count("posttechnology")).order_by("-post_count")
+
+    if number_of > 0:
         technology_objects = technology_objects[:number_of]
 
     if min_count > 0:
