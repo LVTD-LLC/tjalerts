@@ -13,6 +13,14 @@ and this project tries to adhere to [Semantic Versioning](https://semver.org/spe
 **Fixed** for any bug fixes.
 **Security** in case of vulnerabilities.
 
+## [0.0.3] - 2024-06-25
+### Added
+- Search for titles and technologies
+- Automatic db analyze and vacuum
+
+### Fixed
+- Attempted to improve performance of the jobs page
+
 ## [0.0.2] - 2024-06-21
 ### Added
 - Titles page
