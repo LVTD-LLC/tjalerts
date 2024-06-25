@@ -109,9 +109,21 @@
               </svg>
             </button>
           </div>
-          <div class="px-2" data-select-technology-target="selected"></div>
-          <div class="overflow-auto px-2 mt-2 max-h-64 rounded border border-gray-200" data-reveal-target="item">
-              {% render_field filter.form.technologies id="technologies" name="technologies" class="my-2 text-gray-600 rounded" data-select-technology-target="item" data-action="click->select-technology#select" %}
+          <div data-controller="filter" data-reveal-target="item">
+            <div>
+              <input
+                type="text"
+                id="search-technologies"
+                data-filter-target="query"
+                data-action="input->filter#search"
+                placeholder="Search technologies..."
+                class="p-1 mt-1 w-full rounded"
+              />
+            </div>
+            <div class="px-2" data-select-technology-target="selected"></div>
+            <div class="overflow-auto px-2 mt-2 max-h-64 rounded border border-gray-200">
+                {% render_field filter.form.technologies id="technologies" name="technologies" class="my-2 text-gray-600 rounded" data-filter-target="item" data-select-technology-target="item" data-action="click->select-technology#select" %}
+            </div>
           </div>
         </div>
 
@@ -124,9 +136,21 @@
               </svg>
             </button>
           </div>
-          <div class="px-2" data-select-title-target="selected"></div>
-          <div class="overflow-auto px-2 mt-2 max-h-64 rounded border border-gray-200" data-reveal-target="item">
-              {% render_field filter.form.titles id="titles" name="titles" class="my-2 text-gray-600 rounded" data-select-title-target="item" data-action="click->select-title#select" %}
+          <div class="hidden" data-controller="filter" data-reveal-target="item">
+            <div>
+              <input
+                type="text"
+                id="search-titles"
+                data-filter-target="query"
+                data-action="input->filter#search"
+                placeholder="Search titles..."
+                class="p-1 mt-1 w-full rounded"
+              />
+            </div>
+            <div class="px-2" data-select-title-target="selected"></div>
+            <div class="overflow-auto px-2 mt-2 max-h-64 rounded border border-gray-200">
+                {% render_field filter.form.titles id="titles" name="titles" class="my-2 text-gray-600 rounded" data-filter-target="item" data-select-title-target="item" data-action="click->select-title#select" %}
+            </div>
           </div>
         </div>
 
