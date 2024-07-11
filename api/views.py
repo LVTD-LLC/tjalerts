@@ -68,7 +68,7 @@ def get_emails(
 
 @api.get("/jobs")
 def get_jobs(request, technologies=Query(None)):
-    posts = Post.objects.prefetch_related("company", "technologies", "jobs")
+    posts = Post.objects.prefetch_related("company", "technologies", "titles")
 
     user_submitted_technologies = technologies.split(",")
     user_submitted_technologies = [item.strip() for item in user_submitted_technologies]
