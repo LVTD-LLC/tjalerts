@@ -24,7 +24,7 @@
                       {% render_field CustomAlertForm.name id="name" name="name" type="text" required="True" class="block px-2 py-1.5 w-full text-gray-900 rounded-md border-0 ring-1 ring-inset ring-gray-300 shadow-sm placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-green-600 sm:text-sm sm:leading-6" %}
                   </div>
                   {% render_field CustomAlertForm.email id="email" name="email" type="email" value=request.user.email autocomplete="email" readonly="True" required="True" class="hidden" %}
-                  {% render_field CustomAlertForm.filter value=custom_alert_filters required="True" class="hidden" %}
+                  {% render_field CustomAlertForm.filter value=custom_alert_filters required="True" class="" %}
                     <div class="flex flex-row justify-end mt-2 space-x-3">
                         <button
                           type="button"

@@ -50,11 +50,6 @@ class PostListView(FilterView):
         query_params = request.GET.copy()
         needs_redirect = False
 
-        filterset_class = self.get_filterset_class()
-        filterset = self.get_filterset(filterset_class)
-
-        logger.info("Filterset", filters=filterset.form.data)
-
         for key in list(query_params.keys()):
             if query_params[key] == "unknown" or query_params[key] == "":
                 del query_params[key]
@@ -73,10 +68,11 @@ class PostListView(FilterView):
         if user.is_authenticated:
             add_users_context(context, user, self)
 
-        params = remove_params_for_filters(self.request.GET.copy())
+        params = remove_params_for_filters(self.request.GET.copy().dict())
+        params["technologies"] = self.request.GET.getlist("technologies")
 
         context["CustomAlertForm"] = CreateCustomAlertForm
-        context["custom_alert_filters"] = json.dumps(params.dict())
+        context["custom_alert_filters"] = json.dumps(params)
 
         return context
 
@@ -367,7 +363,12 @@ def authed_weekly_digest_view(request):
 
     for idx, alert in enumerate(alerts):
         query_dict = QueryDict("", mutable=True)
-        query_dict.update(alert.filter)
+        for key, value in alert.filter.items():
+            if isinstance(value, list):
+                query_dict.setlist(key, value)
+            else:
+                query_dict[key] = value
+
         post_filter = PostFilter(query_dict)
         queryset = post_filter.qs.filter(submitted_datetime__gte=email_send.created - timedelta(days=31))
 

@@ -87,7 +87,7 @@
               </button>
             </div>
             <div data-dropdown-target="menu"
-              class="absolute right-0 z-10 py-1 mt-2 w-48 bg-white rounded-md ring-1 ring-black ring-opacity-5 shadow-lg origin-top-right focus:outline-none"
+              class="hidden absolute right-0 z-10 py-1 mt-2 w-48 bg-white rounded-md ring-1 ring-black ring-opacity-5 shadow-lg origin-top-right focus:outline-none"
               role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" tabindex="-1">
               {% if user.is_authenticated %}
               <a href="{% url 'authed_weekly_digest' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-300"
