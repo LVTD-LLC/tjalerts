@@ -362,6 +362,8 @@ def authed_weekly_digest_view(request):
     }
 
     for idx, alert in enumerate(alerts):
+
+        # passing a plain dict won't work. It has to be a QueryDict
         query_dict = QueryDict("", mutable=True)
         for key, value in alert.filter.items():
             if isinstance(value, list):
@@ -370,7 +372,7 @@ def authed_weekly_digest_view(request):
                 query_dict[key] = value
 
         post_filter = PostFilter(query_dict)
-        queryset = post_filter.qs.filter(submitted_datetime__gte=email_send.created - timedelta(days=31))
+        queryset = post_filter.qs.filter(submitted_datetime__gte=email_send.created - timedelta(days=7))
 
         name = default_alert_name(alert, idx)
 
