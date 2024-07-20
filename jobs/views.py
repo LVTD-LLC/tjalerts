@@ -533,7 +533,10 @@ class TitleJobsView(ListView):
 
         data = self.get_queryset()
         dates = data.values_list("created", flat=True)
-        latest_date = max(dates)
+        if dates:
+            latest_date = max(dates)
+        else:
+            latest_date = timezone.now()
 
         context["title_name"] = title.name
         context["title_id"] = title.id
