@@ -45,14 +45,14 @@ def get_most_popular_titles(number_of: int = 0, min_count: int = 0):
     return title_objects
 
 
-def get_most_popular_technologies(number_of: int = 0, min_count: int = 0):
+def get_most_popular_technologies(number_of: int = 0, min_count: int = 0, order_by_post_count: bool = True):
     technology_objects = (
         Technology.objects.exclude(name__in=EXCLUDED_TECHNOLOGIES)
         .annotate(is_child=Exists(TechnologyMapping.objects.filter(child=OuterRef("pk"))))
         .filter(is_child=False)
     )
 
-    if number_of > 0 or min_count > 0:
+    if number_of > 0 or min_count > 0 or order_by_post_count:
         technology_objects = technology_objects.annotate(post_count=Count("posttechnology")).order_by("-post_count")
 
     if number_of > 0:

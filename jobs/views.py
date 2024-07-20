@@ -9,7 +9,7 @@ from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Count, Exists, Max, OuterRef, Subquery
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -68,10 +68,11 @@ class PostListView(FilterView):
         if user.is_authenticated:
             add_users_context(context, user, self)
 
-        params = remove_params_for_filters(self.request.GET.copy())
+        params = remove_params_for_filters(self.request.GET.copy().dict())
+        params["technologies"] = self.request.GET.getlist("technologies")
 
         context["CustomAlertForm"] = CreateCustomAlertForm
-        context["custom_alert_filters"] = json.dumps(params.dict())
+        context["custom_alert_filters"] = json.dumps(params)
 
         return context
 
@@ -361,7 +362,16 @@ def authed_weekly_digest_view(request):
     }
 
     for idx, alert in enumerate(alerts):
-        post_filter = PostFilter(alert.filter)
+
+        # passing a plain dict won't work. It has to be a QueryDict
+        query_dict = QueryDict("", mutable=True)
+        for key, value in alert.filter.items():
+            if isinstance(value, list):
+                query_dict.setlist(key, value)
+            else:
+                query_dict[key] = value
+
+        post_filter = PostFilter(query_dict)
         queryset = post_filter.qs.filter(submitted_datetime__gte=email_send.created - timedelta(days=7))
 
         name = default_alert_name(alert, idx)
@@ -523,7 +533,10 @@ class TitleJobsView(ListView):
 
         data = self.get_queryset()
         dates = data.values_list("created", flat=True)
-        latest_date = max(dates)
+        if dates:
+            latest_date = max(dates)
+        else:
+            latest_date = timezone.now()
 
         context["title_name"] = title.name
         context["title_id"] = title.id
