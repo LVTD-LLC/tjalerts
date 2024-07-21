@@ -30,6 +30,7 @@ export default class extends Controller {
     const query = this.searchTarget.value;
     if (query.length < 2) {
       this.searchResultsTarget.innerHTML = '';
+      this.searchResultsTarget.classList.remove('border', 'border-gray-200');
       return;
     }
 
@@ -38,12 +39,19 @@ export default class extends Controller {
 
     const filteredItems = items.filter(item => !this.selectedItems.has(item.id));
 
-    this.searchResultsTarget.innerHTML = filteredItems.map(item => `
-      <div class="p-2 cursor-pointer hover:bg-gray-100" data-action="click->search-and-select#addItem" data-id="${item.id}" data-name="${item.name}" data-post-count="${item.post_count || ''}">
-        ${item.name}${item.post_count ? ` (${item.post_count} posts)` : ''}
-      </div>
-    `).join('');
+    if (filteredItems.length > 0) {
+      this.searchResultsTarget.classList.add('border', 'border-gray-200');
+      this.searchResultsTarget.innerHTML = filteredItems.map(item => `
+        <div class="p-2 cursor-pointer hover:bg-gray-100" data-action="click->search-and-select#addItem" data-id="${item.id}" data-name="${item.name}" data-post-count="${item.post_count || ''}">
+          ${item.name}${item.post_count ? ` (${item.post_count} posts)` : ''}
+        </div>
+      `).join('');
+    } else {
+      this.searchResultsTarget.classList.remove('border', 'border-gray-200');
+      this.searchResultsTarget.innerHTML = '';
+    }
   }
+
 
   addItem(event) {
     const id = event.currentTarget.dataset.id;
