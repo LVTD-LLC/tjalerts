@@ -1,26 +1,21 @@
-from typing import List
+import time
+from typing import List, Optional
 
-from django.conf import settings
+from django.db.models import Count, Exists, OuterRef, Q
 from django_q.tasks import async_task
 from ninja import NinjaAPI, Query
-from ninja.security import HttpBearer
 
 from hn_jobs.utils import get_tjalerts_logger
-from jobs.models import Company, Email, Post
+from jobs.models import Company, Email, Post, Technology, TechnologyMapping, Title
+from jobs.queries import get_similar_posts_from_db
 from jobs.tasks import create_valid_emails
 
-from .schemas import ReadCompany, ReadEmails
+from .schemas import ReadCompany, ReadEmails, SimilarPostsResponse, TechnologySchema, TitleSchema
 
 logger = get_tjalerts_logger(__name__)
 
 
-class GlobalAuth(HttpBearer):
-    def authenticate(self, request, token):
-        if token == settings.API_TOKEN:
-            return token
-
-
-api = NinjaAPI(auth=GlobalAuth())
+api = NinjaAPI()
 
 
 @api.get("/companies", response=List[ReadCompany])
@@ -104,3 +99,98 @@ def get_jobs(request, technologies=Query(None)):
         "count": len(posts_list),
         "jobs": posts_list,
     }
+
+
+@api.get("/technologies/search", response=List[TechnologySchema])
+def search_technologies(request, query: Optional[str] = Query(None, min_length=2)):
+    if query:
+        technologies = (
+            Technology.objects.filter(Q(name__icontains=query) | Q(slug__icontains=query))
+            .annotate(
+                post_count=Count("posttechnology"),
+                is_child=Exists(TechnologyMapping.objects.filter(child=OuterRef("pk"))),
+            )
+            .filter(is_child=False)
+            .order_by("-post_count")[:10]
+        )
+    else:
+        technologies = Technology.objects.none()
+
+    return [
+        TechnologySchema(id=str(tech.id), name=tech.name, slug=tech.slug, post_count=tech.post_count)
+        for tech in technologies
+    ]
+
+
+@api.get("/technology/{id}", response=TechnologySchema)
+def get_technologies_details(request, id: str):
+    start_time = time.time()
+
+    technology = (
+        Technology.objects.filter(id=id)
+        .annotate(post_count=Count("posttechnology"))
+        .values("id", "name", "slug", "post_count")
+        .first()
+    )
+
+    if technology:
+        technology["id"] = str(technology["id"])
+
+    logger.info("get_technologies_details", duration={round(time.time() - start_time, 2)})
+
+    return technology
+
+
+@api.get("/title/search", response=List[TitleSchema])
+def search_title(request, query: Optional[str] = Query(None, min_length=2)):
+    if query:
+        titles = (
+            Title.objects.filter(Q(name__icontains=query) | Q(slug__icontains=query))
+            .annotate(
+                post_count=Count("posttitle"),
+            )
+            .order_by("-post_count")[:10]
+        )
+    else:
+        titles = Title.objects.none()
+
+    return [
+        TitleSchema(id=str(title.id), name=title.name, slug=title.slug, post_count=title.post_count) for title in titles
+    ]
+
+
+@api.get("/title/{id}", response=TitleSchema)
+def get_title_details(request, id: str):
+    start_time = time.time()
+
+    title = (
+        Title.objects.filter(id=id)
+        .annotate(post_count=Count("posttitle"))
+        .values("id", "name", "slug", "post_count")
+        .first()
+    )
+
+    if title:
+        title["id"] = str(title["id"])
+
+    logger.info("get_technologies_details", duration={round(time.time() - start_time, 2)})
+
+    return title
+
+
+@api.get("/posts/similar/{id}", response=SimilarPostsResponse)
+def get_similar_posts(request, id: str):
+    post = Post.objects.get(id=id)
+    similar_posts = get_similar_posts_from_db(post, limit=5)
+
+    similar_posts_data = [
+        {
+            "id": str(post.id),
+            "description": post.description,
+            "created_at": post.created,
+            "company": {"id": str(post.company.id), "name": post.company.name},
+        }
+        for post in similar_posts
+    ]
+
+    return {"similar_posts": similar_posts_data}

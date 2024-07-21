@@ -25,7 +25,7 @@
 
 {% block content %}
 <main class="overflow-hidden mx-auto mt-16 max-w-4xl">
-    <div>
+    <div class="px-4 py-2 rounded-md border border-gray-200">
       <div class="flex justify-between items-end pb-2 border-b">
         <div class="flex flex-col">
           <div class="flex items-center space-x-3">
@@ -46,14 +46,14 @@
           </div>
           <div>
             {% if object.company_job_application_link %}
-            <a href="{{ object.split_application_links.0 }}" target="_blank"
+            <a href="{{ object.split_application_links.0 }}?utm_source=gettjalerts.com" target="_blank"
               class="mt-1 text-sm text-gray-500 truncate hover:border-b-2 hover:text-gray-600">
               Application Link
             </a>
             |
             {% endif %}
             {% if object.source == "Hacker News" %}
-            <a href="https://news.ycombinator.com/item?id={{ object.who_is_hiring_comment_id }}" target="_blank"
+            <a href="https://news.ycombinator.com/item?id={{ object.who_is_hiring_comment_id }}?utm_source=gettjalerts.com" target="_blank"
               class="mt-1 text-sm text-gray-500 truncate hover:border-b-2 hover:text-gray-600">
               Hacker News Link
             </a>
@@ -126,6 +126,15 @@
         <div class="max-w-none prose">
           <p>{{ object.description }}</p>
         </div>
+      </div>
+    </div>
+
+    <div data-controller="similar-posts" data-similar-posts-post-id-value="{{ post.id }}">
+      <h2 class="mt-4 text-lg font-medium text-gray-900">Similar Jobs</h2>
+      <div class="mb-4 rounded-md border border-gray-200">
+        <ul data-similar-posts-target="container" role="list" class="flex flex-col divide-y divide-gray-200">
+          <!-- Similar posts will be inserted here -->
+        </ul>
       </div>
     </div>
 

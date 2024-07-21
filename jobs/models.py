@@ -63,6 +63,13 @@ class Post(TimeStampedModel):
         ordering = ("-submitted_datetime",)
         indexes = [
             HnswIndex(name="vector_index", fields=["vector"], m=16, ef_construction=64, opclasses=["vector_l2_ops"]),
+            HnswIndex(
+                name="vectors_index_2",
+                fields=["vector"],
+                m=16,
+                ef_construction=64,
+                opclasses=["vector_cosine_ops"],
+            ),
             models.Index(fields=["who_is_hiring_comment_id"], name="index_who_is_hiring_comment_id"),
             models.Index(fields=["submitted_datetime"], name="index_post_submitted_datetime"),
         ]

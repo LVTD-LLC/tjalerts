@@ -56,8 +56,9 @@ class PostFilter(FilterSet):
     )
 
     def extend_technology_search(self, queryset, name, selected_technologies):
+        start_time = time.time()
+
         if selected_technologies:
-            start_time = time.time()
             selected_technology_ids = [tech.id for tech in selected_technologies]
             child_technology_ids = list(
                 TechnologyMapping.objects.filter(parent_id__in=selected_technology_ids).values_list(
@@ -75,6 +76,11 @@ class PostFilter(FilterSet):
             )
 
             return queryset.filter(technologies__id__in=selected_technology_ids).distinct()
+
+        logger.info(
+            "No need to extend technology search",
+            duration=round(time.time() - start_time, 2),
+        )
 
         return queryset
 
@@ -96,5 +102,9 @@ class PostFilter(FilterSet):
 
         if self.data.get("vector"):
             self.filters["o"] = OrderingFilter(
-                choices=(("-submitted_datetime", "Date"), ("-max_salary", "Max Salary"), ("-distance", "Relevance")),
+                choices=(
+                    ("-submitted_datetime", "Date"),
+                    ("-max_salary", "Max Salary"),
+                    ("-distance", "Relevance"),
+                ),
             )

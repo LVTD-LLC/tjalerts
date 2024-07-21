@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List
 
 from ninja import Schema
@@ -32,3 +33,33 @@ class ReadEmails(Schema):
 # class ReadPosts(Schema):
 #     count: int
 #     posts: List[ReadPost]
+
+
+class TechnologySchema(Schema):
+    id: str
+    name: str
+    slug: str
+    post_count: int
+
+
+class TitleSchema(Schema):
+    id: str
+    name: str
+    slug: str
+    post_count: int
+
+
+class CompanySchema(Schema):
+    id: str
+    name: str
+
+
+class PostSchema(Schema):
+    id: str
+    description: str
+    created_at: datetime
+    company: CompanySchema
+
+
+class SimilarPostsResponse(Schema):
+    similar_posts: List[PostSchema]

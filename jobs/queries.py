@@ -1,13 +1,20 @@
-from django.db.models import Count, Exists, OuterRef
-from django.utils import timezone
+import time
 
+from django.db.models import Count, Exists, OuterRef, Q
+from django.utils import timezone
+from pgvector.django import L2Distance
+
+from jobs.constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
+from jobs.models import Post, Technology, TechnologyMapping, Title
+from jobs.utils import get_tjalerts_logger
 from users.models import Subscriber
 
-from .constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
-from .models import Post, Technology, TechnologyMapping, Title
+logger = get_tjalerts_logger(__name__)
 
 
 def get_latest_submissions(number_of: int, for_homepage: bool = False):
+    start_time = time.time()
+
     posts = Post.objects.all().order_by("-submitted_datetime")
 
     if for_homepage:
@@ -27,10 +34,14 @@ def get_latest_submissions(number_of: int, for_homepage: bool = False):
     if number_of > 0:
         posts = posts[:number_of]
 
+    logger.info("Got latest submissions", count=len(posts), duration=round(time.time() - start_time, 2))
+
     return posts
 
 
 def get_most_popular_titles(number_of: int = 0, min_count: int = 0):
+    start_time = time.time()
+
     title_objects = Title.objects.exclude(name__in=EXCLUDED_TITLES)
 
     if number_of > 0 or min_count > 0:
@@ -42,10 +53,14 @@ def get_most_popular_titles(number_of: int = 0, min_count: int = 0):
     if min_count > 0:
         title_objects = title_objects.filter(post_count__gt=min_count)
 
+    logger.info("Got most popular titles", count=len(title_objects), duration=round(time.time() - start_time, 2))
+
     return title_objects
 
 
 def get_most_popular_technologies(number_of: int = 0, min_count: int = 0, order_by_post_count: bool = True):
+    start_time = time.time()
+
     technology_objects = (
         Technology.objects.exclude(name__in=EXCLUDED_TECHNOLOGIES)
         .annotate(is_child=Exists(TechnologyMapping.objects.filter(child=OuterRef("pk"))))
@@ -61,6 +76,10 @@ def get_most_popular_technologies(number_of: int = 0, min_count: int = 0, order_
     if min_count > 0:
         technology_objects = technology_objects.filter(post_count__gt=min_count)
 
+    logger.info(
+        "Got most popular technologies", count=len(technology_objects), duration=round(time.time() - start_time, 2)
+    )
+
     return technology_objects
 
 
@@ -69,3 +88,30 @@ def get_weekly_jobs_for_a_subscriber(subscriber: Subscriber) -> str:
     return Post.objects.filter(
         created__gte=seven_days_ago, technologies__name=subscriber.technology_selected
     ).distinct()
+
+
+def get_similar_posts_from_db(post, limit=5):
+    start_time = time.time()
+
+    excluded_posts = Q(id=post.id) | Q(company=post.company)
+    similar_posts = (
+        Post.objects.select_related("company")
+        .exclude(excluded_posts)
+        .annotate(distance=L2Distance("vector", post.vector))
+        .order_by("distance")
+    )
+
+    result = []
+    seen_companies = set()
+
+    for similar_post in similar_posts[: limit * 2]:
+        if similar_post.company.id not in seen_companies:
+            result.append(similar_post)
+            seen_companies.add(similar_post.company.id)
+
+        if len(result) == limit:
+            break
+
+    logger.info("Got similar posts", count=len(result), duration=round(time.time() - start_time, 2))
+
+    return result
