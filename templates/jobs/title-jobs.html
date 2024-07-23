@@ -10,7 +10,7 @@
 <meta name="description" content="List of '{{ title_name }}' jobs" />
 <meta name="keywords" content="jobs, job postings, {{ object_list.0.company.name }}, {{ title_name }}" />
 <meta name="robots" content="index, follow" />
-<link rel="canonical" href="https://{{ request.get_host }}/{% url 'title-jobs' title_slug %}" />
+<link rel="canonical" href="https://{{ request.get_host }}{% url 'title-jobs' title_slug %}" />
 
 <meta property="og:type" content="website" />
 <meta property="og:title" content="'{{ title_name }}' jobs" />

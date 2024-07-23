@@ -10,7 +10,7 @@
 <meta name="description" content="List of jobs with {{ tech_name }}" />
 <meta name="keywords" content="jobs, job postings, {{ object_list.0.company.name }}" />
 <meta name="robots" content="index, follow" />
-<link rel="canonical" href="https://{{ request.get_host }}/{% url 'technology-jobs' tech_slug %}" />
+<link rel="canonical" href="https://{{ request.get_host }}{% url 'technology-jobs' tech_slug %}" />
 
 <meta property="og:type" content="website" />
 <meta property="og:title" content="Jobs with {{ tech_name }}" />
@@ -28,11 +28,11 @@
 {% endblock meta %}
 
 {% block content %}
-  <div class="max-w-3xl mx-auto mb-4 text-center">
+  <div class="mx-auto mb-4 max-w-3xl text-center">
     <h1 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">{{ tech_name }} Jobs</h1>
   </div>
 
-  <div class="max-w-3xl mx-auto">
+  <div class="mx-auto max-w-3xl">
     <ul role="list" class="flex flex-col space-y-2">
       {% for job in object_list %}
         {% include "components/job-posting.html" with object=job show_name=True %}
@@ -40,12 +40,12 @@
     </ul>
   </div>
 
-  <div class="max-w-2xl p-6 mx-auto mt-10 border border-gray-500 rounded-md">
+  <div class="p-6 mx-auto mt-10 max-w-2xl rounded-md border border-gray-500">
     <div class="mx-auto text-center">
         <p class="mx-auto mb-2 text-xl font-semibold text-gray-900">
           Create your own personalized Job Alert
         </p>
-        <div class="flex items-center justify-center">
+        <div class="flex justify-center items-center">
           {% include "components/simple-alert-form.html" with create_alert_form=create_alert_form %}
         </div>
     </div>
