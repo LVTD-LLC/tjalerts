@@ -29,6 +29,8 @@ HIRABLE_TECH_LIST_SLUGS = [
     "mongodb",  # mapped
     "c",  # mapped
     "vuejs",  # mapped
+    # Sent once
+    # https://www.reddit.com/r/Kotlin/comments/1ef307a/companies_that_use_kotlin_and_pay_the_most/
     "kotlin",
     "mysql",
     "swift",  # mapped

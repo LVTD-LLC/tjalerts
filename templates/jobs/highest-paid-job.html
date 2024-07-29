@@ -29,7 +29,7 @@
 {% block content %}
 <article itemscope itemtype="https://schema.org/BlogPosting" itemid="{{ canonical_url }}">
     <div class="px-6 py-20 bg-white lg:px-8">
-        <div class="max-w-4xl mx-auto text-base leading-7 text-gray-700">
+        <div class="mx-auto max-w-4xl text-base leading-7 text-gray-700">
         <p class="mb-10 text-right text-blue-700">
             → <a href="{% url 'posts' %}?technologies={{ tech_id }}">See more {{ tech_name }} job postings</a>
         </p>
@@ -59,11 +59,11 @@
             <div class="mt-2">
               <ul role="list" class="mt-4 space-y-4 text-gray-600">
                 {% for object in object_list %}
-                  <li>
-                    <a class="flex flex-col space-y-2 bg-white divide-y rounded-md" href="{% url 'post' object.id %}">
-                      <div class="flex items-center justify-between w-full py-2">
+                  <li class="px-4 rounded-md border border-gray-200 hover:bg-gray-50">
+                    <a class="flex flex-col space-y-2 rounded-md divide-y" href="{% url 'post' object.id %}">
+                      <div class="flex justify-between items-center py-2 w-full">
                         <div class="flex-1">
-                          <div class="flex items-center justify-between">
+                          <div class="flex justify-between items-center">
                             <h2 class="text-lg font-medium text-gray-900 truncate">
                               {% if object.company.name %}
                                 {{ object.company.name }}
@@ -111,12 +111,12 @@
         </p>
       </footer>
 </article>
-<div class="max-w-2xl p-6 mx-auto border border-gray-500 rounded-md">
+<div class="p-6 mx-auto max-w-2xl rounded-md border border-gray-500">
     <div class="mx-auto text-center">
         <p class="mx-auto mb-2 text-xl font-semibold text-gray-900">
           Create your own personalized Job Alert
         </p>
-        <div class="flex items-center justify-center">
+        <div class="flex justify-center items-center">
           {% include "components/simple-alert-form.html" with create_alert_form=create_alert_form %}
         </div>
     </div>
