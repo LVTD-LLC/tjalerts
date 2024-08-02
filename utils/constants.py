@@ -37,6 +37,8 @@ HIRABLE_TECH_LIST_SLUGS = [
     "redux",  # mapped
     "ansible",  # mapped
     "php",  # mapped
+    # Sent once
+    # https://www.reddit.com/r/elixir/comments/1efv0xi/companies_that_use_elixir_and_pay_the_most/
     "elixir",
     "azure",
     "angular",  # mapped

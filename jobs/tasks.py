@@ -114,7 +114,7 @@ def analyze_hn_page(who_is_hiring_id, who_is_hiring_title, comment_id):
 
     try:
         completion = client.chat.completions.create(
-            model="gpt-3.5-turbo-1106",
+            model="gpt-4o-mini",
             temperature=0,
             response_format={"type": "json_object"},
             messages=[
@@ -339,7 +339,7 @@ Return a valid JSON Object with the following format:
 Do not return anything else. Just the JSON Object."""  # noqa: E501
 
     completion = client.chat.completions.create(
-        model="gpt-3.5-turbo-1106",
+        model="gpt-4o-mini",
         temperature=0,
         response_format={"type": "json_object"},
         messages=[
