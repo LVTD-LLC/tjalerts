@@ -37,7 +37,7 @@ if [ "$server" = true ]; then
     # python manage.py djstripe_sync_models
     export OTEL_SERVICE_NAME=${PROJECT_NAME}_${ENVIRONMENT:-dev}
     export OTEL_RESOURCE_ATTRIBUTES=service.name=${PROJECT_NAME}_${ENVIRONMENT:-dev}
-    opentelemetry-instrument gunicorn ${PROJECT_NAME}.wsgi:application -c deployment/gunicorn.config.py --bind 0.0.0.0:80 --workers 3 --threads 2 --reload
+    gunicorn ${PROJECT_NAME}.wsgi:application -c deployment/gunicorn.config.py --bind 0.0.0.0:80 --workers 3 --threads 2 --reload
 else
     export OTEL_SERVICE_NAME="${PROJECT_NAME}_${ENVIRONMENT:-dev}_workers"
     export OTEL_RESOURCE_ATTRIBUTES=service.name=${PROJECT_NAME}_${ENVIRONMENT:-dev}_workers
