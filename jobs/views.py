@@ -450,11 +450,16 @@ class TechnologyJobsView(ListView):
 
         data = self.get_queryset()
         dates = data.values_list("created", flat=True)
-        latest_date = max(dates)
 
-        context["tech_name"] = tech.name
-        context["tech_id"] = tech.id
-        context["tech_slug"] = tech.slug
+        # Add this check
+        if dates:
+            latest_date = max(dates)
+        else:
+            latest_date = None
+
+        context["tech_name"] = tech.name if tech else ""
+        context["tech_id"] = tech.id if tech else None
+        context["tech_slug"] = tech.slug if tech else ""
         context["canonical_url"] = self.request.build_absolute_uri(self.request.path).replace("http://", "https://")
         context["latest_date"] = latest_date
         context["create_alert_form"] = CreateAlertForm

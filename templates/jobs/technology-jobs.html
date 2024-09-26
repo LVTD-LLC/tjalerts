@@ -34,9 +34,15 @@
 
   <div class="mx-auto max-w-3xl">
     <ul role="list" class="flex flex-col space-y-2">
-      {% for job in object_list %}
-        {% include "components/job-posting.html" with object=job show_name=True %}
-      {% endfor %}
+      {% if object_list %}
+        <ul role="list" class="flex flex-col space-y-2">
+          {% for job in object_list %}
+            {% include "components/job-posting.html" with object=job show_name=True %}
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>No jobs found for this technology in the last two months.</p>
+      {% endif %}
     </ul>
   </div>
 
