@@ -6,48 +6,53 @@
 {% load date_utils %}
 
 {% block meta %}
-<title>Jobs at {{ object_list.0.company.name }}</title>
-<meta name="description" content="List of jobs at {{ object_list.0.company.name }}" />
-<meta name="keywords" content="jobs, job postings, {{ object_list.0.company.name }}" />
+<title>Jobs at {{ company.name }}</title>
+<meta name="description" content="List of jobs at {{ company.name }}" />
+<meta name="keywords" content="jobs, job postings, {{ company.name }}" />
 <meta name="robots" content="index, follow" />
-<link rel="canonical" href="https://{{ request.get_host }}{% url 'company-jobs' object_list.0.company.slug %}" />
+<link rel="canonical" href="https://{{ request.get_host }}{% url 'company-jobs' company.slug %}" />
 
 <meta property="og:type" content="website" />
-<meta property="og:title" content="Jobs at {{ object_list.0.company.name }}" />
-<meta property="og:url" content="https://{{ request.get_host }}{% url 'company-jobs' object_list.0.company.slug %}" />
-<meta property="og:description" content="List of jobs at {{ object_list.0.company.name }}" />
+<meta property="og:title" content="Jobs at {{ company.name }}" />
+<meta property="og:url" content="https://{{ request.get_host }}{% url 'company-jobs' company.slug %}" />
+<meta property="og:description" content="List of jobs at {{ company.name }}" />
 <meta property="og:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
 <meta property="og:locale" content="en_US" />
 
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:creator" content="@rasulkireev" />
 <meta name="twitter:site" content="@rasulkireev" />
-<meta name="twitter:title" content="Jobs at {{ object_list.0.company.name }}" />
-<meta name="twitter:description" content="List of jobs at {{ object_list.0.company.name }}" />
+<meta name="twitter:title" content="Jobs at {{ company.name }}" />
+<meta name="twitter:description" content="List of jobs at {{ company.name }}" />
 <meta name="twitter:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
 {% endblock meta %}
 
 {% block content %}
   <div class="mx-auto mb-4 max-w-3xl text-center">
-    <h1 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">{{ object_list.0.company.name }} Jobs</h1>
+    <h1 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">{{ company.name }} Jobs</h1>
   </div>
 
   <div class="mx-auto max-w-3xl">
-    <ul role="list" class="flex flex-col space-y-2">
-      {% for job in object_list %}
-        {% include "components/job-posting.html" with object=job show_name=False %}
-      {% endfor %}
-    </ul>
+    {% if object_list %}
+      <ul role="list" class="flex flex-col space-y-2">
+        {% for job in object_list %}
+          {% include "components/job-posting.html" with object=job show_name=False %}
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-center text-gray-600">No jobs currently available for {{ company.name }}. Please check back later.</p>
+    {% endif %}
   </div>
 {% endblock content %}
 
 {% block schema %}
+{% if object_list %}
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "ItemList",
-  "name": "{{ object_list.0.company.name }} Jobs",
-  "description": "List of job postings at {{ object_list.0.company.name }}",
+  "name": "{{ company.name }} Jobs",
+  "description": "List of job postings at {{ company.name }}",
   "itemListElement": [{% for job in object_list %}
     {
       "@type": "ListItem",
@@ -70,4 +75,5 @@
     {% endfor %}]
 }
 </script>
+{% endif %}
 {% endblock schema %}

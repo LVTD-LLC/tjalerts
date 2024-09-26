@@ -422,6 +422,11 @@ class CompanyJobsView(ListView):
 
         return queryset.filter(company__slug=self.kwargs.get("slug"), submitted_datetime__gte=two_months_ago)
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["company"] = Company.objects.get(slug=self.kwargs.get("slug"))
+        return context
+
 
 class TechnologyJobsView(ListView):
     template_name = "jobs/technology-jobs.html"
