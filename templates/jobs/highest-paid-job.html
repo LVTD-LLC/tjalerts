@@ -58,43 +58,47 @@
         <section itemprop="articleBody">
             <div class="mt-2">
               <ul role="list" class="mt-4 space-y-4 text-gray-600">
-                {% for object in object_list %}
-                  <li class="px-4 rounded-md border border-gray-200 hover:bg-gray-50">
-                    <a class="flex flex-col space-y-2 rounded-md divide-y" href="{% url 'post' object.id %}">
-                      <div class="flex justify-between items-center py-2 w-full">
-                        <div class="flex-1">
-                          <div class="flex justify-between items-center">
-                            <h2 class="text-lg font-medium text-gray-900 truncate">
-                              {% if object.company.name %}
-                                {{ object.company.name }}
-                              {% else %}
-                                Stealth
-                              {% endif %}
-                            </h2>
+                {% if object_list %}
+                  {% for object in object_list %}
+                    <li class="px-4 rounded-md border border-gray-200 hover:bg-gray-50">
+                      <a class="flex flex-col space-y-2 rounded-md divide-y" href="{% url 'post' object.id %}">
+                        <div class="flex justify-between items-center py-2 w-full">
+                          <div class="flex-1">
+                            <div class="flex justify-between items-center">
+                              <h2 class="text-lg font-medium text-gray-900 truncate">
+                                {% if object.company.name %}
+                                  {{ object.company.name }}
+                                {% else %}
+                                  Stealth
+                                {% endif %}
+                              </h2>
+                            </div>
+                            <p class="mt-2">
+                              Here is what {{ object.company.name }} pays you: {{ object.compensation_summary }}.
+                            </p>
+                            <p class="mt-2">
+                              {{ object.submitted_datetime|timesince }} ago {{ object.company.name }} created a job listing looking for
+                              {% for title in object.titles.all %}
+                              <span>{{ title.name }}{% include "components/comma.html" %}</span>
+                              {% endfor %}
+                            </p>
+                            <p class="mt-2">
+                              Folks at {{ object.company.name }} use
+                              {% for technology in object.technologies.all %}
+                                <span>{{ technology.name }}{% include "components/comma.html" %}</span>
+                              {% endfor %} in their day to day.
+                            </p>
+                            <p class="mt-2">
+                              {{ object.description }}
+                            </p>
                           </div>
-                          <p class="mt-2">
-                            Here is what {{ object.company.name }} pays you: {{ object.compensation_summary }}.
-                          </p>
-                          <p class="mt-2">
-                            {{ object.submitted_datetime|timesince }} ago {{ object.company.name }} created a job listing looking for
-                            {% for title in object.titles.all %}
-                            <span>{{ title.name }}{% include "components/comma.html" %}</span>
-                            {% endfor %}
-                          </p>
-                          <p class="mt-2">
-                            Folks at {{ object.company.name }} use
-                            {% for technology in object.technologies.all %}
-                              <span>{{ technology.name }}{% include "components/comma.html" %}</span>
-                            {% endfor %} in their day to day.
-                          </p>
-                          <p class="mt-2">
-                            {{ object.description }}
-                          </p>
                         </div>
-                      </div>
-                    </a>
-                  </li>
-                {% endfor %}
+                      </a>
+                    </li>
+                  {% endfor %}
+                {% else %}
+                  <p>No Companies Found that pay well found for this Technology.</p>
+                {% endif %}
               </ul>
             </div>
         </section>

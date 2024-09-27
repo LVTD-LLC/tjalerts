@@ -165,7 +165,7 @@ class HighestPaidJobsView(ListView):
 
         data = self.get_queryset()
         dates = data.values_list("created", flat=True)
-        latest_date = max(dates)
+        latest_date = max(dates) if dates else None
 
         context["tech_name"] = tech.name
         context["tech_id"] = tech.id
@@ -469,11 +469,7 @@ class TechnologyJobsView(ListView):
         data = self.get_queryset()
         dates = data.values_list("created", flat=True)
 
-        # Add this check
-        if dates:
-            latest_date = max(dates)
-        else:
-            latest_date = None
+        latest_date = max(dates) if dates else None
 
         context["tech_name"] = tech.name if tech else ""
         context["tech_id"] = tech.id if tech else None
@@ -586,10 +582,7 @@ class TitleJobsView(ListView):
 
         data = self.get_queryset()
         dates = data.values_list("created", flat=True)
-        if dates:
-            latest_date = max(dates)
-        else:
-            latest_date = timezone.now()
+        latest_date = max(dates) if dates else None
 
         context["title_name"] = title.name
         context["title_id"] = title.id
