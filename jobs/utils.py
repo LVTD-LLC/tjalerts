@@ -950,18 +950,6 @@ def calculate_salary_stats(queryset):
 
 
 def get_work_arrangement_stats(source: PostSource, month: int, year: int):
-    """
-    Analyzes the distribution of work arrangements (remote, onsite, hybrid) in job posts
-    and how they've changed over time.
-
-    A post is considered:
-    - Remote: if is_remote is True
-    - Onsite: if is_onsite is True
-    - Hybrid: if both is_remote and is_onsite are True, or if the description contains hybrid-related keywords
-
-    Returns statistics about current month's distribution and both month-over-month
-    and year-over-year changes.
-    """
     # Get current month's posts
     current_posts = Post.objects.filter(source=source, submitted_datetime__month=month, submitted_datetime__year=year)
     total_current_posts = current_posts.count()
@@ -989,15 +977,17 @@ def get_work_arrangement_stats(source: PostSource, month: int, year: int):
                 "mom_change": None,
                 "yoy_change": None,
             },
+            "unknown": {
+                "current_percentage": 0,
+                "previous_month_percentage": None,
+                "previous_year_percentage": None,
+                "mom_change": None,
+                "yoy_change": None,
+            },
             "total_posts": 0,
         }
 
-    # Calculate current month stats
-    remote_posts = current_posts.filter(is_remote=True).count()
-    onsite_posts = current_posts.filter(is_onsite=True).count()
-
-    # For hybrid, check both flags and description text
-    # hybrid_keywords = ["hybrid", "flexible", "partially remote", "part remote", "remote optional"]
+    # First identify hybrid posts (is_remote AND is_onsite, or hybrid keywords)
     hybrid_posts = (
         current_posts.filter(
             (Q(is_remote=True) & Q(is_onsite=True))
@@ -1007,10 +997,23 @@ def get_work_arrangement_stats(source: PostSource, month: int, year: int):
         .count()
     )
 
+    # Then identify non-hybrid remote and onsite posts
+    hybrid_post_ids = current_posts.filter(
+        (Q(is_remote=True) & Q(is_onsite=True))
+        | Q(description__iregex=r"hybrid|flexible|partially\s+remote|part\s+remote|remote\s+optional")
+    ).values_list("id", flat=True)
+
+    remote_posts = current_posts.filter(is_remote=True).exclude(id__in=hybrid_post_ids).count()
+    onsite_posts = current_posts.filter(is_onsite=True).exclude(id__in=hybrid_post_ids).count()
+
+    # Unknown posts are those not in any of the above categories
+    unknown_posts = total_current_posts - (hybrid_posts + remote_posts + onsite_posts)
+
     # Calculate percentages
     current_remote_percentage = (remote_posts / total_current_posts) * 100
     current_onsite_percentage = (onsite_posts / total_current_posts) * 100
     current_hybrid_percentage = (hybrid_posts / total_current_posts) * 100
+    current_unknown_percentage = (unknown_posts / total_current_posts) * 100
 
     # Get previous month's stats
     previous_month = month - 1
@@ -1033,57 +1036,65 @@ def get_work_arrangement_stats(source: PostSource, month: int, year: int):
     previous_remote_percentage = None
     previous_onsite_percentage = None
     previous_hybrid_percentage = None
+    previous_unknown_percentage = None
     last_year_remote_percentage = None
     last_year_onsite_percentage = None
     last_year_hybrid_percentage = None
+    last_year_unknown_percentage = None
     mom_remote_change = None
     mom_onsite_change = None
     mom_hybrid_change = None
+    mom_unknown_change = None
     yoy_remote_change = None
     yoy_onsite_change = None
     yoy_hybrid_change = None
+    yoy_unknown_change = None
 
     if total_previous_posts > 0:
-        previous_remote = previous_posts.filter(is_remote=True).count()
-        previous_onsite = previous_posts.filter(is_onsite=True).count()
-        previous_hybrid = (
-            previous_posts.filter(
-                (Q(is_remote=True) & Q(is_onsite=True))
-                | Q(description__iregex=r"hybrid|flexible|partially\s+remote|part\s+remote|remote\s+optional")
-            )
-            .distinct()
-            .count()
-        )
+        # Calculate previous month stats
+        previous_hybrid_post_ids = previous_posts.filter(
+            (Q(is_remote=True) & Q(is_onsite=True))
+            | Q(description__iregex=r"hybrid|flexible|partially\s+remote|part\s+remote|remote\s+optional")
+        ).values_list("id", flat=True)
+
+        previous_hybrid = previous_posts.filter(id__in=previous_hybrid_post_ids).count()
+        previous_remote = previous_posts.filter(is_remote=True).exclude(id__in=previous_hybrid_post_ids).count()
+        previous_onsite = previous_posts.filter(is_onsite=True).exclude(id__in=previous_hybrid_post_ids).count()
+        previous_unknown = total_previous_posts - (previous_hybrid + previous_remote + previous_onsite)
 
         previous_remote_percentage = (previous_remote / total_previous_posts) * 100
         previous_onsite_percentage = (previous_onsite / total_previous_posts) * 100
         previous_hybrid_percentage = (previous_hybrid / total_previous_posts) * 100
+        previous_unknown_percentage = (previous_unknown / total_previous_posts) * 100
 
         # Calculate month-over-month changes
         mom_remote_change = current_remote_percentage - previous_remote_percentage
         mom_onsite_change = current_onsite_percentage - previous_onsite_percentage
         mom_hybrid_change = current_hybrid_percentage - previous_hybrid_percentage
+        mom_unknown_change = current_unknown_percentage - previous_unknown_percentage
 
     if total_last_year_posts > 0:
-        last_year_remote = last_year_posts.filter(is_remote=True).count()
-        last_year_onsite = last_year_posts.filter(is_onsite=True).count()
-        last_year_hybrid = (
-            last_year_posts.filter(
-                (Q(is_remote=True) & Q(is_onsite=True))
-                | Q(description__iregex=r"hybrid|flexible|partially\s+remote|part\s+remote|remote\s+optional")
-            )
-            .distinct()
-            .count()
-        )
+        # Calculate last year stats
+        last_year_hybrid_post_ids = last_year_posts.filter(
+            (Q(is_remote=True) & Q(is_onsite=True))
+            | Q(description__iregex=r"hybrid|flexible|partially\s+remote|part\s+remote|remote\s+optional")
+        ).values_list("id", flat=True)
+
+        last_year_hybrid = last_year_posts.filter(id__in=last_year_hybrid_post_ids).count()
+        last_year_remote = last_year_posts.filter(is_remote=True).exclude(id__in=last_year_hybrid_post_ids).count()
+        last_year_onsite = last_year_posts.filter(is_onsite=True).exclude(id__in=last_year_hybrid_post_ids).count()
+        last_year_unknown = total_last_year_posts - (last_year_hybrid + last_year_remote + last_year_onsite)
 
         last_year_remote_percentage = (last_year_remote / total_last_year_posts) * 100
         last_year_onsite_percentage = (last_year_onsite / total_last_year_posts) * 100
         last_year_hybrid_percentage = (last_year_hybrid / total_last_year_posts) * 100
+        last_year_unknown_percentage = (last_year_unknown / total_last_year_posts) * 100
 
         # Calculate year-over-year changes
         yoy_remote_change = current_remote_percentage - last_year_remote_percentage
         yoy_onsite_change = current_onsite_percentage - last_year_onsite_percentage
         yoy_hybrid_change = current_hybrid_percentage - last_year_hybrid_percentage
+        yoy_unknown_change = current_unknown_percentage - last_year_unknown_percentage
 
     return {
         "remote": {
@@ -1118,6 +1129,17 @@ def get_work_arrangement_stats(source: PostSource, month: int, year: int):
             else None,
             "mom_change": round(mom_hybrid_change, 1) if mom_hybrid_change is not None else None,
             "yoy_change": round(yoy_hybrid_change, 1) if yoy_hybrid_change is not None else None,
+        },
+        "unknown": {
+            "current_percentage": round(current_unknown_percentage, 1),
+            "previous_month_percentage": round(previous_unknown_percentage, 1)
+            if previous_unknown_percentage is not None
+            else None,
+            "previous_year_percentage": round(last_year_unknown_percentage, 1)
+            if last_year_unknown_percentage is not None
+            else None,
+            "mom_change": round(mom_unknown_change, 1) if mom_unknown_change is not None else None,
+            "yoy_change": round(yoy_unknown_change, 1) if yoy_unknown_change is not None else None,
         },
         "total_posts": total_current_posts,
     }
