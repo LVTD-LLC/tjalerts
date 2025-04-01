@@ -5,6 +5,7 @@ from django.db.models import Count, Exists, Max, OuterRef
 from django.urls import reverse
 from django.utils import timezone
 
+from blog.models import BlogPost
 from jobs.constants import EXCLUDED_TECHNOLOGIES
 from jobs.models import Company, Post, Technology, Title
 from utils.constants import HIRABLE_TECH_LIST_SLUGS
@@ -125,9 +126,25 @@ class TitlesJobsListicleSitemap(sitemaps.Sitemap):
         return reverse("title-jobs", kwargs={"slug": obj.slug})
 
 
+class BlogPostSitemap(sitemaps.Sitemap):
+    changefreq = "weekly"
+    priority = 0.8
+    protocol = "https"
+
+    def items(self):
+        return BlogPost.objects.filter(status=BlogPost.PUBLISHED)
+
+    def lastmod(self, obj):
+        return obj.modified
+
+    def location(self, obj):
+        return reverse("blog-post-detail", kwargs={"slug": obj.slug})
+
+
 sitemaps = {
     "sitemaps": {
         "static": StaticViewSitemap,
+        "blog-posts": BlogPostSitemap,
         # "highest_paid_jobs_listicle": HighestPaidJobsListicleSitemap,
         # "company_jobs": CompaniesJobsListicleSitemap,
         # "technology_jobs": TechnologiesJobsListicleSitemap,
