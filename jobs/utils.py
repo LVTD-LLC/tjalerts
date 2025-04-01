@@ -299,10 +299,9 @@ def calculate_month_over_month_change(
 
     # Calculate percent change
     if previous_count == 0:
-        return "New posts this month (no posts last month)"
+        return float('inf')  # Or return 100.0 to indicate 100% increase
 
     percent_change = (current_count - previous_count) / previous_count
-
     # Format the message
     return round(percent_change, 2)
 
