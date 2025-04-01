@@ -299,7 +299,7 @@ def calculate_month_over_month_change(
 
     # Calculate percent change
     if previous_count == 0:
-        return float('inf')  # Or return 100.0 to indicate 100% increase
+        return float("inf")  # Or return 100.0 to indicate 100% increase
 
     percent_change = (current_count - previous_count) / previous_count
     # Format the message
@@ -497,9 +497,7 @@ def get_popular_technologies(source: PostSource, month: int, year: int, limit=20
     all_tech_counts = (
         Technology.objects.filter(posttechnology__post_id__in=post_ids)
         .annotate(mention_count=Count("posttechnology"))
-        .filter(mention_count__gte=min_occurrences)
         .values("id", "name", "mention_count")
-        .order_by("-mention_count")
     )
 
     # Get previous month counts for these technologies
@@ -519,38 +517,65 @@ def get_popular_technologies(source: PostSource, month: int, year: int, limit=20
     # Get parent categories and their children
     tech_mappings = TechnologyMapping.objects.select_related("parent", "child").all()
 
-    # Create a mapping of child to parent technologies
-    child_to_parent = {}
+    # Create mappings for technology relationships
+    child_to_parent = {}  # Maps child tech ID to parent tech ID
+    parent_techs = {}  # Stores parent tech details
     for mapping in tech_mappings:
-        child_to_parent[mapping.child_id] = {"parent_id": mapping.parent_id, "parent_name": mapping.parent.name}
+        child_to_parent[mapping.child_id] = mapping.parent_id
+        parent_techs[mapping.parent_id] = mapping.parent.name
 
-    # Process all technologies
-    processed_techs = []
+    # Initialize aggregated counts
+    aggregated_counts = {}
     for tech in all_tech_counts:
         tech_id = tech["id"]
-        current_count = tech["mention_count"]
-        prev_month_count = previous_month_counts.get(tech_id, 0)
-        last_year_count = last_year_counts.get(tech_id, 0)
+        # If this is a child technology, add its count to the parent
+        if tech_id in child_to_parent:
+            parent_id = child_to_parent[tech_id]
+            if parent_id not in aggregated_counts:
+                aggregated_counts[parent_id] = {
+                    "name": parent_techs[parent_id],
+                    "count": 0,
+                    "previous_month_count": 0,
+                    "last_year_count": 0,
+                }
+            aggregated_counts[parent_id]["count"] += tech["mention_count"]
+            aggregated_counts[parent_id]["previous_month_count"] += previous_month_counts.get(tech_id, 0)
+            aggregated_counts[parent_id]["last_year_count"] += last_year_counts.get(tech_id, 0)
+        else:
+            # This is either a parent technology or an unmapped technology
+            aggregated_counts[tech_id] = {
+                "name": tech["name"],
+                "count": tech["mention_count"],
+                "previous_month_count": previous_month_counts.get(tech_id, 0),
+                "last_year_count": last_year_counts.get(tech_id, 0),
+            }
+
+    # Process aggregated counts and calculate changes
+    processed_techs = []
+    for tech_id, data in aggregated_counts.items():
+        if data["count"] < min_occurrences:
+            continue
 
         mom_change = None
-        if prev_month_count > 0:
-            mom_change = ((current_count - prev_month_count) / prev_month_count) * 100
+        if data["previous_month_count"] > 0:
+            mom_change = ((data["count"] - data["previous_month_count"]) / data["previous_month_count"]) * 100
 
-        # Calculate year-over-year percentage change
         yoy_change = None
-        if last_year_count > 0:
-            yoy_change = ((current_count - last_year_count) / last_year_count) * 100
+        if data["last_year_count"] > 0:
+            yoy_change = ((data["count"] - data["last_year_count"]) / data["last_year_count"]) * 100
 
         tech_data = {
-            "name": tech["name"],
-            "count": current_count,
-            "previous_month_count": prev_month_count,
+            "name": data["name"],
+            "count": data["count"],
+            "previous_month_count": data["previous_month_count"],
             "month_over_month_change": round(mom_change, 1) if mom_change is not None else None,
-            "last_year_count": last_year_count,
+            "last_year_count": data["last_year_count"],
             "year_over_year_change": round(yoy_change, 1) if yoy_change is not None else None,
         }
-
         processed_techs.append(tech_data)
+
+    # Sort by count in descending order
+    processed_techs.sort(key=lambda x: x["count"], reverse=True)
 
     return {
         "individual_technologies": processed_techs[:limit],

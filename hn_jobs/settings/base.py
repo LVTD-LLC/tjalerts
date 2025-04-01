@@ -88,7 +88,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "posthog.sentry.django.PosthogDistinctIdMiddleware",
-    "django_structlog.middlewares.RequestMiddleware",
+    # "django_structlog.middlewares.RequestMiddleware",
 ]
 
 ROOT_URLCONF = "hn_jobs.urls"
