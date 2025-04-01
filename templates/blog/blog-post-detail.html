@@ -97,6 +97,7 @@
   },
   "datePublished": "{{ object.created|date:'c' }}",
   "dateModified": "{{ object.updated|date:'c' }}",
+  "articleBody": "{{ object.content|markdown|safe }}",
   "mainEntityOfPage": {
     "@type": "WebPage",
     "@id": "{{ request.build_absolute_uri }}"
