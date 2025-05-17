@@ -218,6 +218,10 @@ def create_blog_post(request: HttpRequest, payload: BlogPostCreateSchema):
 
     try:
 
+        # Check for existing slug
+        if BlogPost.objects.filter(slug=payload.slug).exists():
+            raise HttpError(400, "Blog post with this slug already exists")
+
         blog_post = BlogPost.objects.create(
             title=payload.title,
             slug=payload.slug,
