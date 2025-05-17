@@ -343,3 +343,5 @@ structlog.configure(
     logger_factory=structlog.stdlib.LoggerFactory(),
     cache_logger_on_first_use=True,
 )
+
+ADMIN_KEY = env("ADMIN_KEY")

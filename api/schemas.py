@@ -67,6 +67,7 @@ class SimilarPostsResponse(Schema):
 
 
 class BlogPostCreateSchema(Schema):
+    admin_key: str
     title: str
     slug: str
     content: str

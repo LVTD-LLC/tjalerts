@@ -2,6 +2,7 @@ import time
 from typing import List, Optional
 
 from django.http import HttpRequest
+from django.conf import settings
 from django.db.models import Count, Exists, OuterRef, Q
 from django_q.tasks import async_task
 from ninja import NinjaAPI, Query
@@ -12,6 +13,7 @@ from hn_jobs.utils import get_tjalerts_logger
 from jobs.models import Company, Email, Post, Technology, TechnologyMapping, Title
 from jobs.queries import get_similar_posts_from_db
 from jobs.tasks import create_valid_emails
+from users.models import CustomUser
 
 from .schemas import BlogPostCreateSchema, ReadCompany, ReadEmails, SimilarPostsResponse, TechnologySchema, TitleSchema
 
@@ -199,9 +201,9 @@ def get_similar_posts(request, id: str):
     return {"similar_posts": similar_posts_data}
 
 
-@api.post("/blog/create", response={201: dict, 403: dict, 500: dict})
+@api.post("/blog/create", response={201: dict, 403: dict, 404: dict, 500: dict})
 def create_blog_post(request: HttpRequest, payload: BlogPostCreateSchema):
-    if not request.user.is_superuser:
+    if payload.admin_key != settings.ADMIN_KEY:
         logger.warning(
             "Non-superuser attempted to create a blog post.",
             user_id=request.user.id if request.user.is_authenticated else None,
@@ -209,17 +211,27 @@ def create_blog_post(request: HttpRequest, payload: BlogPostCreateSchema):
         raise HttpError(403, "Forbidden: You do not have permission to perform this action.")
 
     try:
+        author = CustomUser.objects.get(username="rasulkireev")
+    except CustomUser.DoesNotExist:
+        logger.error("Author user 'rasulkireev' not found.")
+        raise HttpError(404, "Author user 'rasulkireev' not found.")
+
+    try:
+
         blog_post = BlogPost.objects.create(
             title=payload.title,
             slug=payload.slug,
             content=payload.content,
+            author=author,  # Assign the author
             description=payload.description if payload.description else "",
             tags=payload.tags if payload.tags else "",
             status=payload.status if payload.status else BlogPost.DRAFT,
-            author=request.user,
         )
         logger.info(
-            "Blog post created successfully.", post_id=blog_post.id, title=blog_post.title, author_id=request.user.id
+            "Blog post created successfully.",
+            post_id=blog_post.id,
+            title=blog_post.title,
+            author_id=author.id,  # Log the actual author's ID
         )
         return 201, {"status": "Success", "message": "Blog post created successfully."}
     except HttpError as e:
