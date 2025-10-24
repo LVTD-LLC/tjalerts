@@ -38,4 +38,10 @@ schedules = [
         "args": "",
         "type": Schedule.DAILY,
     },
+    {
+        "name": "Send Daily New Contacts Email",
+        "func_path": "jobs.tasks.send_daily_new_contacts_email",
+        "args": "",
+        "type": Schedule.DAILY,
+    },
 ]

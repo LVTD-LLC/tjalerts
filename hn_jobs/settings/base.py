@@ -285,10 +285,17 @@ DEFAULT_FROM_EMAIL = "TJ Alerts <rasul@gettjalerts.com>"
 SERVER_EMAIL = "TJ Alerts <error@gettjalerts.com>"
 
 if DEBUG:
-    EMAIL_HOST = "localhost"
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = "mailhog"  # Use the service name from docker-compose
     EMAIL_PORT = 1025
+    EMAIL_USE_TLS = False
+    EMAIL_HOST_USER = ""
+    EMAIL_HOST_PASSWORD = ""
 else:
-    EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"
+    if env("MAILGUN_API_KEY", default="") == "":
+        EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+    else:
+        EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"
 
 API_TOKEN = env("API_TOKEN")
 BUTTONDOWN_API_TOKEN = env("BUTTONDOWN_API_TOKEN")
