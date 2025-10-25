@@ -83,19 +83,30 @@ def get_jobs(
 ):
     posts = Post.objects.prefetch_related("company", "technologies", "titles", "email")
 
+    # Filter by technologies at the database level
     if technologies:
-        user_submitted_technologies = technologies.split(",")
-        user_submitted_technologies = [item.strip() for item in user_submitted_technologies]
-    else:
-        user_submitted_technologies = []
+        user_submitted_technologies = [item.strip() for item in technologies.split(",")]
 
+        # Get technology objects matching the names
+        tech_objects = Technology.objects.filter(name__in=user_submitted_technologies)
+
+        if tech_objects.exists():
+            # Filter posts that have ALL the requested technologies
+            for tech in tech_objects:
+                posts = posts.filter(technologies=tech)
+
+    # Apply pagination at database level BEFORE materializing the queryset
+    total = posts.count()
+    total_pages = (total + page_size - 1) // page_size
+
+    start_index = (page - 1) * page_size
+    end_index = start_index + page_size
+    paginated_posts = posts[start_index:end_index]
+
+    # Build the response
     posts_list = []
-    for post in posts:
+    for post in paginated_posts:
         post_technologies = [technology.name for technology in post.technologies.all()]
-
-        if user_submitted_technologies and not set(user_submitted_technologies).issubset(post_technologies):
-            continue
-
         post_titles = [title.name for title in post.titles.all()]
         post_emails = [
             {
@@ -124,20 +135,13 @@ def get_jobs(
 
         posts_list.append(entry)
 
-    total = len(posts_list)
-    total_pages = (total + page_size - 1) // page_size
-
-    start_index = (page - 1) * page_size
-    end_index = start_index + page_size
-    paginated_jobs = posts_list[start_index:end_index]
-
     return {
-        "count": len(paginated_jobs),
+        "count": len(posts_list),
         "total": total,
         "page": page,
         "page_size": page_size,
         "total_pages": total_pages,
-        "jobs": paginated_jobs,
+        "jobs": posts_list,
     }
 
 

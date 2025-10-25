@@ -93,6 +93,7 @@ class Technology(TimeStampedModel):
         indexes = [
             models.Index(fields=["name"], name="index_t_technology_name"),
             models.Index(fields=["id"], name="index_t_technology_id"),
+            models.Index(fields=["slug"], name="index_t_technology_slug"),
         ]
 
 
