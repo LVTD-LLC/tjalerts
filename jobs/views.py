@@ -1,10 +1,8 @@
 import json
 from datetime import timedelta
 
-from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
@@ -14,7 +12,7 @@ from django.http import HttpResponseRedirect, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
-from django.views.generic import CreateView, DetailView, FormView, ListView, TemplateView, UpdateView
+from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
 from django_filters.views import FilterView
 from django_q.tasks import async_task
 
@@ -29,7 +27,6 @@ from jobs.tasks import (
     create_update_min_and_max_salary_jobs,
     find_bad_submitted_dates,
     find_users_to_alert,
-    get_hn_pages_to_analyze,
     send_confirmation_email,
 )
 from jobs.utils import (
@@ -119,25 +116,6 @@ class PostDetailView(DetailView):
         return context
 
 
-class GenericForm(forms.Form):
-    who_is_hiring_post_id = forms.CharField()
-
-
-class TriggerAsyncTask(LoginRequiredMixin, UserPassesTestMixin, FormView):
-    login_url = "account_login"
-    success_url = reverse_lazy("home")
-    template_name = "jobs/trigger_task.html"
-    form_class = GenericForm
-
-    def test_func(self):
-        return self.request.user.is_staff
-
-    def form_valid(self, form):
-        who_is_hiring_post_id = form.cleaned_data.get("who_is_hiring_post_id")  # noqa: F841
-        async_task(get_hn_pages_to_analyze, who_is_hiring_post_id, hook="hooks.print_result")
-        return super(TriggerAsyncTask, self).form_valid(form)
-
-
 class HighestPaidBlogPostListView(TemplateView):
     template_name = "jobs/highest-paid-blog-post-list.html"
 
@@ -207,7 +185,7 @@ class HighestPaidJobsView(ListView):
 def find_bad_submitted_dates_view(request):
     async_task(find_bad_submitted_dates, hook="jobs.hooks.print_result", group="Find Bad Datetimes to Fix")
 
-    return redirect("trigger_task")
+    return redirect("admin-panel")
 
 
 def update_min_and_max_salary_view(request):
@@ -215,7 +193,7 @@ def update_min_and_max_salary_view(request):
         create_update_min_and_max_salary_jobs, hook="jobs.hooks.print_result", group="Populate min and max salary"
     )
 
-    return redirect("trigger_task")
+    return redirect("admin-panel")
 
 
 def create_backfill_vector_data_jobs_view(request):
@@ -223,7 +201,7 @@ def create_backfill_vector_data_jobs_view(request):
         create_backfill_vector_data_jobs, hook="jobs.hooks.print_result", group="Create Jobs to Update Vector Data."
     )
 
-    return redirect("trigger_task")
+    return redirect("admin-panel")
 
 
 class CreateCustomAlertView(SuccessMessageMixin, CreateView):

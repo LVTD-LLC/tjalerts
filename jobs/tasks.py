@@ -21,9 +21,9 @@ from openai import OpenAI
 from hn_jobs.utils import get_tjalerts_logger
 from users.models import CustomUser
 
-from .filters import PostFilter
-from .models import Alert, AlertEmailSend, Company, Email, Post, Technology, Title
-from .utils import clean_job_json_object, fix_email, get_embedding, has_number, is_generic
+from jobs.filters import PostFilter
+from jobs.models import Alert, AlertEmailSend, Company, Email, Post, Technology, Title
+from jobs.utils import clean_job_json_object, fix_email, get_embedding, has_number, is_generic
 
 logger = get_tjalerts_logger(__name__)
 

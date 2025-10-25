@@ -1,11 +1,13 @@
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.urls import reverse_lazy
 from django.views.generic import FormView, TemplateView
 from django_q.tasks import async_task
 
 from hn_jobs.utils import add_users_context, get_tjalerts_logger
-from jobs.forms import CreateAlertForm
+from jobs.forms import CreateAlertForm, GenericForm
 from jobs.queries import get_latest_submissions, get_most_popular_technologies, get_most_popular_titles
+from jobs.tasks import get_hn_pages_to_analyze
 
 from .forms import SupportForm
 from .tasks import email_support_request
@@ -98,3 +100,36 @@ class ProductHuntView(TemplateView):
             add_users_context(context, user, self)
 
         return context
+
+
+class AdminPanelView(LoginRequiredMixin, UserPassesTestMixin, FormView):
+    login_url = "account_login"
+    success_url = reverse_lazy("admin-panel")
+    template_name = "pages/admin-panel.html"
+    form_class = GenericForm
+
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def get_context_data(self, **kwargs):
+        from django.contrib.auth import get_user_model
+        from jobs.models import Alert, Email
+
+        context = super().get_context_data(**kwargs)
+
+        User = get_user_model()
+        context["total_users"] = User.objects.count()
+        context["total_alerts"] = Alert.objects.filter(confirmed=True, unsubscribed=False).count()
+        context["latest_emails"] = (
+            Email.objects.filter(email_is_valid=True, email_is_generic=False, is_approved=True)
+            .select_related("company", "post")
+            .order_by("-created")[:20]
+        )
+
+        return context
+
+    def form_valid(self, form):
+        who_is_hiring_post_id = form.cleaned_data.get("who_is_hiring_post_id")
+        async_task(get_hn_pages_to_analyze, who_is_hiring_post_id, hook="hooks.print_result")
+        messages.add_message(self.request, messages.SUCCESS, f"Task triggered for post ID: {who_is_hiring_post_id}")
+        return super(AdminPanelView, self).form_valid(form)

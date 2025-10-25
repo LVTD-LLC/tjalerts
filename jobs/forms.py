@@ -4,6 +4,10 @@ from django.forms import ModelForm
 from .models import Alert
 
 
+class GenericForm(forms.Form):
+    who_is_hiring_post_id = forms.CharField()
+
+
 class CreateAlertForm(ModelForm):
     technology_selected = forms.CharField(max_length=100)
 
