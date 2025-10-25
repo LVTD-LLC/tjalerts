@@ -123,7 +123,7 @@ class AdminPanelView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         context["latest_emails"] = (
             Email.objects.filter(email_is_valid=True, email_is_generic=False, is_approved=True)
             .select_related("company", "post")
-            .order_by("-created")[:20]
+            .order_by("-post__submitted_datetime")[:20]
         )
 
         return context

@@ -10,7 +10,7 @@
   </div>
 
   <!-- Statistics Cards -->
-  <div class="gap-6 grid grid-cols-1 mb-8 md:grid-cols-3">
+  <div class="grid grid-cols-1 gap-6 mb-8 md:grid-cols-3">
     <!-- Total Users -->
     <div class="overflow-hidden bg-white rounded-lg shadow">
       <div class="p-6">
@@ -64,7 +64,7 @@
   </div>
 
   <!-- Two Column Layout -->
-  <div class="gap-6 grid grid-cols-1 lg:grid-cols-3">
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
     <!-- Left Column - Admin Tasks -->
     <div class="space-y-6 lg:col-span-2">
       <div class="overflow-hidden bg-white rounded-lg shadow">
@@ -75,7 +75,7 @@
         <div class="p-6 space-y-6">
 
           <!-- Parse Comments Task -->
-          <div class="p-6 border border-gray-200 rounded-lg">
+          <div class="p-6 rounded-lg border border-gray-200">
             <div class="flex justify-between items-start">
               <div class="flex-1">
                 <h4 class="text-base font-semibold text-gray-900">Parse HN Comments</h4>
@@ -89,12 +89,12 @@
                         type="text"
                         name="{{ form.who_is_hiring_post_id.name }}"
                         id="{{ form.who_is_hiring_post_id.id_for_label }}"
-                        class="block px-3 py-2 mt-1 w-full rounded-md border border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 shadow-sm sm:text-sm"
+                        class="block px-3 py-2 mt-1 w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                         placeholder="e.g., 39217823"
                       />
                     </div>
                     <button type="submit"
-                      class="inline-flex justify-center items-center px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-md border border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 shadow-sm hover:bg-indigo-700">
+                      class="inline-flex justify-center items-center px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-md border border-transparent shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 hover:bg-indigo-700">
                       <svg class="mr-2 -ml-1 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                       </svg>
@@ -107,14 +107,14 @@
           </div>
 
           <!-- Fix Datetimes Task -->
-          <div class="p-6 border border-gray-200 rounded-lg">
+          <div class="p-6 rounded-lg border border-gray-200">
             <div class="flex justify-between items-center">
               <div class="flex-1">
                 <h4 class="text-base font-semibold text-gray-900">Fix Submitted Dates</h4>
                 <p class="mt-1 text-sm text-gray-600">Identify and fix incorrectly formatted submission dates.</p>
               </div>
               <a href="{% url 'find-bad-submitted-dates' %}"
-                class="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-sm hover:bg-blue-700">
+                class="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md border border-transparent shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:bg-blue-700">
                 <svg class="mr-2 -ml-1 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                 </svg>
@@ -124,14 +124,14 @@
           </div>
 
           <!-- Populate Min/Max Salary Task -->
-          <div class="p-6 border border-gray-200 rounded-lg">
+          <div class="p-6 rounded-lg border border-gray-200">
             <div class="flex justify-between items-center">
               <div class="flex-1">
                 <h4 class="text-base font-semibold text-gray-900">Populate Salary Fields</h4>
                 <p class="mt-1 text-sm text-gray-600">Extract and populate minimum and maximum salary data from job posts.</p>
               </div>
               <a href="{% url 'update_min_and_max_salary' %}"
-                class="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-sm hover:bg-blue-700">
+                class="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md border border-transparent shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:bg-blue-700">
                 <svg class="mr-2 -ml-1 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
@@ -141,14 +141,14 @@
           </div>
 
           <!-- Update Vector Fields Task -->
-          <div class="p-6 border border-gray-200 rounded-lg">
+          <div class="p-6 rounded-lg border border-gray-200">
             <div class="flex justify-between items-center">
               <div class="flex-1">
                 <h4 class="text-base font-semibold text-gray-900">Update Vector Fields</h4>
                 <p class="mt-1 text-sm text-gray-600">Generate and populate vector embeddings for semantic search functionality.</p>
               </div>
               <a href="{% url 'create_backfill_vector_data_jobs' rebuild=0 %}"
-                class="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-sm hover:bg-blue-700">
+                class="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md border border-transparent shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:bg-blue-700">
                 <svg class="mr-2 -ml-1 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                 </svg>
@@ -172,7 +172,7 @@
           {% if latest_emails %}
           <div class="space-y-3 max-h-[600px] overflow-y-auto">
             {% for email in latest_emails %}
-            <div class="p-3 border-l-4 border-indigo-500 rounded-r-md bg-gray-50">
+            <div class="p-3 bg-gray-50 rounded-r-md border-l-4 border-indigo-500">
               <div class="flex justify-between items-start">
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-medium text-gray-900 truncate">{{ email.email }}</p>
@@ -180,7 +180,16 @@
                   <p class="mt-1 text-xs text-gray-500">
                     <span class="font-medium">Company:</span> {{ email.company.name }}
                   </p>
-                  <p class="mt-1 text-xs text-gray-400">{{ email.created|date:"M d, Y" }}</p>
+                  <p class="mt-1 text-xs text-gray-400">
+                    <span class="font-medium">Posted:</span> {{ email.post.submitted_datetime|date:"M d, Y" }}
+                  </p>
+                  <a href="{% url 'post' pk=email.post.id %}"
+                     class="inline-flex gap-1 items-center mt-2 text-xs font-medium text-indigo-600 hover:text-indigo-800">
+                    View Post
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                    </svg>
+                  </a>
                 </div>
               </div>
             </div>
