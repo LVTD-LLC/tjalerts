@@ -1,7 +1,10 @@
 import time
+from datetime import timedelta
 
 from django import forms
 from django.core.validators import EMPTY_VALUES
+from django.db.models import Case, When
+from django.utils import timezone
 from django_filters import BooleanFilter, CharFilter, Filter, FilterSet, ModelMultipleChoiceFilter, OrderingFilter
 from pgvector.django import L2Distance
 
@@ -52,7 +55,8 @@ class PostFilter(FilterSet):
         choices=(
             ("-submitted_datetime", "Date"),
             ("-max_salary", "Max Salary"),
-        )
+        ),
+        empty_label="Date",
     )
 
     def extend_technology_search(self, queryset, name, selected_technologies):
@@ -95,7 +99,20 @@ class PostFilter(FilterSet):
 
     @property
     def qs(self):
-        return super().qs.exclude(description__exact="")
+        queryset = super().qs.exclude(description__exact="")
+
+        one_month_ago = timezone.now() - timedelta(days=30)
+        queryset = queryset.annotate(
+            is_recently_sponsored=Case(When(sponsored=True, sponsored_at__gte=one_month_ago, then=True), default=False)
+        )
+
+        ordering = self.data.get("o")
+        if ordering:
+            queryset = queryset.order_by("-is_recently_sponsored", ordering)
+        else:
+            queryset = queryset.order_by("-is_recently_sponsored", "-submitted_datetime")
+
+        return queryset
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -107,4 +124,5 @@ class PostFilter(FilterSet):
                     ("-max_salary", "Max Salary"),
                     ("-distance", "Relevance"),
                 ),
+                empty_label="Date",
             )

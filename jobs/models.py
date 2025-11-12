@@ -6,7 +6,7 @@ from django.urls import reverse
 from model_utils.models import TimeStampedModel
 from pgvector.django import HnswIndex, VectorField
 
-from jobs.choices import PostSource
+from jobs.choices import EmailType, PostSource
 from utils.models import BaseModel
 
 
@@ -39,6 +39,9 @@ class Post(TimeStampedModel):
     min_salary = models.IntegerField(null=True, default=None)
     max_salary = models.IntegerField(null=True, default=None)
     currency = models.CharField(blank=True)
+
+    sponsored = models.BooleanField(default=False)
+    sponsored_at = models.DateTimeField(null=True, blank=True)
 
     # GEO
     locations = models.TextField(blank=True)
@@ -140,13 +143,15 @@ class Company(TimeStampedModel):
 
 class Email(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    email = models.EmailField(blank=True)
+    email = models.EmailField(unique=True)
     email_is_valid = models.BooleanField(default=False)
     email_is_generic = models.BooleanField(default=True)
     name = models.CharField(max_length=256)
     company = models.ForeignKey("Company", related_name="email", on_delete=models.CASCADE)
     post = models.ForeignKey("Post", related_name="email", on_delete=models.CASCADE)
     is_approved = models.BooleanField(default=False)
+    sponsorship_email_sent = models.BooleanField(default=False)
+    sponsorship_email_sent_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         indexes = [
@@ -206,3 +211,14 @@ class TechnologyMapping(BaseModel):
             models.Index(fields=["parent_id"], name="index_parent_id"),
             models.Index(fields=["child_id", "parent_id"], name="index_child_id_parent_id"),
         ]
+
+
+class EmailSent(BaseModel):
+    recipient_email = models.EmailField()
+    email_type = models.CharField(max_length=50, choices=EmailType.choices)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["recipient_email", "email_type"], name="index_recipient_type"),
+        ]
+        unique_together = [["recipient_email", "email_type"]]

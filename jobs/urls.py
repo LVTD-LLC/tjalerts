@@ -15,7 +15,10 @@ from .views import (
     TitlesJobsView,
     authed_weekly_digest_view,
     create_backfill_vector_data_jobs_view,
+    create_sponsored_post_checkout_session,
+    create_valid_emails_view,
     find_bad_submitted_dates_view,
+    stripe_webhook,
     toggle_subscription_from_authed_alert,
     unauthed_weekly_digest_view,
     unsubscribe_from_unauthed_alert,
@@ -27,6 +30,7 @@ urlpatterns = [
     path("<uuid:pk>", PostDetailView.as_view(), name="post"),
     path("find_bad_submitted_dates/", find_bad_submitted_dates_view, name="find-bad-submitted-dates"),
     path("update_min_and_max_salary/", update_min_and_max_salary_view, name="update_min_and_max_salary"),
+    path("create_valid_emails/", create_valid_emails_view, name="create-valid-emails"),
     path(
         "create_backfill_vector_data_jobs/<int:rebuild>/",
         create_backfill_vector_data_jobs_view,
@@ -53,4 +57,6 @@ urlpatterns = [
         name="toggle_subscription_from_authed_alert",
     ),
     path("<slug:slug>/highest-paid/", HighestPaidJobsView.as_view(), name="highest-paid-job-blog-post"),
+    path("sponsor/<uuid:post_id>/checkout/", create_sponsored_post_checkout_session, name="create-sponsored-checkout"),
+    path("stripe/webhook/", stripe_webhook, name="stripe-webhook"),
 ]

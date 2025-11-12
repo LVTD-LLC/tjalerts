@@ -20,6 +20,9 @@ test:
 restart-worker:
 	docker compose up -d workers --force-recreate
 
+restart-stripe:
+	docker compose up -d stripe --force-recreate
+
 test-webhook:
 	docker compose run --rm stripe trigger customer.subscription.created
 

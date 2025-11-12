@@ -42,6 +42,7 @@ django = "^5.2.7"
 pyjwt = "^2.10.1"
 cryptography = "^46.0.3"
 django-filter = "^25.2"
+stripe = "^13.1.1"
 
 [tool.poetry.dev-dependencies]
 

@@ -1,38 +1,50 @@
-<li class="rounded-md border border-gray-400">
-  <a class="flex flex-col px-6 py-4 space-y-2 bg-white rounded-t-md border-b-2 border-gray-200 hover:bg-gray-50" href="{% url 'post' object.id %}">
+{% load post_extras %}
+{% with is_sponsored=object|is_recently_sponsored %}
+<li class="rounded-md border {% if is_sponsored %}border-green-500 border-2 shadow-lg{% else %}border-gray-400{% endif %} {% if is_sponsored %}bg-gradient-to-br from-green-50 to-white{% endif %}">
+  <a class="flex flex-col px-6 py-4 space-y-2 {% if is_sponsored %}bg-transparent{% else %}bg-white{% endif %} rounded-t-md border-b-2 {% if is_sponsored %}border-green-300{% else %}border-gray-200{% endif %} hover:{% if is_sponsored %}bg-green-50{% else %}bg-gray-50{% endif %}" href="{% url 'post' object.id %}">
     <div class="flex justify-between items-center py-2 w-full">
       <div class="flex-1">
         <div class="flex justify-between items-center">
           {% if show_name %}
-          <h3 class="text-lg font-medium text-gray-900 truncate">
-            {% if object.company.name %}
-              {{ object.company.name }}
-            {% else %}
-              Stealth
+          <div class="flex gap-2 items-center">
+            <h3 class="text-lg font-medium {% if is_sponsored %}text-green-900{% else %}text-gray-900{% endif %} truncate">
+              {% if object.company.name %}
+                {{ object.company.name }}
+              {% else %}
+                Stealth
+              {% endif %}
+            </h3>
+            {% if is_sponsored %}
+            <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium text-green-800 bg-green-100 rounded-full">
+              <svg class="mr-1 w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+              </svg>
+              Sponsored
+            </span>
             {% endif %}
-          </h3>
+          </div>
           {% endif %}
           <p class="
           {% if show_name %}
-          -mt-10 -mr-3 text-xs text-gray-500
+          -mt-10 -mr-3 text-xs {% if is_sponsored %}text-green-700{% else %}text-gray-500{% endif %}
           {% else %}
           -mt-3 mb-2 text-sm
           {% endif %}
           ">Posted {{ object.submitted_datetime|timesince }} ago</p>
         </div>
-        <p class="text-sm text-gray-600">
+        <p class="text-sm {% if is_sponsored %}text-gray-700{% else %}text-gray-600{% endif %}">
           {{ object.description | truncatechars:250 }}
         </p>
       </div>
     </div>
   </a>
 
-    <div class="flex flex-col px-6 py-4 space-y-1 bg-white rounded-b-md">
+    <div class="flex flex-col px-6 py-4 space-y-1 {% if is_sponsored %}bg-green-50/50{% else %}bg-white{% endif %} rounded-b-md">
       {% if object.titles.all.count == 1 and object.titles.all.0.name == "" %}
       {% elif object.titles.all.count >= 1 %}
       <div class="flex py-2 w-full">
           <div>
-            <h4 class="text-base">Roles</h4>
+            <h4 class="text-base {% if is_sponsored %}text-green-900 font-semibold{% endif %}">Roles</h4>
             {% for title in object.titles.all %}
                 {% include "components/title-link.html" with title=title %}
             {% endfor %}
@@ -43,7 +55,7 @@
       {% elif object.technologies.all.count > 0 %}
         <div class="flex py-2 w-full">
             <div>
-              <h4 class="text-base">Tech Stack</h4>
+              <h4 class="text-base {% if is_sponsored %}text-green-900 font-semibold{% endif %}">Tech Stack</h4>
               {% for technology in object.technologies.all %}
                   {% include "components/technology-link.html" with technology=technology %}
               {% endfor %}
@@ -53,12 +65,13 @@
       {% if object.locations %}
       <div class="flex py-2 w-full">
         <div>
-          <h2 class="text-base">Locations</h2>
+          <h2 class="text-base {% if is_sponsored %}text-green-900 font-semibold{% endif %}">Locations</h2>
           <div class="max-w-none prose">
-            <p>{{ object.locations }}</p>
+            <p class="{% if is_sponsored %}text-gray-700{% endif %}">{{ object.locations }}</p>
           </div>
         </div>
       </div>
       {% endif %}
     </div>
 </li>
+{% endwith %}

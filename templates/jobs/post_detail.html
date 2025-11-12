@@ -25,6 +25,16 @@
 
 {% block content %}
 <main class="overflow-hidden mx-auto mt-16 max-w-4xl">
+    {% if request.GET.sponsored == 'success' %}
+    <div class="p-4 mb-4 text-green-700 bg-green-100 rounded-md border border-green-400">
+      <strong>Success!</strong> Your sponsorship payment was successful. The post has been marked as sponsored.
+    </div>
+    {% elif request.GET.sponsored == 'cancelled' %}
+    <div class="p-4 mb-4 text-yellow-700 bg-yellow-100 rounded-md border border-yellow-400">
+      <strong>Cancelled:</strong> The sponsorship checkout was cancelled.
+    </div>
+    {% endif %}
+
     <div class="px-4 py-2 rounded-md border border-gray-200">
       <div class="flex justify-between items-end pb-2 border-b">
         <div class="flex flex-col">
@@ -53,7 +63,7 @@
             |
             {% endif %}
             {% if object.source == "Hacker News" %}
-            <a href="https://news.ycombinator.com/item?id={{ object.who_is_hiring_comment_id }}?utm_source=gettjalerts.com" target="_blank"
+            <a href="https://news.ycombinator.com/item?id={{ object.who_is_hiring_comment_id }}&utm_source=gettjalerts.com" target="_blank"
               class="mt-1 text-sm text-gray-500 truncate hover:border-b-2 hover:text-gray-600">
               Hacker News Link
             </a>
@@ -129,6 +139,33 @@
       </div>
     </div>
 
+    {% if user.is_superuser %}
+    <div class="p-4 mt-4 rounded-md border" id="sponsor-section">
+      {% if object.sponsored %}
+      <div class="bg-green-50 border-green-200">
+        <div class="flex items-center space-x-2">
+          <span class="inline-flex items-center px-3 py-1 text-sm font-medium text-green-800 bg-green-100 rounded-full">
+            ✨ Sponsored Post
+          </span>
+          <p class="text-sm text-green-700">Sponsored on {{ object.sponsored_at|date:"F j, Y, g:i A" }}</p>
+        </div>
+      </div>
+      {% else %}
+      <div class="bg-blue-50 border-blue-200">
+        <h3 class="mb-2 text-lg font-semibold text-blue-900">Admin: Sponsor this Post</h3>
+        <p class="mb-3 text-sm text-blue-700">Mark this post as sponsored through Stripe checkout</p>
+        <button
+          id="sponsor-button"
+          data-post-id="{{ object.id }}"
+          class="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
+          Sponsor this Post
+        </button>
+        <div id="sponsor-error" class="hidden mt-2 text-sm text-red-600"></div>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
     <div data-controller="similar-posts" data-similar-posts-post-id-value="{{ post.id }}">
       <h2 class="mt-4 text-lg font-medium text-gray-900">Similar Jobs</h2>
       <div class="mb-4 rounded-md border border-gray-200">
@@ -150,6 +187,67 @@
     </div>
 </main>
 {% endblock content %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const sponsorButton = document.getElementById('sponsor-button');
+
+  if (sponsorButton) {
+    sponsorButton.addEventListener('click', async function() {
+      const postId = this.dataset.postId;
+      const errorDiv = document.getElementById('sponsor-error');
+
+      sponsorButton.disabled = true;
+      sponsorButton.textContent = 'Creating checkout session...';
+      errorDiv.classList.add('hidden');
+
+      try {
+        const response = await fetch(`/jobs/sponsor/${postId}/checkout/`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await response.json();
+
+        if (data.checkout_url) {
+          window.location.href = data.checkout_url;
+        } else if (data.error) {
+          errorDiv.textContent = 'Error: ' + data.error;
+          errorDiv.classList.remove('hidden');
+          sponsorButton.disabled = false;
+          sponsorButton.textContent = 'Sponsor this Post';
+        }
+      } catch (error) {
+        console.error('Error creating checkout session:', error);
+        errorDiv.textContent = 'An error occurred. Please try again.';
+        errorDiv.classList.remove('hidden');
+        sponsorButton.disabled = false;
+        sponsorButton.textContent = 'Sponsor this Post';
+      }
+    });
+  }
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+});
+</script>
+{% endblock extra_js %}
 
 {% block schema %}
   <script type="application/ld+json">

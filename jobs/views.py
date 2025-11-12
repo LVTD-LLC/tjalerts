@@ -1,6 +1,8 @@
 import json
+import stripe
 from datetime import timedelta
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.messages.views import SuccessMessageMixin
@@ -8,10 +10,12 @@ from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db import IntegrityError, models
 from django.db.models import Count, Exists, Max, OuterRef, Subquery
-from django.http import HttpResponseRedirect, QueryDict
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
 from django_filters.views import FilterView
 from django_q.tasks import async_task
@@ -25,9 +29,11 @@ from jobs.tasks import (
     add_email_to_buttondown,
     create_backfill_vector_data_jobs,
     create_update_min_and_max_salary_jobs,
+    create_valid_emails,
     find_bad_submitted_dates,
     find_users_to_alert,
     send_confirmation_email,
+    send_sponsorship_outreach_emails,
 )
 from jobs.utils import (
     default_alert_name,
@@ -200,6 +206,16 @@ def create_backfill_vector_data_jobs_view(request):
     async_task(
         create_backfill_vector_data_jobs, hook="jobs.hooks.print_result", group="Create Jobs to Update Vector Data."
     )
+
+    return redirect("admin-panel")
+
+
+def create_valid_emails_view(request):
+    async_task(create_valid_emails, hook="jobs.hooks.print_result", group="Create Valid Emails")
+    messages.add_message(request, messages.SUCCESS, "Valid emails creation task has been triggered.")
+
+    async_task(send_sponsorship_outreach_emails, hook="jobs.hooks.print_result", group="Send Sponsorship Outreach")
+    messages.add_message(request, messages.SUCCESS, "Sponsorship outreach emails have been scheduled.")
 
     return redirect("admin-panel")
 
@@ -570,3 +586,86 @@ class TitleJobsView(ListView):
         context["create_alert_form"] = CreateAlertForm
 
         return context
+
+
+@require_POST
+def create_sponsored_post_checkout_session(request, post_id):
+    from jobs.utils import create_stripe_checkout_session_for_post
+
+    if not request.user.is_superuser:
+        return JsonResponse({"error": "Unauthorized"}, status=403)
+
+    try:
+        post = get_object_or_404(Post, id=post_id)
+
+        if post.sponsored:
+            return JsonResponse({"error": "This post is already sponsored"}, status=400)
+
+        success_url = request.build_absolute_uri(reverse("post", kwargs={"pk": post.id}))
+        cancel_url = request.build_absolute_uri(reverse("post", kwargs={"pk": post.id}))
+
+        checkout_url = create_stripe_checkout_session_for_post(post, success_url, cancel_url)
+
+        return JsonResponse({"checkout_url": checkout_url})
+
+    except Post.DoesNotExist:
+        logger.error("Post not found for checkout session", post_id=post_id)
+        return JsonResponse({"error": "Post not found"}, status=404)
+    except Exception as e:
+        logger.error(
+            "Error creating checkout session",
+            error=str(e),
+            post_id=post_id,
+        )
+        return JsonResponse({"error": "Failed to create checkout session"}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def stripe_webhook(request):
+    payload = request.body
+    sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")
+
+    logger.info("Stripe webhook received", stripe_payload=payload, stripe_sig_header=sig_header)
+
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET)
+    except ValueError:
+        logger.error("Invalid payload in Stripe webhook")
+        return HttpResponse(status=400)
+    except stripe.error.SignatureVerificationError:
+        logger.error("Invalid signature in Stripe webhook")
+        return HttpResponse(status=400)
+
+    logger.info("Stripe webhook event", stripe_event=event)
+
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+
+        post_id = session.get("metadata", {}).get("post_id")
+
+        if post_id:
+            try:
+                post = Post.objects.get(id=post_id)
+                post.sponsored = True
+                post.sponsored_at = timezone.now()
+                post.save()
+
+                logger.info(
+                    "Post marked as sponsored",
+                    post_id=post_id,
+                    session_id=session.get("id"),
+                )
+            except Post.DoesNotExist:
+                logger.error(
+                    "Post not found when processing webhook",
+                    post_id=post_id,
+                    session_id=session.get("id"),
+                )
+        else:
+            logger.warning(
+                "No post_id in webhook metadata",
+                session_id=session.get("id"),
+            )
+
+    return HttpResponse(status=200)

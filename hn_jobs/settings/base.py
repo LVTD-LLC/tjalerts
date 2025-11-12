@@ -472,5 +472,8 @@ structlog.configure(
     cache_logger_on_first_use=True,
 )
 
-
 ADMIN_KEY = env("ADMIN_KEY")
+
+STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET")
+SPONSORED_POST_PRICE_ID = env("SPONSORED_POST_PRICE_ID")

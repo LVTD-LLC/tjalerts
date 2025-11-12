@@ -1,6 +1,7 @@
 import time
+from datetime import timedelta
 
-from django.db.models import Count, Exists, OuterRef, Q
+from django.db.models import Case, Count, Exists, OuterRef, Q, When
 from django.utils import timezone
 from pgvector.django import L2Distance
 
@@ -15,7 +16,15 @@ logger = get_tjalerts_logger(__name__)
 def get_latest_submissions(number_of: int, for_homepage: bool = False):
     start_time = time.time()
 
-    posts = Post.objects.all().order_by("-submitted_datetime")
+    one_month_ago = timezone.now() - timedelta(days=30)
+
+    posts = (
+        Post.objects.all()
+        .annotate(
+            is_recently_sponsored=Case(When(sponsored=True, sponsored_at__gte=one_month_ago, then=True), default=False)
+        )
+        .order_by("-is_recently_sponsored", "-submitted_datetime")
+    )
 
     if for_homepage:
         excluded_tech = Technology.objects.filter(name__in=EXCLUDED_TECHNOLOGIES)

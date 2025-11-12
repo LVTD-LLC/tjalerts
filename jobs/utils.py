@@ -1145,6 +1145,41 @@ def get_work_arrangement_stats(source: PostSource, month: int, year: int):
     }
 
 
+def create_stripe_checkout_session_for_post(post, success_url, cancel_url):
+    import stripe
+    from django.conf import settings
+
+    from hn_jobs.utils import get_tjalerts_logger
+
+    logger = get_tjalerts_logger(__name__)
+
+    stripe_key = settings.STRIPE_SECRET_KEY
+    stripe.api_key = stripe_key
+
+    checkout_session = stripe.checkout.Session.create(
+        line_items=[
+            {
+                "price": settings.SPONSORED_POST_PRICE_ID,
+                "quantity": 1,
+            }
+        ],
+        mode="payment",
+        success_url=success_url + "?sponsored=success",
+        cancel_url=cancel_url + "?sponsored=cancelled",
+        metadata={
+            "post_id": str(post.id),
+        },
+    )
+
+    logger.info(
+        "Stripe checkout session created",
+        post_id=str(post.id),
+        session_id=checkout_session.id,
+    )
+
+    return checkout_session.url
+
+
 def get_top_onsite_locations(source: PostSource, month: int, year: int, limit=20):
     """
     Analyzes the most frequently mentioned countries and cities in non-remote job posts.

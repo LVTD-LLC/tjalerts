@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import AdminPanelView, HomeView, PrivacyView, SupportView, TosView
+from .views import AdminPanelView, HomeView, PrivacyView, SupportView, TosView, test_sponsorship_email_view
 
 urlpatterns = [
     path("", HomeView.as_view(), name="home"),
@@ -10,4 +10,5 @@ urlpatterns = [
     path("privacy", PrivacyView.as_view(), name="privacy"),
     path("tos", TosView.as_view(), name="tos"),
     path("admin-panel/", AdminPanelView.as_view(), name="admin-panel"),
+    path("admin-panel/test-sponsorship-email/", test_sponsorship_email_view, name="test-sponsorship-email"),
 ]

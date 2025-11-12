@@ -1,5 +1,7 @@
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.http import HttpResponseRedirect
 from django.urls import reverse_lazy
 from django.views.generic import FormView, TemplateView
 from django_q.tasks import async_task
@@ -10,7 +12,7 @@ from jobs.queries import get_latest_submissions, get_most_popular_technologies, 
 from jobs.tasks import get_hn_pages_to_analyze
 
 from .forms import SupportForm
-from .tasks import email_support_request
+from .tasks import email_support_request, send_test_sponsorship_email
 
 logger = get_tjalerts_logger(__name__)
 
@@ -133,3 +135,28 @@ class AdminPanelView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         async_task(get_hn_pages_to_analyze, who_is_hiring_post_id, hook="hooks.print_result")
         messages.add_message(self.request, messages.SUCCESS, f"Task triggered for post ID: {who_is_hiring_post_id}")
         return super(AdminPanelView, self).form_valid(form)
+
+
+@login_required(login_url="account_login")
+@user_passes_test(lambda u: u.is_staff)
+def test_sponsorship_email_view(request):
+    from jobs.models import Email
+
+    latest_email = (
+        Email.objects.filter(email_is_valid=True, post__sponsored=False)
+        .select_related("company", "post")
+        .order_by("-created")
+        .first()
+    )
+
+    if latest_email:
+        async_task(send_test_sponsorship_email, latest_email.id, hook="hooks.print_result")
+        messages.add_message(
+            request,
+            messages.SUCCESS,
+            f"Test sponsorship email scheduled for {latest_email.email} (will be sent to rasul@lvtd.dev)",
+        )
+    else:
+        messages.add_message(request, messages.ERROR, "No valid email objects found to test with")
+
+    return HttpResponseRedirect(reverse_lazy("admin-panel"))

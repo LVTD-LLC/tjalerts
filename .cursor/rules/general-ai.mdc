@@ -1,0 +1,9 @@
+---
+alwaysApply: true
+description: Always read this file before execution
+---
+
+- Don't run or create tests unless specifically asked to.
+- Do not write doc pages unless specifically asked to.
+- Do not run any git or python commands, unless specifically asked to.
+- Don't create migration files, I will do that myself.

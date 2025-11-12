@@ -157,6 +157,40 @@
             </div>
           </div>
 
+          <!-- Create Valid Emails & Send Sponsorship Outreach Task -->
+          <div class="p-6 rounded-lg border border-gray-200">
+            <div class="flex justify-between items-center">
+              <div class="flex-1">
+                <h4 class="text-base font-semibold text-gray-900">Create Valid Emails & Sponsorship Outreach</h4>
+                <p class="mt-1 text-sm text-gray-600">Extract valid email addresses from posts and send sponsorship outreach to new contacts for posts that aren't already sponsored.</p>
+              </div>
+              <a href="{% url 'create-valid-emails' %}"
+                class="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-green-600 rounded-md border border-transparent shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 hover:bg-green-700">
+                <svg class="mr-2 -ml-1 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                </svg>
+                Create & Send
+              </a>
+            </div>
+          </div>
+
+          <!-- Test Sponsorship Email Task -->
+          <div class="p-6 bg-yellow-50 rounded-lg border border-gray-200">
+            <div class="flex justify-between items-center">
+              <div class="flex-1">
+                <h4 class="text-base font-semibold text-gray-900">Test Sponsorship Email</h4>
+                <p class="mt-1 text-sm text-gray-600">Send a test sponsorship email using the latest valid Email object to rasul@lvtd.dev (for testing purposes only).</p>
+              </div>
+              <a href="{% url 'test-sponsorship-email' %}"
+                class="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-yellow-600 rounded-md border border-transparent shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 hover:bg-yellow-700">
+                <svg class="mr-2 -ml-1 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Send Test
+              </a>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

@@ -21,8 +21,9 @@ from openai import OpenAI
 from hn_jobs.utils import get_tjalerts_logger
 from users.models import CustomUser
 
+from jobs.choices import EmailType
 from jobs.filters import PostFilter
-from jobs.models import Alert, AlertEmailSend, Company, Email, Post, Technology, Title
+from jobs.models import Alert, AlertEmailSend, Company, Email, EmailSent, Post, Technology, Title
 from jobs.utils import clean_job_json_object, fix_email, get_embedding, has_number, is_generic
 
 logger = get_tjalerts_logger(__name__)
@@ -192,7 +193,6 @@ def create_valid_emails():
 
     count = 0
     for post in posts_with_emails:
-        # Split the name and pair it with a name if one exists.
         email_list = post.emails.split(",")
         name_list = post.names_of_the_contact_person.split(",")
 
@@ -201,8 +201,10 @@ def create_valid_emails():
         else:
             email_name_pairs = zip(email_list, [""] * len(email_list))
 
-        # Check that email is valid, and if not, try to fix it.
         for email, name in email_name_pairs:
+            email = email.strip()
+            name = name.strip()
+
             try:
                 validate_email(email)
                 email_is_valid = True
@@ -217,24 +219,27 @@ def create_valid_emails():
 
             company = post.company
 
-            if Email.objects.filter(post=post).exists():
-                continue
-
             is_approved = False
             if name != "" and name.lower() in email.split("@")[0].lower():
                 is_approved = True
 
-            Email.objects.create(
+            email_obj, created = Email.objects.get_or_create(
                 email=email,
-                email_is_valid=email_is_valid,
-                email_is_generic=is_generic(email),
-                name=name,
-                company=company,
-                post=post,
-                is_approved=is_approved,
+                defaults={
+                    "email_is_valid": email_is_valid,
+                    "email_is_generic": is_generic(email),
+                    "name": name,
+                    "company": company,
+                    "post": post,
+                    "is_approved": is_approved,
+                },
             )
-            count += 1
-            logger.info("Email for post was created.", post=post, email=email)
+
+            if created:
+                count += 1
+                logger.info("Email created.", post_id=post.id, email=email)
+            else:
+                logger.debug("Email already exists.", email=email)
 
     return f"Created {count} emails."
 
@@ -572,3 +577,152 @@ def send_daily_new_contacts_email():
 
     logger.info("Daily new contacts email sent", count=new_emails.count(), recipient=superuser.email)
     return f"Sent email with {new_emails.count()} new contacts to {superuser.email}"
+
+
+def send_sponsorship_outreach_emails():
+    twenty_four_hours_ago = timezone.now() - timedelta(hours=24)
+
+    unsent_emails = Email.objects.filter(
+        created__gte=twenty_four_hours_ago,
+        sponsorship_email_sent=False,
+        email_is_valid=True,
+        post__sponsored=False,
+    ).select_related("company", "post")
+
+    sent_email_addresses = set(
+        EmailSent.objects.filter(
+            email_type=EmailType.SPONSORSHIP_OUTREACH,
+        ).values_list("recipient_email", flat=True)
+    )
+
+    count = 0
+    for email_obj in unsent_emails:
+        if email_obj.email in sent_email_addresses:
+            logger.info(
+                "Skipping email - already sent sponsorship to this address",
+                email=email_obj.email,
+                post_id=email_obj.post.id,
+            )
+            continue
+
+        async_task(
+            send_sponsorship_email,
+            email_obj.id,
+            hook="jobs.hooks.print_result",
+            group="Send Sponsorship Outreach",
+        )
+        count += 1
+
+    return f"{count} sponsorship emails have been scheduled to send."
+
+
+def send_sponsorship_email(email_obj_id):
+    from jobs.utils import create_stripe_checkout_session_for_post
+
+    try:
+        email_obj = Email.objects.select_related("company", "post").get(id=email_obj_id)
+    except Email.DoesNotExist:
+        logger.error("Email object not found", email_obj_id=email_obj_id)
+        return "Email object not found"
+
+    if EmailSent.objects.filter(
+        recipient_email=email_obj.email,
+        email_type=EmailType.SPONSORSHIP_OUTREACH,
+    ).exists():
+        logger.warning(
+            "Sponsorship email already sent to this address",
+            email=email_obj.email,
+            post_id=email_obj.post.id,
+        )
+        email_obj.sponsorship_email_sent = True
+        email_obj.sponsorship_email_sent_at = timezone.now()
+        email_obj.save(update_fields=["sponsorship_email_sent", "sponsorship_email_sent_at"])
+        return "Sponsorship email already sent to this address"
+
+    if email_obj.sponsorship_email_sent:
+        logger.warning("Sponsorship email already sent", email=email_obj.email, post_id=email_obj.post.id)
+        return "Sponsorship email already sent"
+
+    if email_obj.post.sponsored:
+        logger.info("Post is already sponsored, skipping", post_id=email_obj.post.id)
+        email_obj.sponsorship_email_sent = True
+        email_obj.sponsorship_email_sent_at = timezone.now()
+        email_obj.save(update_fields=["sponsorship_email_sent", "sponsorship_email_sent_at"])
+        return "Post is already sponsored"
+
+    site_domain = Site.objects.get_current().domain
+    post_url = f"https://{site_domain}{email_obj.post.get_absolute_url()}"
+    company_name = email_obj.company.name
+    greeting = f"Hi {email_obj.name}," if email_obj.name else "Hi there,"
+
+    try:
+        checkout_url = create_stripe_checkout_session_for_post(email_obj.post, post_url, post_url)
+    except Exception as e:
+        logger.error(
+            "Failed to create Stripe checkout session",
+            error=str(e),
+            post_id=email_obj.post.id,
+        )
+        return f"Failed to create checkout session: {str(e)}"
+
+    company_mention = f" at {company_name}" if company_name else ""
+    subject_company = f" - {company_name}" if company_name else ""
+    subject = f"Your Job Post is Now on TJAlerts{subject_company}"
+
+    message = f"""{greeting}
+
+Your job post{company_mention} just got indexed on TJ Alerts—a searchable database of tech jobs that attracts 1,300+ unique visitors monthly.
+
+Here's your listing:
+{post_url}
+
+Want to stand out? For $500/month, you can sponsor your post and get:
+• Featured placement at the top of all search results
+• Highlighted styling with a "Sponsored" badge
+• Maximum visibility to active job seekers
+
+Here's what sponsored listings look like:
+- Homepage: https://{site_domain}/static/vendors/images/sponsored-home-page.png
+- Search results: https://{site_domain}/static/vendors/images/sponsored-jobs-search.png
+
+Ready to boost your visibility?
+👉 Sponsor your post now: {checkout_url}
+
+Best,
+TJAlerts Team
+"""
+
+    try:
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [email_obj.email],
+            fail_silently=False,
+        )
+
+        email_obj.sponsorship_email_sent = True
+        email_obj.sponsorship_email_sent_at = timezone.now()
+        email_obj.save(update_fields=["sponsorship_email_sent", "sponsorship_email_sent_at"])
+
+        EmailSent.objects.get_or_create(
+            recipient_email=email_obj.email,
+            email_type=EmailType.SPONSORSHIP_OUTREACH,
+        )
+
+        logger.info(
+            "Sponsorship outreach email sent",
+            email=email_obj.email,
+            post_id=email_obj.post.id,
+            company=company_name,
+        )
+        return f"Sponsorship email sent to {email_obj.email}"
+
+    except Exception as e:
+        logger.error(
+            "Failed to send sponsorship email",
+            error=str(e),
+            email=email_obj.email,
+            post_id=email_obj.post.id,
+        )
+        return f"Failed to send email: {str(e)}"
