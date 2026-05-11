@@ -3,6 +3,7 @@ from datetime import datetime
 from itertools import combinations
 
 from allauth.account.models import EmailAddress
+from django.conf import settings
 from django.db.models import Count, Q
 from openai import OpenAI
 
@@ -159,7 +160,7 @@ def has_number(input_string):
 def get_embedding(text):
     text = text.replace("\n", " ")
 
-    embedding = client.embeddings.create(input=[text], model="text-embedding-3-small")
+    embedding = client.embeddings.create(input=[text], model=settings.OPENAI_EMBEDDING_MODEL)
 
     return embedding.data[0].embedding
 

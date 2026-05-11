@@ -112,7 +112,7 @@ def analyze_hn_page(who_is_hiring_id, who_is_hiring_title, comment_id):
 
     try:
         completion = client.chat.completions.create(
-            model="gpt-5-mini",
+            model=settings.OPENAI_JOB_EXTRACTION_MODEL,
             response_format={"type": "json_object"},
             messages=[
                 {
@@ -333,7 +333,7 @@ Return a valid JSON Object with the following format:
 Do not return anything else. Just the JSON Object."""  # noqa: E501
 
     completion = client.chat.completions.create(
-        model="gpt-5-mini",
+        model=settings.OPENAI_SALARY_EXTRACTION_MODEL,
         response_format={"type": "json_object"},
         messages=[
             {

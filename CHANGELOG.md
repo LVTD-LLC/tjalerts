@@ -13,6 +13,10 @@ and this project tries to adhere to [Semantic Versioning](https://semver.org/spe
 **Fixed** for any bug fixes.
 **Security** in case of vulnerabilities.
 
+## Unreleased
+### Changed
+- Updated OpenAI model defaults for HN job extraction to `gpt-5.4-nano`, salary parsing to `gpt-5-nano`, and made chat/embedding model names configurable via Django settings.
+
 ## [0.0.3] - 2024-06-25
 ### Added
 - Search for titles and technologies
