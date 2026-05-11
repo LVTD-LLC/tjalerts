@@ -133,7 +133,6 @@ class Company(TimeStampedModel):
     class Meta:
         indexes = [
             models.Index(fields=["name"], name="index_company_name"),
-            models.Index(fields=["emails"], name="index_company_emails"),
             models.Index(fields=["company_homepage_link"], name="index_company_homepage_link"),
         ]
 

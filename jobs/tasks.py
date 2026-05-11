@@ -29,6 +29,29 @@ logger = get_tjalerts_logger(__name__)
 
 client = OpenAI()
 
+MAX_COMPANY_EMAILS_LENGTH = 2000
+
+
+def merge_company_emails(existing_emails, new_emails):
+    """Keep Company.emails as a bounded, comma-separated summary.
+
+    Post.emails and the Email model are the source of truth for extracted
+    contact info. Company.emails is only a denormalized convenience field, so
+    it should never grow without bound or break unrelated company saves.
+    """
+
+    emails = []
+    seen = set()
+
+    for email_blob in (existing_emails, new_emails):
+        for email in email_blob.split(","):
+            email = email.strip()
+            if email and email not in seen:
+                emails.append(email)
+                seen.add(email)
+
+    return ", ".join(emails)[:MAX_COMPANY_EMAILS_LENGTH]
+
 
 def get_hn_pages_to_analyze(who_is_hiring_post_id):
     data = httpx.get(f"https://hacker-news.firebaseio.com/v0/item/{who_is_hiring_post_id}.json").json()
@@ -149,7 +172,7 @@ def analyze_hn_page(who_is_hiring_id, who_is_hiring_title, comment_id):
 
     company_obj, _ = Company.objects.get_or_create(name=cleaned_data["company_name"])
     company_obj.company_homepage_link = cleaned_data["company_homepage_link"]
-    company_obj.emails += cleaned_data["emails"]
+    company_obj.emails = merge_company_emails(company_obj.emails, cleaned_data["emails"])
     company_obj.save()
 
     post = Post(
