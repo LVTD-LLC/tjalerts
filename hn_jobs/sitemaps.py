@@ -48,7 +48,7 @@ class HighestPaidJobsListicleSitemap(sitemaps.Sitemap):
         )
 
     def lastmod(self, obj):
-        return obj.post.order_by("-submitted_datetime").first().submitted_datetime
+        return Post.objects.filter(technologies=obj).aggregate(latest_date=Max("submitted_datetime"))["latest_date"]
 
     def location(self, obj):
         return reverse("highest-paid-job-blog-post", kwargs={"slug": obj.slug})
