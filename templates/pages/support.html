@@ -1,10 +1,25 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load markdown_extras %}
+{% load static %}
 {% load widget_tweaks %}
 
+{% block meta %}
+<title>Support | Tech Job Alerts</title>
+<meta name="description" content="Contact Tech Job Alerts support for bugs, suggestions, or product questions." />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="{{ SITE_URL }}{% url 'support' %}" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Support | Tech Job Alerts" />
+<meta property="og:url" content="{{ SITE_URL }}{% url 'support' %}" />
+<meta property="og:description" content="Contact Tech Job Alerts support for bugs, suggestions, or product questions." />
+<meta property="og:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Support | Tech Job Alerts" />
+<meta name="twitter:description" content="Contact Tech Job Alerts support for bugs, suggestions, or product questions." />
+<meta name="twitter:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
+{% endblock meta %}
+
 {% block content %}
-
-
 <div class="max-w-4xl p-4 mx-auto border rounded-md">
   <div class="my-2 text-center">
     <h1 class="text-xl font-bold tracking-tight text-gray-900 sm:text-6xl">Support Form</h1>

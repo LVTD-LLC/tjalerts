@@ -1,2 +1,11 @@
 User-Agent: *
 Disallow: /admin/
+Disallow: /admin-panel/
+Disallow: /api/
+Disallow: /jobs/create-alert/
+Disallow: /jobs/create-custom-alert/
+Disallow: /jobs/confirm/
+Disallow: /jobs/digest/
+Disallow: /jobs/unsubscribe/
+
+Sitemap: {{ SITE_URL }}/sitemap.xml

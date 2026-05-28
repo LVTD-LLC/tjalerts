@@ -16,7 +16,7 @@
 <meta property="og:title" content="{{ title }}" />
 <meta property="og:url" content="{{ canonical_url }}" />
 <meta property="og:description" content="Jobs that match these keywords: {{ keywords }}. From {{ date }}." />
-<meta property="og:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
+<meta property="og:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
 <meta property="og:locale" content="en_US" />
 
 <meta name="twitter:card" content="summary" />
@@ -24,7 +24,7 @@
 <meta name="twitter:site" content="@rasulkireev" />
 <meta name="twitter:title" content="{{ title }}" />
 <meta name="twitter:description" content="Jobs that match these keywords: {{ keywords }}. From {{ date }}." />
-<meta name="twitter:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
+<meta name="twitter:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
 {% endblock meta %}
 
 {% block content %}
@@ -248,11 +248,11 @@
     {
       "@type": "ListItem",
       "position": {{ forloop.counter }},
-      "url": "https://{{ request.get_host }}{% url 'post' job.id %}",
+      "url": "{{ SITE_URL }}{% url 'post' job.id %}",
       "item": {
         "@type": "JobPosting",
-        "name":"{% if job.jobs %}{{ job.titles.all.0.name }}{% else %}Developer{% endif %}",
-        "{{ title }}":"{% if job.jobs %}{{ job.titles.all.0.name }}{% else %}Developer{% endif %}",
+        "name": "{{ job.titles.all.0.name|default:'Developer'|replace_quotes }}",
+        "title": "{{ job.titles.all.0.name|default:'Developer'|replace_quotes }}",
         "jobLocation": {
           "@type": "Place",
           "address": {% if job.locations %}"{{ job.locations }}"{% else %}"Remote"{% endif %}

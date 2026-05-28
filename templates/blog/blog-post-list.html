@@ -5,6 +5,27 @@
 {% load url_utils %}
 {% load blog_post_extras %}
 
+{% block meta %}
+<title>Tech Job Alerts Blog</title>
+<meta name="description" content="Tech job search advice, hiring trends, and monthly Who is Hiring summaries from Tech Job Alerts." />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="{{ SITE_URL }}{% url 'blog-posts' %}" />
+
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Tech Job Alerts Blog" />
+<meta property="og:url" content="{{ SITE_URL }}{% url 'blog-posts' %}" />
+<meta property="og:description" content="Tech job search advice, hiring trends, and monthly Who is Hiring summaries from Tech Job Alerts." />
+<meta property="og:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
+<meta property="og:locale" content="en_US" />
+
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:creator" content="@rasulkireev" />
+<meta name="twitter:site" content="@rasulkireev" />
+<meta name="twitter:title" content="Tech Job Alerts Blog" />
+<meta name="twitter:description" content="Tech job search advice, hiring trends, and monthly Who is Hiring summaries from Tech Job Alerts." />
+<meta name="twitter:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
+{% endblock meta %}
+
 {% block content %}
 
 <div class="overflow-hidden mx-auto mb-16 max-w-7xl bg-white sm:mb-24">

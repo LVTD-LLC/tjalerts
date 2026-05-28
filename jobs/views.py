@@ -16,7 +16,7 @@ from django.views.generic import CreateView, DetailView, ListView, TemplateView,
 from django_filters.views import FilterView
 from django_q.tasks import async_task
 
-from hn_jobs.utils import add_users_context, get_tjalerts_logger, validate_technology_selected
+from hn_jobs.utils import add_users_context, build_absolute_site_url, get_tjalerts_logger, validate_technology_selected
 from jobs.constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
 from jobs.filters import PostFilter
 from jobs.forms import ConfirmAlertForm, CreateAlertForm, CreateCustomAlertForm
@@ -95,6 +95,7 @@ class PostListView(FilterView):
         context["title"] = title
         context["date"] = date
         context["keywords"] = ", ".join(map(str, keywords))
+        context["canonical_url"] = build_absolute_site_url(self.request.path)
 
         return context
 
@@ -147,7 +148,7 @@ class HighestPaidJobsView(ListView):
 
         context["tech_name"] = tech.name
         context["tech_id"] = tech.id
-        context["canonical_url"] = self.request.build_absolute_uri(self.request.path).replace("http://", "https://")
+        context["canonical_url"] = build_absolute_site_url(self.request.path)
         context["latest_date"] = latest_date
         context["create_alert_form"] = CreateAlertForm
 
@@ -421,6 +422,7 @@ class CompanyJobsView(ListView):
         else:
             # Handle the case where no company is found
             context["company"] = None
+        context["canonical_url"] = build_absolute_site_url(self.request.path)
         return context
 
 
@@ -452,7 +454,7 @@ class TechnologyJobsView(ListView):
         context["tech_name"] = tech.name if tech else ""
         context["tech_id"] = tech.id if tech else None
         context["tech_slug"] = tech.slug if tech else ""
-        context["canonical_url"] = self.request.build_absolute_uri(self.request.path).replace("http://", "https://")
+        context["canonical_url"] = build_absolute_site_url(self.request.path)
         context["latest_date"] = latest_date
         context["create_alert_form"] = CreateAlertForm
 
@@ -565,7 +567,7 @@ class TitleJobsView(ListView):
         context["title_name"] = title.name
         context["title_id"] = title.id
         context["title_slug"] = title.slug
-        context["canonical_url"] = self.request.build_absolute_uri(self.request.path).replace("http://", "https://")
+        context["canonical_url"] = build_absolute_site_url(self.request.path)
         context["latest_date"] = latest_date
         context["create_alert_form"] = CreateAlertForm
 

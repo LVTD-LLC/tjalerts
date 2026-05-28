@@ -1,7 +1,7 @@
 {% load post_extras %}
 
 {% with technology|replace_child_with_parent_technology as technology %}
-<a href="{% url 'posts' %}?technologies={{ technology.id }}" class="inline-flex items-center px-2 py-1 my-1 text-sm font-medium text-green-700 rounded-md bg-green-50 ring-1 ring-inset ring-green-600/20 hover:ring-2 hover:ring-green-800">
+<a href="{% url 'technology-jobs' technology.slug %}" class="inline-flex items-center px-2 py-1 my-1 text-sm font-medium text-green-700 rounded-md bg-green-50 ring-1 ring-inset ring-green-600/20 hover:ring-2 hover:ring-green-800">
   {{ technology.name }}
 </a>
 {% endwith %}

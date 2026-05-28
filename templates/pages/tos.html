@@ -1,4 +1,21 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block meta %}
+<title>Terms of Service | Tech Job Alerts</title>
+<meta name="description" content="Terms of service for Tech Job Alerts, including website use, accounts, limitations, and contact details." />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="{{ SITE_URL }}{% url 'tos' %}" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Terms of Service | Tech Job Alerts" />
+<meta property="og:url" content="{{ SITE_URL }}{% url 'tos' %}" />
+<meta property="og:description" content="Terms of service for Tech Job Alerts, including website use, accounts, limitations, and contact details." />
+<meta property="og:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Terms of Service | Tech Job Alerts" />
+<meta name="twitter:description" content="Terms of service for Tech Job Alerts, including website use, accounts, limitations, and contact details." />
+<meta name="twitter:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
+{% endblock meta %}
 
 {% block content %}
 <div class="mx-auto prose max-w-7xl">

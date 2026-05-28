@@ -34,6 +34,7 @@ env = environ.Env(
 )
 
 ENVIRONMENT = env("ENVIRONMENT")
+SITE_URL = env("SITE_URL", default="https://gettjalerts.com").rstrip("/")
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
@@ -118,6 +119,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "hn_jobs.utils.site_metadata",
             ],
         },
     },

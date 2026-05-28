@@ -1,4 +1,21 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block meta %}
+<title>Privacy Policy | Tech Job Alerts</title>
+<meta name="description" content="Privacy policy for Tech Job Alerts, including how job alert account and usage data is collected and used." />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="{{ SITE_URL }}{% url 'privacy' %}" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Privacy Policy | Tech Job Alerts" />
+<meta property="og:url" content="{{ SITE_URL }}{% url 'privacy' %}" />
+<meta property="og:description" content="Privacy policy for Tech Job Alerts, including how job alert account and usage data is collected and used." />
+<meta property="og:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Privacy Policy | Tech Job Alerts" />
+<meta name="twitter:description" content="Privacy policy for Tech Job Alerts, including how job alert account and usage data is collected and used." />
+<meta name="twitter:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
+{% endblock meta %}
 
 {% block content %}
 <div class="mx-auto prose max-w-7xl">

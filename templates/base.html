@@ -18,13 +18,13 @@
   <meta name="description" content="Get notified when the new Tech Jobs are published." />
   <meta name="keywords" content="jobs, tech jobs, tech jobs alerts" />
   <meta name="robots" content="index, follow" />
-  <link rel="canonical" href="https://{{ request.get_host }}/" />
+  <link rel="canonical" href="{{ SITE_URL }}/" />
 
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Tech Job Alerts" />
-  <meta property="og:url" content="https://{{ request.get_host }}/" />
+  <meta property="og:url" content="{{ SITE_URL }}/" />
   <meta property="og:description" content="Get notified when the new Tech Jobs are published." />
-  <meta property="og:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
+  <meta property="og:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
   <meta property="og:locale" content="en_US" />
 
   <meta name="twitter:card" content="summary" />
@@ -32,7 +32,7 @@
   <meta name="twitter:site" content="@rasulkireev" />
   <meta name="twitter:title" content="Tech Job Alerts" />
   <meta name="twitter:description" content="Get notified when the new Tech Jobs are published." />
-  <meta name="twitter:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
+  <meta name="twitter:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
   {% endblock meta %}
 
   {% stylesheet_pack 'index' %}
@@ -239,8 +239,8 @@
       "@type": "WebSite",
       "name": "Tech Job Alerts",
       "description": "Get notified when the new Tech Jobs are published.",
-      "thumbnailUrl": "https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}",
-      "url": "https://{{ request.get_host }}/",
+      "thumbnailUrl": "{{ SITE_URL }}{% static 'vendors/images/logo.png' %}",
+      "url": "{{ SITE_URL }}/",
       "author": {
         "@type": "Person",
         "givenName": "Rasul",

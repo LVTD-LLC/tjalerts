@@ -5,6 +5,7 @@ from urllib.parse import unquote
 import posthog
 import structlog
 from allauth.account.models import EmailAddress
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.forms.utils import ErrorList
 
@@ -18,6 +19,20 @@ def get_tjalerts_logger(name):
 
 
 logger = get_tjalerts_logger(__name__)
+
+
+def build_absolute_site_url(path="/"):
+    if not path.startswith("/"):
+        path = f"/{path}"
+
+    return f"{settings.SITE_URL}{path}"
+
+
+def site_metadata(request):
+    return {
+        "SITE_URL": settings.SITE_URL,
+        "SITE_NAME": "Tech Job Alerts",
+    }
 
 
 def add_users_context(context, user, self=None):

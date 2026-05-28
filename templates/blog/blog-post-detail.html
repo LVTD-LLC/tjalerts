@@ -8,20 +8,20 @@
 {% block meta %}
 <title>{{ object.title }} - TJ Alerts Blog</title>
 <meta name="description" content="{{ object.description }}" />
-<link rel="canonical" href="https://{{ request.get_host }}{{ object.get_absolute_url }}" />
+<link rel="canonical" href="{{ SITE_URL }}{{ object.get_absolute_url }}" />
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:creator" content="@rasulkireev" />
 <meta name="twitter:title" content="{{ object.title }}" />
 <meta name="twitter:description" content="{{ object.description }}" />
-<meta name="twitter:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
+<meta name="twitter:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
 <meta property="og:title" content="{{ object.title }}" />
-<meta property="og:url" content="https://{{ request.get_host }}{{ object.get_absolute_url }}" />
+<meta property="og:url" content="{{ SITE_URL }}{{ object.get_absolute_url }}" />
 <meta property="og:description" content="{{ object.description }}" />
-<meta property="og:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
+<meta property="og:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
 {% endblock meta %}
 
 {% block content %}
-<article itemscope itemtype="https://schema.org/BlogPosting" itemid="{{ request.build_absolute_uri }}">
+<article itemscope itemtype="https://schema.org/BlogPosting" itemid="{{ SITE_URL }}{{ object.get_absolute_url }}">
   <div class="px-6 py-20 bg-white lg:px-8">
     <div class="mx-auto max-w-4xl text-base leading-7 text-gray-700">
       <header>
@@ -81,7 +81,7 @@
   "@type": "BlogPosting",
   "headline": "{{ object.title }}",
   "description": "{{ object.description }}",
-  "image": "https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}",
+  "image": "{{ SITE_URL }}{% static 'vendors/images/logo.png' %}",
   "author": {
     "@type": "Person",
     "name": "Rasul Kireev",
@@ -92,7 +92,7 @@
     "name": "TJ Alerts",
     "logo": {
       "@type": "ImageObject",
-      "url": "https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}"
+      "url": "{{ SITE_URL }}{% static 'vendors/images/logo.png' %}"
     }
   },
   "datePublished": "{{ object.created|date:'c' }}",
@@ -100,7 +100,7 @@
   "articleBody": "{{ object.content|safe|replace_quotes }}",
   "mainEntityOfPage": {
     "@type": "WebPage",
-    "@id": "{{ request.build_absolute_uri }}"
+    "@id": "{{ SITE_URL }}{{ object.get_absolute_url }}"
   }
 }
 </script>

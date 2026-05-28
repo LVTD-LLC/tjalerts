@@ -10,13 +10,13 @@
 <meta name="description" content="List of jobs at {{ company.name }}" />
 <meta name="keywords" content="jobs, job postings, {{ company.name }}" />
 <meta name="robots" content="index, follow" />
-<link rel="canonical" href="https://{{ request.get_host }}{% url 'company-jobs' company.slug %}" />
+<link rel="canonical" href="{{ SITE_URL }}{% url 'company-jobs' company.slug %}" />
 
 <meta property="og:type" content="website" />
 <meta property="og:title" content="Jobs at {{ company.name }}" />
-<meta property="og:url" content="https://{{ request.get_host }}{% url 'company-jobs' company.slug %}" />
+<meta property="og:url" content="{{ SITE_URL }}{% url 'company-jobs' company.slug %}" />
 <meta property="og:description" content="List of jobs at {{ company.name }}" />
-<meta property="og:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
+<meta property="og:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
 <meta property="og:locale" content="en_US" />
 
 <meta name="twitter:card" content="summary" />
@@ -24,7 +24,7 @@
 <meta name="twitter:site" content="@rasulkireev" />
 <meta name="twitter:title" content="Jobs at {{ company.name }}" />
 <meta name="twitter:description" content="List of jobs at {{ company.name }}" />
-<meta name="twitter:image" content="https://{{ request.get_host }}{% static 'vendors/images/logo.png' %}" />
+<meta name="twitter:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
 {% endblock meta %}
 
 {% block content %}
@@ -57,10 +57,10 @@
     {
       "@type": "ListItem",
       "position": {{ forloop.counter }},
-      "url": "https://{{ request.get_host }}{% url 'post' job.id %}",
+      "url": "{{ SITE_URL }}{% url 'post' job.id %}",
       "item": {
         "@type": "JobPosting",
-        "title": "{{ job.titles.all.0.name }}",
+        "title": "{{ job.titles.all.0.name|default:'Developer'|replace_quotes }}",
         "description": "{{ job.description|safe }}",
         "datePosted": "{{ job.submitted_datetime|date:'Y-m-d' }}",
         "validThrough": "{{ job.submitted_datetime|plus_days:30|date:'Y-m-d' }}",
