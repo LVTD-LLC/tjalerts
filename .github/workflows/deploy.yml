@@ -26,13 +26,18 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.REGISTRY_TOKEN }}
 
+      - name: Set image name
+        id: image
+        shell: bash
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
       - name: Build and push
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
           file: deployment/Dockerfile.server
-          tags: ghcr.io/${{ github.repository }}
+          tags: ${{ steps.image.outputs.name }}
 
       - name: Deploy to CapRover
         uses: caprover/deploy-from-github@main
@@ -40,4 +45,4 @@ jobs:
             server: ${{ secrets.CAPROVER_SERVER }}
             app: ${{ env.PROJECT_NAME }}
             token: '${{ secrets.APP_TOKEN }}'
-            image: ghcr.io/${{ github.repository }}
+            image: ${{ steps.image.outputs.name }}
