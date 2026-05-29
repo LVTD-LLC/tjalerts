@@ -27,39 +27,28 @@
 {% endblock meta %}
 
 {% block content %}
-
-<div class="overflow-hidden mx-auto mb-16 max-w-7xl bg-white sm:mb-24">
-
-  <div class="py-24 bg-white">
-    <div class="px-6 mx-auto max-w-7xl lg:px-8">
-      <div class="mx-auto max-w-2xl">
-        <h2 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">Blog</h2>
-
-        <div class="pt-10 mt-10 space-y-8 border-t border-gray-200 sm:mt-16 sm:pt-16">
-          {% for post in object_list %}
-            <article class="p-6 bg-gray-50 rounded-xl transition-all duration-200 hover:bg-gray-100">
-              <a href="{{ post.get_absolute_url }}" class="block">
-                <div class="flex gap-x-4 items-center text-sm">
-                  <time datetime="{{ post.created|date:'Y-m-d' }}" class="font-medium text-gray-500">{{ post.created|date:"F j, Y" }}</time>
-                </div>
-                <div class="group">
-                  <h3 class="mt-3 text-xl font-semibold leading-7 text-gray-900 group-hover:text-blue-600">
-                    {{ post.title }}
-                  </h3>
-                  <p class="mt-4 text-base leading-6 text-gray-600">{{ post.description }}</p>
-                </div>
-              </a>
-            </article>
-          {% empty %}
-            <div class="p-8 text-center bg-gray-50 rounded-xl">
-              <p class="text-lg text-gray-500">No blog posts available yet.</p>
-            </div>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
+<div class="app-page-header">
+  <div class="app-container py-8">
+    <h1 class="app-title">Blog</h1>
+    <p class="app-subtitle">Notes about job search, hiring threads, and the data behind Tech Job Alerts.</p>
   </div>
-
 </div>
 
+<div class="app-narrow py-8">
+  <div class="space-y-3">
+    {% for post in object_list %}
+    <article class="job-card">
+      <a href="{{ post.get_absolute_url }}" class="block p-5">
+        <time datetime="{{ post.created|date:'Y-m-d' }}" class="tabular text-xs font-medium text-zinc-500">{{ post.created|date:"F j, Y" }}</time>
+        <h2 class="mt-2 text-lg font-semibold leading-7 text-zinc-950">{{ post.title }}</h2>
+        <p class="mt-2 text-sm leading-6 text-zinc-600">{{ post.description }}</p>
+      </a>
+    </article>
+    {% empty %}
+    <div class="empty-state">
+      <p class="text-sm text-zinc-600">No blog posts available yet.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
 {% endblock content %}

@@ -4,26 +4,23 @@
 <html lang="en">
 
 <head>
-  <!-- Required meta tags -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <!-- Other meta stuff -->
-  <link rel="apple-touch-icon" href="{% static 'vendors/favicon/logo.png' %}" />
   <link rel="apple-touch-icon" href="{% static 'vendors/favicon/logo.png' %}" />
   <link rel="icon" type="image/png" sizes="16x16 32x32 500x500" href="{% static 'vendors/favicon/logo.png' %}" />
 
   {% block meta %}
   <title>Tech Job Alerts</title>
-  <meta name="description" content="Get notified when the new Tech Jobs are published." />
-  <meta name="keywords" content="jobs, tech jobs, tech jobs alerts" />
+  <meta name="description" content="Search technology jobs from Hacker News and create alerts for the stacks you care about." />
+  <meta name="keywords" content="jobs, tech jobs, tech job alerts" />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="{{ SITE_URL }}/" />
 
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Tech Job Alerts" />
   <meta property="og:url" content="{{ SITE_URL }}/" />
-  <meta property="og:description" content="Get notified when the new Tech Jobs are published." />
+  <meta property="og:description" content="Search technology jobs from Hacker News and create alerts for the stacks you care about." />
   <meta property="og:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
   <meta property="og:locale" content="en_US" />
 
@@ -31,7 +28,7 @@
   <meta name="twitter:creator" content="@rasulkireev" />
   <meta name="twitter:site" content="@rasulkireev" />
   <meta name="twitter:title" content="Tech Job Alerts" />
-  <meta name="twitter:description" content="Get notified when the new Tech Jobs are published." />
+  <meta name="twitter:description" content="Search technology jobs from Hacker News and create alerts for the stacks you care about." />
   <meta name="twitter:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
   {% endblock meta %}
 
@@ -45,192 +42,114 @@
   </script>
 </head>
 
-<body>
+<body class="app-shell">
+  <a href="#content" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-zinc-950 focus:ring-2 focus:ring-emerald-700">
+    Skip to content
+  </a>
+
   {% block default_messages %}
   {% include "components/messages.html" with messages=messages %}
   {% endblock default_messages %}
 
-  <div data-controller="dropdown" class="bg-white">
-    <header class="bg-white">
-      <nav class="flex justify-between items-center p-6 mx-auto max-w-7xl lg:px-8" aria-label="Global">
-        <div class="flex gap-x-12 items-center">
-          <a href="{% url 'home' %}" class="flex flex-row justify-between items-center p-1.5 -m-1.5 space-x-2">
-            <img class="w-auto h-8" src="{% static 'vendors/images/logo.png' %}" alt="Tech Job Alerts Logo" />
-            <!-- <span class="text-base font-semibold text-gray-700">Tech Job Alerts</span> -->
-          </a>
+  <header data-controller="dropdown" class="sticky top-0 z-40 border-b border-zinc-200 bg-white/95">
+    <nav class="app-container flex h-16 items-center justify-between" aria-label="Global">
+      <div class="flex min-w-0 items-center gap-6">
+        <a href="{% url 'home' %}" class="flex min-w-0 items-center gap-2 rounded-md p-1.5 -m-1.5">
+          <img class="h-8 w-auto" src="{% static 'vendors/images/logo.png' %}" alt="Tech Job Alerts Logo" />
+          <span class="truncate text-sm font-semibold text-zinc-950 sm:text-base">Tech Job Alerts</span>
+        </a>
 
-          <!-- Product Dropdown -->
-          <div data-controller="dropdown" class="relative">
-            <button type="button" data-action="dropdown#toggle click@window->dropdown#hide"
-              class="hidden gap-x-1 items-center text-base font-semibold text-gray-700 md:flex hover:text-gray-900"
-              id="product-menu-button" aria-expanded="false" aria-haspopup="true">
-              Product
-              <svg class="ml-1 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-              </svg>
-            </button>
-            <div data-dropdown-target="menu"
-              class="hidden absolute left-0 z-10 py-1 mt-2 w-48 bg-white rounded-md ring-1 ring-black ring-opacity-5 shadow-lg origin-top-left focus:outline-none"
-              role="menu" aria-orientation="vertical" aria-labelledby="product-menu-button" tabindex="-1">
-              <a href="{% url 'posts' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-300"
-              role="menuitem" data-action="dropdown#toggle" tabindex="-1">Jobs</a>
-              <a href="{% url 'companies' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-300"
-                role="menuitem" data-action="dropdown#toggle" tabindex="-1">Companies</a>
-              <a href="{% url 'technologies' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-300"
-                role="menuitem" data-action="dropdown#toggle" tabindex="-1">Technologies</a>
-              <a href="{% url 'titles' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-300"
-                role="menuitem" data-action="dropdown#toggle" tabindex="-1">Job titles</a>
-            </div>
-          </div>
-
-          <!-- Blog Link -->
-          <a href="{% url 'blog-posts' %}" class="hidden text-base font-semibold text-gray-700 md:inline hover:underline">Blog</a>
+        {% with current_url=request.resolver_match.url_name %}
+        <div class="hidden items-center gap-1 md:flex">
+          <a href="{% url 'posts' %}" class="nav-link {% if current_url == 'posts' %}nav-link-active{% endif %}">Jobs</a>
+          <a href="{% url 'companies' %}" class="nav-link {% if current_url == 'companies' %}nav-link-active{% endif %}">Companies</a>
+          <a href="{% url 'technologies' %}" class="nav-link {% if current_url == 'technologies' %}nav-link-active{% endif %}">Technologies</a>
+          <a href="{% url 'titles' %}" class="nav-link {% if current_url == 'titles' %}nav-link-active{% endif %}">Titles</a>
+          <a href="{% url 'blog-posts' %}" class="nav-link {% if current_url == 'blog-posts' %}nav-link-active{% endif %}">Blog</a>
         </div>
-        <div class="flex lg:hidden">
-          <button data-action="dropdown#toggle click@window->dropdown#hide" type="button"
-            class="inline-flex justify-center items-center p-2.5 -m-2.5 text-gray-700 rounded-md">
-            <span class="sr-only">Open main menu</span>
-            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
-              aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+        {% endwith %}
+      </div>
+
+      <div class="hidden items-center gap-2 lg:flex">
+        {% if user.is_authenticated %}
+        <a href="{% url 'authed_weekly_digest' %}" class="btn-quiet">Latest digest</a>
+        <a href="{% url 'settings' %}" class="btn-quiet">Settings</a>
+        {% if user.is_staff %}
+        <a href="{% url 'admin-panel' %}" class="btn-quiet">Admin</a>
+        {% endif %}
+        <a href="{% url 'account_logout' %}" class="btn-secondary">Sign out</a>
+        {% else %}
+        <a href="{% url 'account_login' %}" class="btn-quiet">Log in</a>
+        <a href="{% url 'account_signup' %}" class="btn-primary">Create account</a>
+        {% endif %}
+      </div>
+
+      <button data-action="dropdown#toggle click@window->dropdown#hide" type="button" class="btn-secondary lg:hidden">
+        <span class="sr-only">Open main menu</span>
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h16" />
+        </svg>
+      </button>
+    </nav>
+
+    <div data-dropdown-target="menu" class="hidden lg:hidden" role="dialog" aria-modal="true">
+      <div class="fixed inset-0 z-40 bg-zinc-950/20"></div>
+      <div class="fixed inset-x-3 top-3 z-50 rounded-lg border border-zinc-200 bg-white p-4">
+        <div class="flex items-center justify-between">
+          <a href="{% url 'home' %}" class="flex items-center gap-2 rounded-md p-1 -m-1">
+            <img class="h-8 w-auto" src="{% static 'vendors/images/logo.png' %}" alt="Tech Job Alerts Logo" />
+            <span class="text-sm font-semibold text-zinc-950">Tech Job Alerts</span>
+          </a>
+          <button data-action="dropdown#toggle click@window->dropdown#hide" type="button" class="btn-quiet">
+            <span class="sr-only">Close menu</span>
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <div class="hidden items-center lg:flex lg:gap-x-12">
+
+        <div class="mt-4 grid gap-1 border-t border-zinc-200 pt-4">
+          <a href="{% url 'posts' %}" class="nav-link">Jobs</a>
+          <a href="{% url 'companies' %}" class="nav-link">Companies</a>
+          <a href="{% url 'technologies' %}" class="nav-link">Technologies</a>
+          <a href="{% url 'titles' %}" class="nav-link">Titles</a>
+          <a href="{% url 'blog-posts' %}" class="nav-link">Blog</a>
+        </div>
+
+        <div class="mt-4 grid gap-2 border-t border-zinc-200 pt-4">
           {% if user.is_authenticated %}
-          <!-- Profile dropdown -->
-          <div data-controller="dropdown" class="relative ml-3">
-            <div>
-              <button type="button" data-action="dropdown#toggle click@window->dropdown#hide"
-                class="flex text-sm bg-gray-800 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"
-                id="user-menu-button" aria-expanded="false" aria-haspopup="true">
-                <span class="sr-only">Open user menu</span>
-                <img class="object-cover p-1 w-10 h-10 bg-gray-100 rounded-full border-2 border-gray-500"
-                  src="{% static 'vendors/images/unknown-man.png' %}" alt="No Personal Photo" />
-              </button>
-            </div>
-            <div data-dropdown-target="menu"
-              class="hidden absolute right-0 z-10 py-1 mt-2 w-48 bg-white rounded-md ring-1 ring-black ring-opacity-5 shadow-lg origin-top-right focus:outline-none"
-              role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" tabindex="-1">
-              {% if user.is_authenticated %}
-              <a href="{% url 'authed_weekly_digest' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-300"
-                role="menuitem" data-action="dropdown#toggle" tabindex="-1" id="user-menu-item-0">Latest Digest</a>
-              <a href="{% url 'settings' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-300"
-                role="menuitem" data-action="dropdown#toggle" tabindex="-1" id="user-menu-item-0">Settings</a>
-              {% if user.is_staff %}
-              <a href="{% url 'admin-panel' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-300"
-                role="menuitem" data-action="dropdown#toggle" tabindex="-1" id="user-menu-item-0">Admin Panel</a>
-              {% endif %}
-              {% endif %}
-              <!-- <a href="#" class="block px-4 py-2 text-sm text-gray-700" role="menuitem" tabindex="-1" id="user-menu-item-1">Settings</a> -->
-              <a href="{% url 'account_logout' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-300"
-                role="menuitem" data-action="dropdown#toggle" tabindex="-1" id="user-menu-item-2">Sign out</a>
-            </div>
-          </div>
+          <a href="{% url 'authed_weekly_digest' %}" class="btn-secondary">Latest digest</a>
+          <a href="{% url 'settings' %}" class="btn-secondary">Settings</a>
+          {% if user.is_staff %}
+          <a href="{% url 'admin-panel' %}" class="btn-secondary">Admin</a>
+          {% endif %}
+          <a href="{% url 'account_logout' %}" class="btn-primary">Sign out</a>
           {% else %}
-          <a href="{% url 'account_login' %}" class="text-base font-semibold leading-6 text-gray-900">
-              Log in <span aria-hidden="true">&rarr;</span>
-          </a>
+          <a href="{% url 'account_login' %}" class="btn-secondary">Log in</a>
+          <a href="{% url 'account_signup' %}" class="btn-primary">Create account</a>
           {% endif %}
         </div>
-      </nav>
-
-      <!-- Mobile menu, show/hide based on menu open state. -->
-      <div data-dropdown-target="menu" class="lg:hidden" role="dialog" aria-modal="true">
-        <!-- Background backdrop, show/hide based on slide-over state. -->
-        <div class="fixed inset-0 z-10"></div>
-        <div
-          class="overflow-y-auto fixed inset-y-0 right-0 z-10 px-6 py-6 w-full bg-white sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">
-          <div class="flex justify-between items-center">
-            <a href="{% url 'home' %}" class="p-1.5 -m-1.5">
-              <span class="sr-only">Tech Job Alerts</span>
-              <img class="w-auto h-8" src="{% static 'vendors/images/logo.png' %}" alt="Tech Job Alerts Logo" />
-            </a>
-            <button data-action="dropdown#toggle click@window->dropdown#hide" type="button"
-              class="p-2.5 -m-2.5 text-gray-700 rounded-md">
-              <span class="sr-only">Close menu</span>
-              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
-                aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          <div class="flow-root mt-6">
-            <div class="-my-6 divide-y divide-gray-500/10">
-              <div class="py-6 space-y-2">
-                <a
-                  href="{% url 'posts' %}"
-                  class="block px-3 py-2 -mx-3 text-base font-semibold leading-7 text-gray-900 rounded-lg hover:bg-gray-50"
-                >
-                  Jobs
-                </a>
-                <a
-                href="{% url 'companies' %}"
-                class="block px-3 py-2 -mx-3 text-base font-semibold leading-7 text-gray-900 rounded-lg hover:bg-gray-50"
-                >
-                  Companies
-                </a>
-                <a
-                href="{% url 'technologies' %}"
-                class="block px-3 py-2 -mx-3 text-base font-semibold leading-7 text-gray-900 rounded-lg hover:bg-gray-50"
-                >
-                  Technologies
-                </a>
-                <a
-                href="{% url 'titles' %}"
-                class="block px-3 py-2 -mx-3 text-base font-semibold leading-7 text-gray-900 rounded-lg hover:bg-gray-50"
-                >
-                  Titles
-                </a>
-                {% if user.is_authenticated %}
-                <a href="{% url 'authed_weekly_digest' %}"
-                  class="block px-3 py-2 -mx-3 text-base font-semibold leading-7 text-gray-900 rounded-lg hover:bg-gray-50">Latest Digest</a>
-                <a href="{% url 'settings' %}"
-                  class="block px-3 py-2 -mx-3 text-base font-semibold leading-7 text-gray-900 rounded-lg hover:bg-gray-50">Settings</a>
-                {% if user.is_staff %}
-                <a href="{% url 'admin-panel' %}"
-                  class="block px-3 py-2 -mx-3 text-base font-semibold leading-7 text-gray-900 rounded-lg hover:bg-gray-50">Admin Panel</a>
-                {% endif %}
-                {% endif %}
-
-              </div>
-              <div class="py-6">
-                <a href="{% url 'account_login' %}" class="block px-3 py-2.5 -mx-3 text-base font-semibold leading-7 text-gray-900 rounded-lg hover:bg-gray-50">Log in</a>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
-    </header>
-
-    <div class="px-2 sm:px-0">
-      {% block content %}
-      {% endblock content %}
     </div>
+  </header>
 
-    <footer class="bg-white">
-      <div class="px-6 py-12 mx-auto max-w-7xl md:flex md:items-center md:justify-between lg:px-8">
-        <div class="mt-8 md:mt-0">
-          <p class="text-xs leading-5 text-center text-gray-500">
-            &copy; 2025 <a href="https://lvtd.dev" target="_blank">LVTD, LLC</a>. All rights reserved.
-          </p>
-        </div>
-        <div class="text-xs leading-5 text-center text-gray-500">
-          <!-- djlint:off -->
-          <a href="/sitemap.xml" class="text-xs leading-5 text-center text-gray-500 underline">Sitemap</a>
-          <!-- djlint:on -->
-          |
-          <a href="https://statushen.com/tjalerts/" class="text-xs leading-5 text-center text-gray-500 underline">Status</a>
-          |
-          <a href="{% url 'privacy' %}" class="text-xs leading-5 text-center text-gray-500 underline">Privacy Policy</a>
-          |
-          <a href="{% url 'tos' %}" class="text-xs leading-5 text-center text-gray-500 underline">Terms of Service</a>
-          <- Google made me add those for the Social Login.
-        </div>
-      </div>
-    </footer>
+  <main id="content" class="flex-1">
+    {% block content %}
+    {% endblock content %}
+  </main>
 
-  </div>
+  <footer class="border-t border-zinc-200 bg-white">
+    <div class="app-container flex flex-col gap-4 py-8 text-sm text-zinc-600 md:flex-row md:items-center md:justify-between">
+      <p>&copy; 2026 <a href="https://lvtd.dev" target="_blank" class="font-medium text-zinc-900 hover:text-emerald-800">LVTD, LLC</a>. All rights reserved.</p>
+      <nav class="flex flex-wrap gap-x-4 gap-y-2" aria-label="Footer">
+        <a href="{% url 'sitemap' %}" class="hover:text-zinc-950">Sitemap</a>
+        <a href="https://statushen.com/tjalerts/" class="hover:text-zinc-950">Status</a>
+        <a href="{% url 'privacy' %}" class="hover:text-zinc-950">Privacy</a>
+        <a href="{% url 'tos' %}" class="hover:text-zinc-950">Terms</a>
+        <a href="{% url 'support' %}" class="hover:text-zinc-950">Support</a>
+      </nav>
+    </div>
+  </footer>
 
   {% block schema %}
   <script type="application/ld+json">
@@ -238,7 +157,7 @@
       "@context": "https://schema.org",
       "@type": "WebSite",
       "name": "Tech Job Alerts",
-      "description": "Get notified when the new Tech Jobs are published.",
+      "description": "Search technology jobs from Hacker News and create alerts for the stacks you care about.",
       "thumbnailUrl": "{{ SITE_URL }}{% static 'vendors/images/logo.png' %}",
       "url": "{{ SITE_URL }}/",
       "author": {

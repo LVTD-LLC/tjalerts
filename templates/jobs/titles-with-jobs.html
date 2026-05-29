@@ -5,44 +5,51 @@
 {% load url_utils %}
 
 {% block meta %}
-<title>Tech Job Titles that are in demand right now.</title>
-<meta name="description" content="List of Tech Job Titles that are in demand right now." />
+<title>Tech job titles that are in demand right now.</title>
+<meta name="description" content="List of tech job titles that are in demand right now." />
 <meta name="keywords" content="job titles, hiring, jobs" />
 <meta name="robots" content="index, follow" />
 <link rel="canonical" href="{{ SITE_URL }}{% url 'titles' %}" />
 
 <meta property="og:type" content="website" />
-<meta property="og:title" content="Tech Job Titles that are in demand right now." />
+<meta property="og:title" content="Tech job titles that are in demand right now." />
 <meta property="og:url" content="{{ SITE_URL }}{% url 'titles' %}" />
-<meta property="og:description" content="List of Tech Job Titles that are in demand right now." />
+<meta property="og:description" content="List of tech job titles that are in demand right now." />
 <meta property="og:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
 <meta property="og:locale" content="en_US" />
 
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:creator" content="@rasulkireev" />
 <meta name="twitter:site" content="@rasulkireev" />
-<meta name="twitter:title" content="Tech Job Titles that are in demand right now." />
-<meta name="twitter:description" content="List of Tech Job Titles that are in demand right now." />
+<meta name="twitter:title" content="Tech job titles that are in demand right now." />
+<meta name="twitter:description" content="List of tech job titles that are in demand right now." />
 <meta name="twitter:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
 {% endblock meta %}
 
 {% block content %}
-<div class="px-4 mx-auto space-y-10 max-w-7xl sm:px-6 lg:px-8">
-  <div class="mx-auto max-w-2xl text-center">
-    <h1 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Tech job titles that are in demand right now.</h1>
+<div class="app-page-header">
+  <div class="app-container py-8">
+    <h1 class="app-title">Job titles in demand</h1>
+    <p class="app-subtitle">Browse roles that appear in recent hiring posts and jump straight into matching jobs.</p>
   </div>
-  <div class="mx-auto max-w-xl">
-    <ul role="list" class="ml-2 list-disc list-inside">
-      {% for title in object_list %}
-      <li class="mb-2">
-        <a href="{% url 'title-jobs' title.slug %}" class="mr-1 text-lg font-semibold leading-6 text-gray-900 link">
-            {{ title.name }}
-        </a>
-        <span>({{ title.recent_posts_count }})</span>
-      </li>
+</div>
+
+<div class="app-container py-8">
+  <ul role="list" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    {% for title in object_list %}
+    <li>
+      <a href="{% url 'title-jobs' title.slug %}" class="app-card flex items-center justify-between gap-4 p-4 hover:border-zinc-300 hover:bg-zinc-50">
+        <span class="min-w-0 truncate text-sm font-semibold text-zinc-950">{{ title.name }}</span>
+        <span class="tag-neutral tabular my-0 mr-0">{{ title.recent_posts_count }}</span>
+      </a>
+    </li>
+    {% empty %}
+    <li class="empty-state sm:col-span-2 lg:col-span-3 xl:col-span-4">
+      <h2 class="text-lg font-semibold text-zinc-950">No titles found</h2>
+      <p class="mt-2 text-sm leading-6 text-zinc-600">Job titles will appear after recent jobs are imported.</p>
+    </li>
     {% endfor %}
-    </ul>
-  </div>
+  </ul>
 </div>
 {% endblock content %}
 
@@ -51,7 +58,7 @@
 {
   "@context": "https://schema.org",
   "@type": "ItemList",
-  "name": "Tech Job Titles that are in demand right now.",
+  "name": "Tech job titles that are in demand right now.",
   "description": "List of tech jobs titles that are in demand",
   "itemListElement": [{% for title in object_list %}
     {

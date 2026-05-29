@@ -7,37 +7,24 @@
 {% endblock meta %}
 
 {% block content %}
-<div class="mx-auto max-w-7xl">
-  <div class="bg-white lg:min-w-0 md:pt-10 lg:flex-1">
-    <div class="pt-4 pb-4 pl-4 pr-6 border-t border-b border-gray-200 sm:pl-6 lg:pl-8 xl:border-t-0 xl:pl-6 xl:pt-6">
-      <div class="flex items-center">
-        <h1 class="flex-1 pt-2 text-xl font-medium">Confirm Email Address</h1>
-      </div>
-    </div>
-    <div class="pt-2 pl-6 mt-6 sm:mt-0">
-      {% if confirmation %}
-        <p class="py-4">
-          Please confirm that
-          <span class="font-semibold">
-            {{ confirmation.email_address.email }}
-          </span>
-          is your main e-mail address.
-        </p>
+<div class="app-narrow py-10 sm:py-14">
+  <div class="auth-panel">
+    <h1 class="text-2xl font-semibold tracking-tight text-zinc-950">Confirm email address</h1>
+    {% if confirmation %}
+      <p class="mt-2 text-sm leading-6 text-zinc-600">
+        Confirm that <span class="font-semibold text-zinc-950">{{ confirmation.email_address.email }}</span> is your primary email address.
+      </p>
 
-        <form method="post" action="{% url 'account_confirm_email' confirmation.key %}">
-        {% csrf_token %}
-            <button
-              class="inline-flex items-center px-4 py-2 text-base font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
-              type="submit"
-            >
-              Confirm
-            </button>
-        </form>
-      {% else %}
-        <p>This e-mail confirmation link expired or is invalid. Please <a href="{% url 'account_email' }">issue a new e-mail confirmation request</a>.</p>
-      {% endif %}
-
-    </div>
+      <form method="post" action="{% url 'account_confirm_email' confirmation.key %}" class="mt-6">
+      {% csrf_token %}
+        <button class="btn-primary w-full" type="submit">Confirm email</button>
+      </form>
+    {% else %}
+      <p class="mt-2 text-sm leading-6 text-zinc-600">
+        This email confirmation link expired or is invalid. Request a new confirmation email from your account settings.
+      </p>
+      <a href="{% url 'settings' %}" class="btn-primary mt-6 w-full">Open settings</a>
+    {% endif %}
   </div>
 </div>
 {% endblock content %}

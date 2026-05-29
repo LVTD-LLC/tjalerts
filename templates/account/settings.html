@@ -8,84 +8,77 @@
 {% endblock meta %}
 
 {% block content %}
-
-<main class="bg-white lg:min-w-0 md:pt-10 lg:flex-1">
-  <div class="relative max-w-4xl mx-auto">
-    {% include "components/email-not-verified.html" with email_verified=email_verified %}
-    <div class="pt-10 pb-16">
-      <div class="px-4 sm:px-6 lg:px-0">
-        <h1 class="text-3xl font-bold tracking-tight text-gray-900">Settings</h1>
-      </div>
-      <div class="px-4 sm:px-6 lg:px-0">
-        <div class="py-6">
-
-          <div class="mt-4">
-            <div class="md:grid md:grid-cols-3 md:gap-6">
-              <div class="md:col-span-1">
-                <div class="px-4 sm:px-0">
-                  <h3 class="text-lg font-medium leading-6 text-gray-900">Personal Information</h3>
-                  <p class="mt-1 text-sm text-gray-600">
-                    This information is used only by us to improve the communication. People outside don't have access to this information.
-                  </p>
-                </div>
-              </div>
-              <div class="mt-5 md:col-span-2 md:mt-0">
-                {% include "account/components/personal-information-form.html" with form=form %}
-              </div>
-            </div>
-          </div>
-
-          <div class="block" aria-hidden="true">
-            <div class="py-5">
-              <div class="border-t border-gray-200"></div>
-            </div>
-          </div>
-
-          <div class="mt-4">
-            <div class="px-4 sm:px-0">
-              <h3 class="text-xl font-medium leading-6 text-gray-900">
-                Alerts
-              </h3>
-              <div class="flow-root mt-4">
-                <div class="-mx-4 -my-2 overflow-x-auto">
-                  <div class="inline-block min-w-full px-2 py-2 align-middle">
-                    <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-                      <table class="min-w-full divide-y divide-gray-300">
-                        <tbody class="bg-white divide-y divide-gray-200">
-                          {% for alert in alerts %}
-                          <tr>
-                            <td class="py-4 pl-4 pr-3 text-sm font-medium text-gray-900 whitespace-nowrap sm:pl-6">{{ alert | show_default_alert_name:forloop.counter }}</td>
-                            <td class="px-3 py-4 text-sm text-right text-gray-500 whitespace-nowrap">
-                              <form method="post" action="{% url 'toggle_subscription_from_authed_alert' alert.id %}">
-                                {% csrf_token %}
-                                <button
-                                  class="
-                                    rounded-md px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2
-                                    {% if alert.unsubscribed %}
-                                    bg-green-600 focus-visible:outline-green-600 hover:bg-green-500
-                                    {% else %}
-                                    bg-red-600 focus-visible:outline-red-600 hover:bg-red-500
-                                    {% endif %}
-                                  "
-                                  type="submit">
-                                  {% if alert.unsubscribed %}Subscribe{% else %}Unsubscribe{% endif %}
-                                </button>
-                              </form>
-                            </td>
-                          </tr>
-                          {% endfor %}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+<div class="app-page-header">
+  <div class="app-container py-8">
+    <h1 class="app-title">Settings</h1>
+    <p class="app-subtitle">Manage your profile and job alerts.</p>
   </div>
-</main>
+</div>
 
-  {% endblock content %}
+<div class="app-container py-8">
+  <div class="mx-auto max-w-5xl space-y-8">
+    {% include "components/email-not-verified.html" with email_verified=email_verified %}
+
+    <section class="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
+      <div>
+        <h2 class="text-base font-semibold text-zinc-950">Personal information</h2>
+        <p class="mt-1 text-sm leading-6 text-zinc-600">Used for account communication and alert ownership.</p>
+      </div>
+      {% include "account/components/personal-information-form.html" with form=form %}
+    </section>
+
+    <section class="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
+      <div>
+        <h2 class="text-base font-semibold text-zinc-950">Alerts</h2>
+        <p class="mt-1 text-sm leading-6 text-zinc-600">Pause alerts you do not need, or turn them back on later.</p>
+      </div>
+
+      <div class="app-card overflow-hidden">
+        {% if alerts %}
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-zinc-200">
+            <thead class="bg-zinc-50">
+              <tr>
+                <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-zinc-500">Alert</th>
+                <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-zinc-500">Status</th>
+                <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-zinc-500">Action</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-200 bg-white">
+              {% for alert in alerts %}
+              <tr>
+                <td class="px-4 py-4 text-sm font-medium text-zinc-950">{{ alert | show_default_alert_name:forloop.counter }}</td>
+                <td class="px-4 py-4 text-right text-sm">
+                  {% if alert.unsubscribed %}
+                  <span class="tag-neutral my-0 mr-0">Paused</span>
+                  {% else %}
+                  <span class="tag my-0 mr-0">Active</span>
+                  {% endif %}
+                </td>
+                <td class="px-4 py-4 text-right text-sm">
+                  <form method="post" action="{% url 'toggle_subscription_from_authed_alert' alert.id %}">
+                    {% csrf_token %}
+                    <button
+                      class="{% if alert.unsubscribed %}btn-primary{% else %}btn-danger{% endif %}"
+                      type="submit">
+                      {% if alert.unsubscribed %}Subscribe{% else %}Unsubscribe{% endif %}
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-state m-4">
+          <h3 class="text-base font-semibold text-zinc-950">No alerts yet</h3>
+          <p class="mt-2 text-sm leading-6 text-zinc-600">Create your first alert from the home page or a filtered search.</p>
+          <a href="{% url 'posts' %}" class="btn-primary mt-5">Browse jobs</a>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock content %}

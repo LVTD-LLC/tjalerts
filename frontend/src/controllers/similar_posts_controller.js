@@ -16,11 +16,29 @@ export default class extends Controller {
       this.renderSimilarPosts(data.similar_posts);
     } catch (error) {
       console.error('Error fetching similar posts:', error);
+      this.renderErrorState();
     }
   }
 
   renderSimilarPosts(similarPosts) {
-    this.containerTarget.innerHTML = similarPosts.map(post => this.renderPost(post)).join('');
+    if (similarPosts.length === 0) {
+      this.containerTarget.replaceChildren(this.renderStatusMessage('No similar jobs found yet.'));
+      return;
+    }
+
+    this.containerTarget.replaceChildren(...similarPosts.map(post => this.renderPost(post)));
+  }
+
+  renderErrorState() {
+    this.containerTarget.replaceChildren(this.renderStatusMessage('Similar jobs are unavailable right now.'));
+  }
+
+  renderStatusMessage(message) {
+    const item = document.createElement('li');
+    item.className = 'app-muted-panel text-sm leading-6 text-zinc-600';
+    item.textContent = message;
+
+    return item;
   }
 
   renderPost(post) {
@@ -29,23 +47,24 @@ export default class extends Controller {
       return text.substr(0, maxLength) + '...';
     };
 
-    return `
-      <li>
-        <a class="flex flex-col px-6 py-2 bg-white rounded-md hover:bg-gray-50" href="/jobs/${post.id}">
-          <div class="flex justify-between items-center py-2 w-full">
-            <div class="flex-1">
-              <div class="flex justify-between items-center">
-                <p class="text-sm font-medium text-gray-900 truncate">
-                ${post.company.name}
-                </p>
-              </div>
-              <p class="text-xs text-gray-600">
-                ${truncateDescription(post.description, 150)}
-              </p>
-            </div>
-          </div>
-        </a>
-      </li>
-    `;
+    const item = document.createElement('li');
+    item.className = 'job-card';
+
+    const link = document.createElement('a');
+    link.className = 'block p-4';
+    link.href = `/jobs/${encodeURIComponent(post.id)}`;
+
+    const company = document.createElement('p');
+    company.className = 'truncate text-sm font-semibold text-zinc-950';
+    company.textContent = post.company?.name || 'Company';
+
+    const description = document.createElement('p');
+    description.className = 'mt-2 text-sm leading-6 text-zinc-600';
+    description.textContent = truncateDescription(post.description || '', 150);
+
+    link.append(company, description);
+    item.appendChild(link);
+
+    return item;
   }
 }

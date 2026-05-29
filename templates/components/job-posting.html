@@ -1,64 +1,69 @@
-<li class="rounded-md border border-gray-400">
-  <a class="flex flex-col px-6 py-4 space-y-2 bg-white rounded-t-md border-b-2 border-gray-200 hover:bg-gray-50" href="{% url 'post' object.id %}">
-    <div class="flex justify-between items-center py-2 w-full">
-      <div class="flex-1">
-        <div class="flex justify-between items-center">
+<li class="job-card">
+  <a class="block p-4 sm:p-5" href="{% url 'post' object.id %}">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div class="min-w-0">
+        <p class="text-xs font-medium text-zinc-500">
           {% if show_name %}
-          <h3 class="text-lg font-medium text-gray-900 truncate">
-            {% if object.company.name %}
-              {{ object.company.name }}
-            {% else %}
-              Stealth
-            {% endif %}
-          </h3>
-          {% endif %}
-          <p class="
-          {% if show_name %}
-          -mt-10 -mr-3 text-xs text-gray-500
+            {% if object.company.name %}{{ object.company.name }}{% else %}Stealth company{% endif %}
           {% else %}
-          -mt-3 mb-2 text-sm
+            Open role
           {% endif %}
-          ">Posted {{ object.submitted_datetime|timesince }} ago</p>
-        </div>
-        <p class="text-sm text-gray-600">
-          {{ object.description | truncatechars:250 }}
         </p>
+        <h3 class="mt-1 truncate text-base font-semibold text-zinc-950">
+          {% if object.titles.all.count >= 1 and object.titles.all.0.name %}
+            {{ object.titles.all.0.name }}
+          {% elif show_name and object.company.name %}
+            {{ object.company.name }} hiring
+          {% else %}
+            Developer role
+          {% endif %}
+        </h3>
       </div>
+      <p class="tabular whitespace-nowrap text-xs text-zinc-500">Posted {{ object.submitted_datetime|timesince }} ago</p>
     </div>
+
+    <p class="mt-3 line-clamp-3 text-sm leading-6 text-zinc-700">
+      {{ object.description|truncatechars:260 }}
+    </p>
   </a>
 
-    <div class="flex flex-col px-6 py-4 space-y-1 bg-white rounded-b-md">
-      {% if object.titles.all.count == 1 and object.titles.all.0.name == "" %}
-      {% elif object.titles.all.count >= 1 %}
-      <div class="flex py-2 w-full">
-          <div>
-            <h4 class="text-base">Roles</h4>
-            {% for title in object.titles.all %}
-                {% include "components/title-link.html" with title=title %}
-            {% endfor %}
-          </div>
+  <div class="grid gap-4 border-t border-zinc-200 px-4 py-4 sm:grid-cols-2 sm:px-5">
+    {% if object.titles.all.count == 1 and object.titles.all.0.name == "" %}
+    {% elif object.titles.all.count >= 1 %}
+    <div>
+      <h4 class="job-section-label">Roles</h4>
+      <div class="mt-1">
+        {% for title in object.titles.all %}
+          {% include "components/title-link.html" with title=title %}
+        {% endfor %}
       </div>
-      {% endif %}
-      {% if object.technologies.all.count == 1 and object.technologies.all.0.name == "" %}
-      {% elif object.technologies.all.count > 0 %}
-        <div class="flex py-2 w-full">
-            <div>
-              <h4 class="text-base">Tech Stack</h4>
-              {% for technology in object.technologies.all %}
-                  {% include "components/technology-link.html" with technology=technology %}
-              {% endfor %}
-            </div>
-        </div>
-      {% endif %}
-      {% if object.locations %}
-      <div class="flex py-2 w-full">
-        <div>
-          <h2 class="text-base">Locations</h2>
-          <div class="max-w-none prose">
-            <p>{{ object.locations }}</p>
-          </div>
-        </div>
-      </div>
-      {% endif %}
     </div>
+    {% endif %}
+
+    {% if object.technologies.all.count == 1 and object.technologies.all.0.name == "" %}
+    {% elif object.technologies.all.count > 0 %}
+    <div>
+      <h4 class="job-section-label">Tech stack</h4>
+      <div class="mt-1">
+        {% for technology in object.technologies.all %}
+          {% include "components/technology-link.html" with technology=technology %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if object.locations %}
+    <div>
+      <h4 class="job-section-label">Location</h4>
+      <p class="mt-2 text-sm leading-6 text-zinc-700">{{ object.locations }}</p>
+    </div>
+    {% endif %}
+
+    {% if object.compensation_summary %}
+    <div>
+      <h4 class="job-section-label">Compensation</h4>
+      <p class="mt-2 text-sm leading-6 text-zinc-700">{{ object.compensation_summary }}</p>
+    </div>
+    {% endif %}
+  </div>
 </li>

@@ -30,7 +30,7 @@ urlpatterns = (
         path("", include("pages.urls")),
         path("jobs/", include("jobs.urls")),
         path("api/", include("api.urls")),
-        path("sitemap.xml", sitemap, sitemaps),
+        path("sitemap.xml", sitemap, sitemaps, name="sitemap"),
         path("uses", TemplateView.as_view(template_name="pages/uses.html"), name="uses"),
         path(
             "robots.txt",

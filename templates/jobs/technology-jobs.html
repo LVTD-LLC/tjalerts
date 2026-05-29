@@ -28,34 +28,50 @@
 {% endblock meta %}
 
 {% block content %}
-  <div class="mx-auto mb-4 max-w-3xl text-center">
-    <h1 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">{{ tech_name }} Jobs</h1>
-  </div>
-
-  <div class="mx-auto max-w-3xl">
-    <ul role="list" class="flex flex-col space-y-2">
-      {% if object_list %}
-        <ul role="list" class="flex flex-col space-y-2">
-          {% for job in object_list %}
-            {% include "components/job-posting.html" with object=job show_name=True %}
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p>No jobs found for this technology in the last two months.</p>
-      {% endif %}
-    </ul>
-  </div>
-
-  <div class="p-6 mx-auto mt-10 max-w-2xl rounded-md border border-gray-500">
-    <div class="mx-auto text-center">
-        <p class="mx-auto mb-2 text-xl font-semibold text-gray-900">
-          Create your own personalized Job Alert
-        </p>
-        <div class="flex justify-center items-center">
-          {% include "components/simple-alert-form.html" with create_alert_form=create_alert_form %}
-        </div>
+<div class="app-page-header">
+  <div class="app-container py-8">
+    <a href="{% url 'technologies' %}" class="btn-quiet -ml-3 mb-4">
+      <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+      </svg>
+      Technologies
+    </a>
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <h1 class="app-title">{{ tech_name }} jobs</h1>
+        <p class="app-subtitle">Recent jobs where this technology appears in the post.</p>
+      </div>
+      <a href="{% url 'posts' %}?technologies={{ tech_id }}" class="btn-primary">Open in search</a>
     </div>
   </div>
+</div>
+
+<div class="app-container py-8">
+  <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+    <div>
+      {% if object_list %}
+      <ul role="list" class="space-y-3">
+        {% for job in object_list %}
+          {% include "components/job-posting.html" with object=job show_name=True %}
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="empty-state">
+        <h2 class="text-lg font-semibold text-zinc-950">No recent jobs for this technology</h2>
+        <p class="mt-2 text-sm leading-6 text-zinc-600">Try searching all jobs or create an alert for future posts.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <aside class="app-panel lg:sticky lg:top-24 lg:self-start">
+      <h2 class="text-base font-semibold text-zinc-950">Get {{ tech_name }} jobs by email</h2>
+      <p class="mt-1 text-sm leading-6 text-zinc-600">Create a simple technology alert.</p>
+      <div class="mt-4">
+        {% include "components/simple-alert-form.html" with create_alert_form=create_alert_form %}
+      </div>
+    </aside>
+  </div>
+</div>
 {% endblock content %}
 
 {% block schema %}

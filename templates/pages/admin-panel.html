@@ -1,212 +1,112 @@
 {% extends "base.html" %}
 
 {% block content %}
-
-<div class="py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
-  <!-- Page Header -->
-  <div class="mb-8">
-    <h1 class="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-    <p class="mt-2 text-sm text-gray-600">Manage tasks and monitor system statistics</p>
-  </div>
-
-  <!-- Statistics Cards -->
-  <div class="grid grid-cols-1 gap-6 mb-8 md:grid-cols-3">
-    <!-- Total Users -->
-    <div class="overflow-hidden bg-white rounded-lg shadow">
-      <div class="p-6">
-        <div class="flex justify-between items-center">
-          <div>
-            <p class="text-sm font-medium text-gray-600">Total Users</p>
-            <p class="mt-2 text-3xl font-semibold text-gray-900">{{ total_users }}</p>
-          </div>
-          <div class="p-3 bg-blue-100 rounded-full">
-            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-            </svg>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Active Alerts -->
-    <div class="overflow-hidden bg-white rounded-lg shadow">
-      <div class="p-6">
-        <div class="flex justify-between items-center">
-          <div>
-            <p class="text-sm font-medium text-gray-600">Active Alerts</p>
-            <p class="mt-2 text-3xl font-semibold text-gray-900">{{ total_alerts }}</p>
-          </div>
-          <div class="p-3 bg-green-100 rounded-full">
-            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-            </svg>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Valid Emails -->
-    <div class="overflow-hidden bg-white rounded-lg shadow">
-      <div class="p-6">
-        <div class="flex justify-between items-center">
-          <div>
-            <p class="text-sm font-medium text-gray-600">Valid Emails</p>
-            <p class="mt-2 text-3xl font-semibold text-gray-900">{{ latest_emails|length }}</p>
-          </div>
-          <div class="p-3 bg-purple-100 rounded-full">
-            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-            </svg>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Two Column Layout -->
-  <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-    <!-- Left Column - Admin Tasks -->
-    <div class="space-y-6 lg:col-span-2">
-      <div class="overflow-hidden bg-white rounded-lg shadow">
-        <div class="px-6 py-5 border-b border-gray-200">
-          <h3 class="text-lg font-semibold text-gray-900">Administrative Tasks</h3>
-          <p class="mt-1 text-sm text-gray-500">Trigger system maintenance and data processing tasks</p>
-        </div>
-        <div class="p-6 space-y-6">
-
-          <!-- Parse Comments Task -->
-          <div class="p-6 rounded-lg border border-gray-200">
-            <div class="flex justify-between items-start">
-              <div class="flex-1">
-                <h4 class="text-base font-semibold text-gray-900">Parse HN Comments</h4>
-                <p class="mt-1 text-sm text-gray-600">Enter HN post ID for "Who is Hiring" to parse and extract job postings.</p>
-                <form method="post" action="" class="mt-4">
-                  {% csrf_token %}
-                  <div class="flex gap-3 items-end">
-                    <div class="flex-1">
-                      <label for="{{ form.who_is_hiring_post_id.id_for_label }}" class="block text-sm font-medium text-gray-700">Post ID</label>
-                      <input
-                        type="text"
-                        name="{{ form.who_is_hiring_post_id.name }}"
-                        id="{{ form.who_is_hiring_post_id.id_for_label }}"
-                        class="block px-3 py-2 mt-1 w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                        placeholder="e.g., 39217823"
-                      />
-                    </div>
-                    <button type="submit"
-                      class="inline-flex justify-center items-center px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-md border border-transparent shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 hover:bg-indigo-700">
-                      <svg class="mr-2 -ml-1 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                      </svg>
-                      Trigger
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-
-          <!-- Fix Datetimes Task -->
-          <div class="p-6 rounded-lg border border-gray-200">
-            <div class="flex justify-between items-center">
-              <div class="flex-1">
-                <h4 class="text-base font-semibold text-gray-900">Fix Submitted Dates</h4>
-                <p class="mt-1 text-sm text-gray-600">Identify and fix incorrectly formatted submission dates.</p>
-              </div>
-              <a href="{% url 'find-bad-submitted-dates' %}"
-                class="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md border border-transparent shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:bg-blue-700">
-                <svg class="mr-2 -ml-1 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                </svg>
-                Fix Dates
-              </a>
-            </div>
-          </div>
-
-          <!-- Populate Min/Max Salary Task -->
-          <div class="p-6 rounded-lg border border-gray-200">
-            <div class="flex justify-between items-center">
-              <div class="flex-1">
-                <h4 class="text-base font-semibold text-gray-900">Populate Salary Fields</h4>
-                <p class="mt-1 text-sm text-gray-600">Extract and populate minimum and maximum salary data from job posts.</p>
-              </div>
-              <a href="{% url 'update_min_and_max_salary' %}"
-                class="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md border border-transparent shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:bg-blue-700">
-                <svg class="mr-2 -ml-1 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                Populate
-              </a>
-            </div>
-          </div>
-
-          <!-- Update Vector Fields Task -->
-          <div class="p-6 rounded-lg border border-gray-200">
-            <div class="flex justify-between items-center">
-              <div class="flex-1">
-                <h4 class="text-base font-semibold text-gray-900">Update Vector Fields</h4>
-                <p class="mt-1 text-sm text-gray-600">Generate and populate vector embeddings for semantic search functionality.</p>
-              </div>
-              <a href="{% url 'create_backfill_vector_data_jobs' rebuild=0 %}"
-                class="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md border border-transparent shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:bg-blue-700">
-                <svg class="mr-2 -ml-1 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                </svg>
-                Update
-              </a>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-
-    <!-- Right Column - Latest Emails -->
-    <div class="lg:col-span-1">
-      <div class="overflow-hidden bg-white rounded-lg shadow">
-        <div class="px-6 py-5 border-b border-gray-200">
-          <h3 class="text-lg font-semibold text-gray-900">Latest Valid Emails</h3>
-          <p class="mt-1 text-sm text-gray-500">Recently added non-generic emails</p>
-        </div>
-        <div class="p-6">
-          {% if latest_emails %}
-          <div class="space-y-3 max-h-[600px] overflow-y-auto">
-            {% for email in latest_emails %}
-            <div class="p-3 bg-gray-50 rounded-r-md border-l-4 border-indigo-500">
-              <div class="flex justify-between items-start">
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-gray-900 truncate">{{ email.email }}</p>
-                  <p class="mt-1 text-xs text-gray-600 truncate">{{ email.name }}</p>
-                  <p class="mt-1 text-xs text-gray-500">
-                    <span class="font-medium">Company:</span> {{ email.company.name }}
-                  </p>
-                  <p class="mt-1 text-xs text-gray-400">
-                    <span class="font-medium">Posted:</span> {{ email.post.submitted_datetime|date:"M d, Y" }}
-                  </p>
-                  <a href="{% url 'post' pk=email.post.id %}"
-                     class="inline-flex gap-1 items-center mt-2 text-xs font-medium text-indigo-600 hover:text-indigo-800">
-                    View Post
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                    </svg>
-                  </a>
-                </div>
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-          {% else %}
-          <div class="py-12 text-center">
-            <svg class="mx-auto w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-            </svg>
-            <p class="mt-2 text-sm text-gray-500">No valid emails found</p>
-          </div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
+<div class="app-page-header">
+  <div class="app-container py-8">
+    <h1 class="app-title">Admin</h1>
+    <p class="app-subtitle">Monitor core counts and trigger maintenance tasks.</p>
   </div>
 </div>
 
+<div class="app-container py-8">
+  <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+    <div class="app-panel">
+      <p class="text-sm font-medium text-zinc-500">Total users</p>
+      <p class="tabular mt-2 text-3xl font-semibold text-zinc-950">{{ total_users }}</p>
+    </div>
+    <div class="app-panel">
+      <p class="text-sm font-medium text-zinc-500">Active alerts</p>
+      <p class="tabular mt-2 text-3xl font-semibold text-zinc-950">{{ total_alerts }}</p>
+    </div>
+    <div class="app-panel">
+      <p class="text-sm font-medium text-zinc-500">Valid emails</p>
+      <p class="tabular mt-2 text-3xl font-semibold text-zinc-950">{{ latest_emails|length }}</p>
+    </div>
+  </div>
+
+  <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+    <section class="app-panel lg:col-span-2">
+      <div class="border-b border-zinc-200 pb-4">
+        <h2 class="text-lg font-semibold text-zinc-950">Administrative tasks</h2>
+        <p class="mt-1 text-sm leading-6 text-zinc-600">Trigger system maintenance and data processing jobs.</p>
+      </div>
+
+      <div class="mt-5 space-y-4">
+        <div class="rounded-lg border border-zinc-200 p-4">
+          <h3 class="text-base font-semibold text-zinc-950">Parse HN comments</h3>
+          <p class="mt-1 text-sm leading-6 text-zinc-600">Enter a Who is Hiring post ID to parse job postings.</p>
+          <form method="post" action="" class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+            {% csrf_token %}
+            <div class="flex-1">
+              <label for="{{ form.who_is_hiring_post_id.id_for_label }}" class="app-label">Post ID</label>
+              <input
+                type="text"
+                name="{{ form.who_is_hiring_post_id.name }}"
+                id="{{ form.who_is_hiring_post_id.id_for_label }}"
+                class="app-input mt-1"
+                placeholder="e.g. 39217823"
+              />
+            </div>
+            <button type="submit" class="btn-primary">Trigger</button>
+          </form>
+        </div>
+
+        <div class="rounded-lg border border-zinc-200 p-4">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 class="text-base font-semibold text-zinc-950">Fix submitted dates</h3>
+              <p class="mt-1 text-sm leading-6 text-zinc-600">Identify and fix incorrectly formatted submission dates.</p>
+            </div>
+            <a href="{% url 'find-bad-submitted-dates' %}" class="btn-secondary">Fix dates</a>
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-zinc-200 p-4">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 class="text-base font-semibold text-zinc-950">Populate salary fields</h3>
+              <p class="mt-1 text-sm leading-6 text-zinc-600">Extract minimum and maximum salary data from job posts.</p>
+            </div>
+            <a href="{% url 'update_min_and_max_salary' %}" class="btn-secondary">Populate</a>
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-zinc-200 p-4">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 class="text-base font-semibold text-zinc-950">Update vector fields</h3>
+              <p class="mt-1 text-sm leading-6 text-zinc-600">Generate vector embeddings for semantic search.</p>
+            </div>
+            <a href="{% url 'create_backfill_vector_data_jobs' rebuild=0 %}" class="btn-secondary">Update</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="app-panel">
+      <div class="border-b border-zinc-200 pb-4">
+        <h2 class="text-lg font-semibold text-zinc-950">Latest valid emails</h2>
+        <p class="mt-1 text-sm leading-6 text-zinc-600">Recently added non-generic emails.</p>
+      </div>
+
+      {% if latest_emails %}
+      <div class="mt-5 max-h-[600px] space-y-3 overflow-y-auto">
+        {% for email in latest_emails %}
+        <div class="rounded-lg border border-zinc-200 p-3">
+          <p class="truncate text-sm font-semibold text-zinc-950">{{ email.email }}</p>
+          <p class="mt-1 truncate text-xs text-zinc-600">{{ email.name }}</p>
+          <p class="mt-2 text-xs text-zinc-500">{{ email.company.name }}</p>
+          <p class="tabular mt-1 text-xs text-zinc-500">{{ email.post.submitted_datetime|date:"M d, Y" }}</p>
+          <a href="{% url 'post' pk=email.post.id %}" class="mt-3 inline-flex text-xs font-semibold text-emerald-800 hover:text-emerald-900">View post</a>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state mt-5">
+        <p class="text-sm text-zinc-600">No valid emails found.</p>
+      </div>
+      {% endif %}
+    </aside>
+  </div>
+</div>
 {% endblock content %}

@@ -2,77 +2,42 @@
 {% load markdown_extras %}
 
 {% block content %}
+<div class="app-page-header">
+  <div class="app-container py-8">
+    <h1 class="app-title">Pricing</h1>
+    <p class="app-subtitle">A simple plan for teams that need extra search and support.</p>
+  </div>
+</div>
 
-<div class="py-24 bg-white sm:py-32">
-  <div class="px-6 mx-auto max-w-7xl lg:px-8">
-    <div class="max-w-2xl mx-auto sm:text-center">
-      <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Simple no-tricks pricing</h2>
-      <p class="mt-6 text-lg leading-8 text-gray-600">Search and connect with hundreds of professionals looking for their next job.</p>
-    </div>
-    <div class="max-w-2xl mx-auto mt-16 rounded-3xl ring-1 ring-gray-200 sm:mt-20 lg:mx-0 lg:flex lg:max-w-none">
-      <div class="p-8 sm:p-10 lg:flex-auto">
-        <h3 class="text-2xl font-bold tracking-tight text-gray-900">Monthly membership</h3>
-        <p class="mt-6 text-base leading-7 text-gray-600">Pay while you are looking for a candidate. Once you are done, cancel, you will be able to renew or cancel any time.</p>
-        <div class="flex items-center mt-10 gap-x-4">
-          <h4 class="flex-none text-sm font-semibold leading-6 text-blue-600">What’s included</h4>
-          <div class="flex-auto h-px bg-gray-100"></div>
-        </div>
-        <ul role="list" class="grid grid-cols-1 gap-4 mt-8 text-sm leading-6 text-gray-600 sm:grid-cols-2 sm:gap-6">
-          <li class="flex gap-x-3">
-            <svg class="flex-none w-5 h-6 text-blue-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-            </svg>
-            Access to Personal Information
-          </li>
-
-          <li class="flex gap-x-3">
-            <svg class="flex-none w-5 h-6 text-blue-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-            </svg>
-            Email and video support from the founder
-          </li>
-
-          <li class="flex gap-x-3">
-            <svg class="flex-none w-5 h-6 text-blue-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-            </svg>
-            Convenient Search
-          </li>
-
-          <li class="flex gap-x-3">
-            <svg class="flex-none w-5 h-6 text-blue-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-            </svg>
-            New features tailored to you
-          </li>
+<div class="app-container py-8">
+  <div class="app-panel mx-auto max-w-4xl">
+    <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
+      <div>
+        <h2 class="text-xl font-semibold text-zinc-950">Monthly membership</h2>
+        <p class="mt-3 text-sm leading-6 text-zinc-600">Use Tech Job Alerts while you are hiring or searching, then cancel when you are done.</p>
+        <ul role="list" class="mt-6 grid gap-3 text-sm leading-6 text-zinc-700 sm:grid-cols-2">
+          <li class="flex gap-2"><span class="text-emerald-800">✓</span> Access to personal information</li>
+          <li class="flex gap-2"><span class="text-emerald-800">✓</span> Email support from the founder</li>
+          <li class="flex gap-2"><span class="text-emerald-800">✓</span> Convenient search</li>
+          <li class="flex gap-2"><span class="text-emerald-800">✓</span> New features tailored to you</li>
         </ul>
       </div>
-      <div class="p-2 -mt-2 lg:mt-0 lg:w-full lg:max-w-md lg:flex-shrink-0">
-        <div class="py-10 text-center rounded-2xl bg-gray-50 ring-1 ring-inset ring-gray-900/5 lg:flex lg:flex-col lg:justify-center lg:py-16">
-          <div class="max-w-xs px-8 mx-auto">
-            <p class="flex items-baseline justify-center mt-6 gap-x-2">
-              <span class="text-5xl font-bold tracking-tight text-gray-900">$299</span>
-              <span class="text-base font-semibold leading-6 tracking-wide text-gray-600">/ month</span>
-            </p>
-            {% if user.is_authenticated and user.paid %}
-              <p disabled href="{% url 'posts' %}" class="block w-full px-3 py-2 mt-10 text-sm font-semibold text-center text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
-                You are already a Active User
-              </p>
-            {% elif user.is_authenticated and subscription.status != "active" %}
-              <a href="{% url 'upgrade-user' %}" class="block w-full px-3 py-2 mt-10 text-sm font-semibold text-center text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
-                Get Started
-              </a>
-            {% else %}
-              <a href="{% url 'account_signup' %}" class="block w-full px-3 py-2 mt-10 text-sm font-semibold text-center text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
-                Get started
-              </a>
-            {% endif %}
-            <p class="mt-6 text-xs leading-5 text-gray-600">Invoices and receipts available for easy company reimbursement</p>
-          </div>
-        </div>
+
+      <div class="app-muted-panel text-center">
+        <p class="flex items-baseline justify-center gap-2">
+          <span class="tabular text-4xl font-semibold tracking-tight text-zinc-950">$299</span>
+          <span class="text-sm font-medium text-zinc-600">/ month</span>
+        </p>
+        {% if user.is_authenticated and user.paid %}
+          <p class="btn-secondary mt-6 w-full">You are already active</p>
+        {% elif user.is_authenticated and subscription.status != "active" %}
+          <a href="{% url 'support' %}" class="btn-primary mt-6 w-full">Contact support</a>
+        {% else %}
+          <a href="{% url 'account_signup' %}" class="btn-primary mt-6 w-full">Get started</a>
+        {% endif %}
+        <p class="mt-4 text-xs leading-5 text-zinc-500">Invoices and receipts are available.</p>
       </div>
     </div>
   </div>
 </div>
-
 {% endblock content %}

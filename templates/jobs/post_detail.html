@@ -24,131 +24,138 @@
 {% endblock meta %}
 
 {% block content %}
-<main class="overflow-hidden mx-auto mt-16 max-w-4xl">
-    <div class="px-4 py-2 rounded-md border border-gray-200">
-      <div class="flex justify-between items-end pb-2 border-b">
-        <div class="flex flex-col">
-          <div class="flex items-center space-x-3">
-            <h1 class="text-lg font-medium text-gray-900 truncate">
-              <a href="{% url 'post' object.id %}">
-                {% if object.company.name %}
-                  {{ object.company.name }}
-                {% else %}
-                  Stealth Company
-                {% endif %}
-              </a>
-            </h1>
-            {% if object.company.company_homepage_link %}
-            <a href="{{ object.company.fixed_company_homepage_link }}" target="_blank">
-              <img class="w-4 h-4" src="{% static 'vendors/images/external_link.svg' %}" alt="External Link" />
-            </a>
-            {% endif %}
-          </div>
-          <div>
-            {% if object.company_job_application_link %}
-            <a href="{{ object.split_application_links.0 }}?utm_source=gettjalerts.com" target="_blank"
-              class="mt-1 text-sm text-gray-500 truncate hover:border-b-2 hover:text-gray-600">
-              Application Link
-            </a>
-            |
-            {% endif %}
-            {% if object.source == "Hacker News" %}
-            <a href="https://news.ycombinator.com/item?id={{ object.who_is_hiring_comment_id }}&utm_source=gettjalerts.com" target="_blank"
-              class="mt-1 text-sm text-gray-500 truncate hover:border-b-2 hover:text-gray-600">
-              Hacker News Link
-            </a>
-            {% endif %}
-          </div>
-        </div>
-        <p class="text-gray-500">Posted {{ object.submitted_datetime|timesince }} ago</p>
+<div class="app-page-header">
+  <div class="app-container py-8">
+    <a href="{% url 'posts' %}" class="btn-quiet -ml-3 mb-4">
+      <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+      </svg>
+      Back to jobs
+    </a>
+
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div class="min-w-0">
+        <p class="tabular text-sm text-zinc-500">Posted {{ object.submitted_datetime|timesince }} ago</p>
+        <h1 class="mt-2 text-2xl font-semibold tracking-tight text-zinc-950 sm:text-3xl">
+          {% if object.company.name %}{{ object.company.name }}{% else %}Stealth company{% endif %}
+        </h1>
+        {% if object.titles.all.count >= 1 and object.titles.all.0.name %}
+        <p class="mt-2 text-base font-medium text-zinc-700">{{ object.titles.all.0.name }}</p>
+        {% endif %}
       </div>
 
+      <div class="flex flex-wrap gap-2">
+        {% if object.company_job_application_link %}
+        <a href="{{ object.split_application_links.0 }}?utm_source=gettjalerts.com" target="_blank" class="btn-primary">Apply</a>
+        {% endif %}
+        {% if object.source == "Hacker News" %}
+        <a href="https://news.ycombinator.com/item?id={{ object.who_is_hiring_comment_id }}&utm_source=gettjalerts.com" target="_blank" class="btn-secondary">View on Hacker News</a>
+        {% endif %}
+        {% if object.company.company_homepage_link %}
+        <a href="{{ object.company.fixed_company_homepage_link }}" target="_blank" class="btn-secondary">Company site</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="app-container py-8">
+  <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+    <article class="space-y-4">
       {% if object.titles.all.count == 1 and object.titles.all.0.name == "" %}
       {% elif object.titles.all.count >= 1 %}
-      <div class="flex py-2 w-full border-b">
-        <div>
-          <h2 class="text-base font-semibold">Roles</h2>
+      <section class="app-panel">
+        <h2 class="text-sm font-semibold text-zinc-950">Roles</h2>
+        <div class="mt-2">
           {% for title in object.titles.all %}
-          <span
-            class="inline-flex items-center px-2 py-1 my-1 text-sm font-medium text-green-700 bg-green-50 rounded-md ring-1 ring-inset ring-green-600/20">
-            {{ title.name }}
-          </span>
+            {% include "components/title-link.html" with title=title %}
           {% endfor %}
         </div>
-      </div>
+      </section>
       {% endif %}
 
       {% if object.compensation_summary %}
-      <div class="flex py-2 w-full border-b">
-        <div>
-          <h2 class="text-base font-semibold">Compensation Summary</h2>
-          <div class="max-w-none prose">
-            <p>{{ object.compensation_summary }}</p>
-          </div>
-        </div>
-      </div>
+      <section class="app-panel">
+        <h2 class="text-sm font-semibold text-zinc-950">Compensation</h2>
+        <p class="mt-2 text-sm leading-6 text-zinc-700">{{ object.compensation_summary }}</p>
+      </section>
       {% endif %}
 
       {% if object.technologies.all.count == 1 and object.technologies.all.0.name == "" %}
       {% elif object.technologies.all.count > 0 %}
-      <div class="flex py-2 w-full border-b">
-        <div>
-          <h2 class="text-base font-semibold">Tech Stack</h2>
+      <section class="app-panel">
+        <h2 class="text-sm font-semibold text-zinc-950">Tech stack</h2>
+        <div class="mt-2">
           {% for technology in object.technologies.all %}
-              {% include "components/technology-link.html" with technology=technology %}
+            {% include "components/technology-link.html" with technology=technology %}
           {% endfor %}
         </div>
-      </div>
+      </section>
       {% endif %}
 
       {% if object.locations %}
-      <div class="flex py-2 w-full border-b">
-        <div>
-          <h2 class="text-base font-semibold">Locations</h2>
-          <div class="max-w-none prose">
-            <p>{{ object.locations }}</p>
-          </div>
-        </div>
-      </div>
+      <section class="app-panel">
+        <h2 class="text-sm font-semibold text-zinc-950">Location</h2>
+        <p class="mt-2 text-sm leading-6 text-zinc-700">{{ object.locations }}</p>
+      </section>
       {% endif %}
 
       {% if object.names_of_the_contact_person or object.emails %}
-      <div class="flex py-2 w-full border-b">
-        <div>
-          <h2 class="text-base font-semibold">Contacts</h2>
-          <p class="px-2 py-1 my-1 text-sm font-medium">{{ object.names_of_the_contact_person }}</p>
-          <p class="px-2 py-1 my-1 text-sm font-medium">{{ object.emails }}</p>
-        </div>
-      </div>
+      <section class="app-panel">
+        <h2 class="text-sm font-semibold text-zinc-950">Contact</h2>
+        {% if object.names_of_the_contact_person %}
+        <p class="mt-2 text-sm leading-6 text-zinc-700">{{ object.names_of_the_contact_person }}</p>
+        {% endif %}
+        {% if object.emails %}
+        <p class="mt-1 text-sm leading-6 text-zinc-700">{{ object.emails }}</p>
+        {% endif %}
+      </section>
       {% endif %}
-      <div class="py-2">
-        <h2 class="text-base font-semibold">Description</h2>
-        <div class="max-w-none prose">
+
+      <section class="app-panel">
+        <h2 class="text-sm font-semibold text-zinc-950">Description</h2>
+        <div class="prose prose-zinc mt-3 max-w-none">
           <p>{{ object.description }}</p>
         </div>
-      </div>
-    </div>
+      </section>
 
-    <div data-controller="similar-posts" data-similar-posts-post-id-value="{{ post.id }}">
-      <h2 class="mt-4 text-lg font-medium text-gray-900">Similar Jobs</h2>
-      <div class="mb-4 rounded-md border border-gray-200">
-        <ul data-similar-posts-target="container" role="list" class="flex flex-col divide-y divide-gray-200">
-          <!-- Similar posts will be inserted here -->
+      <section data-controller="similar-posts" data-similar-posts-post-id-value="{{ object.id }}">
+        <div class="mb-3 flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-zinc-950">Similar jobs</h2>
+        </div>
+        <ul data-similar-posts-target="container" role="list" class="space-y-3">
+          <li class="app-panel">
+            <p class="text-sm text-zinc-600">Loading similar jobs...</p>
+          </li>
         </ul>
-      </div>
-    </div>
+      </section>
+    </article>
 
-    <div class="p-6 mx-auto mt-10 max-w-2xl rounded-md border border-gray-500">
-      <div class="mx-auto text-center">
-          <p class="mx-auto mb-2 text-xl font-semibold text-gray-900">
-            Create your own personalized Job Alert
-          </p>
-          <div class="flex justify-center items-center">
-            {% include "components/simple-alert-form.html" with create_alert_form=create_alert_form %}
-          </div>
+    <aside class="space-y-4 lg:sticky lg:top-24 lg:self-start">
+      <div class="app-panel">
+        <h2 class="text-base font-semibold text-zinc-950">Get matching jobs by email</h2>
+        <p class="mt-1 text-sm leading-6 text-zinc-600">Create a simple alert for one technology, or use the jobs page for a more specific saved search.</p>
+        <div class="mt-4">
+          {% include "components/simple-alert-form.html" with create_alert_form=create_alert_form %}
+        </div>
       </div>
-    </div>
-</main>
+
+      <div class="app-muted-panel">
+        <h2 class="text-sm font-semibold text-zinc-950">Source</h2>
+        <dl class="mt-3 space-y-3 text-sm">
+          <div class="flex justify-between gap-4">
+            <dt class="text-zinc-500">Posted</dt>
+            <dd class="tabular text-right font-medium text-zinc-900">{{ object.submitted_datetime|date:"M j, Y" }}</dd>
+          </div>
+          <div class="flex justify-between gap-4">
+            <dt class="text-zinc-500">Source</dt>
+            <dd class="text-right font-medium text-zinc-900">{{ object.source }}</dd>
+          </div>
+        </dl>
+      </div>
+    </aside>
+  </div>
+</div>
 {% endblock content %}
 
 {% block schema %}

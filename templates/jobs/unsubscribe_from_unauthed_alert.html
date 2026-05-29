@@ -5,16 +5,14 @@
 {% load url_utils %}
 
 {% block content %}
-
-<div class="max-w-6xl mx-auto">
-  <form method="post" action="{% url 'unauthed_alert_unsubscribe' alert_email_send.id %}">
-    {% csrf_token %}
-    <button
-      class="rounded-md bg-red-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
-      type="submit">
-      Unsubscribe
-    </button>
-  </form>
+<div class="app-narrow py-10 sm:py-14">
+  <div class="auth-panel text-center">
+    <h1 class="text-2xl font-semibold tracking-tight text-zinc-950">Unsubscribe from this alert?</h1>
+    <p class="mt-2 text-sm leading-6 text-zinc-600">This stops future emails for the selected alert.</p>
+    <form method="post" action="{% url 'unauthed_alert_unsubscribe' alert_email_send.id %}" class="mt-6">
+      {% csrf_token %}
+      <button class="btn-danger w-full" type="submit">Unsubscribe</button>
+    </form>
+  </div>
 </div>
-
 {% endblock content %}

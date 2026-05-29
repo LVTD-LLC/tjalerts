@@ -7,19 +7,18 @@
 {% endblock meta %}
 
 {% block content %}
-    <div class="mx-auto my-4 prose md:my-10 lg:prose-lg">
-        <h1 class="text-center">Please confirm Sign Out</h1>
-        <form method="post" class="flex flex-row justify-center" action="{% url 'account_logout' %}">
-            {% csrf_token %}
-
-            {% if redirect_field_value %}
-                <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}"/>
-            {% endif %}
-
-            <button class="inline-flex items-center px-6 py-3 text-base font-medium text-white bg-red-600 border border-transparent border-solid rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    type="submit">
-                Sign Out
-            </button>
-        </form>
-    </div>
+<div class="app-narrow py-10 sm:py-14">
+  <div class="auth-panel text-center">
+    <h1 class="text-2xl font-semibold tracking-tight text-zinc-950">Sign out?</h1>
+    <p class="mt-2 text-sm leading-6 text-zinc-600">You can still browse jobs after signing out, but saved alerts require your account.</p>
+    <form method="post" class="mt-6 flex justify-center gap-2" action="{% url 'account_logout' %}">
+      {% csrf_token %}
+      {% if redirect_field_value %}
+      <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}"/>
+      {% endif %}
+      <a href="{% url 'posts' %}" class="btn-secondary">Stay signed in</a>
+      <button class="btn-danger" type="submit">Sign out</button>
+    </form>
+  </div>
+</div>
 {% endblock content %}

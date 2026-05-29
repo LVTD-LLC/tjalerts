@@ -2,26 +2,22 @@
 {% load static %}
 {% load widget_tweaks %}
 
-<form action="" method="post">
+<form action="" method="post" class="app-panel">
   {% csrf_token %}
-  <div class="overflow-hidden shadow sm:rounded-md">
-    <div class="px-4 py-5 bg-white sm:p-6">
-      <div class="grid grid-cols-6 gap-6">
-        {{ form.non_field_errors }}
-        <div class="col-span-6 sm:col-span-3">
-          {{ form.name.errors | safe }}
-          <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
-          {% render_field form.name id="name" name="name" type="text" autocomplete="given-name" class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm" %}
-        </div>
-        <div class="col-span-6 sm:col-span-3">
-          {{ form.email.errors | safe }}
-          <label for="email-address" class="block text-sm font-medium text-gray-700">Email</label>
-          {% render_field form.email id="email-address" name="email-address" type="text" autocomplete="email" class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm" %}
-        </div>
-      </div>
+  <div class="grid gap-4 sm:grid-cols-2">
+    {{ form.non_field_errors }}
+    <div>
+      {{ form.name.errors | safe }}
+      <label for="name" class="app-label">Name</label>
+      {% render_field form.name id="name" name="name" type="text" autocomplete="given-name" class="app-input mt-1" %}
     </div>
-    <div class="px-4 py-3 text-right bg-gray-50 sm:px-6">
-      <button type="submit" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">Save</button>
+    <div>
+      {{ form.email.errors | safe }}
+      <label for="email-address" class="app-label">Email</label>
+      {% render_field form.email id="email-address" name="email-address" type="text" autocomplete="email" class="app-input mt-1" %}
     </div>
+  </div>
+  <div class="mt-5 flex justify-end">
+    <button type="submit" class="btn-primary">Save changes</button>
   </div>
 </form>

@@ -27,21 +27,29 @@
 {% endblock meta %}
 
 {% block content %}
-<div class="px-4 mx-auto space-y-10 max-w-7xl sm:px-6 lg:px-8">
-  <div class="mx-auto max-w-2xl text-center">
-    <h1 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Companies that are hiring right now.</h1>
+<div class="app-page-header">
+  <div class="app-container py-8">
+    <h1 class="app-title">Companies hiring now</h1>
+    <p class="app-subtitle">Browse companies with recent jobs found in Hacker News hiring threads.</p>
   </div>
-  <div class="mx-auto max-w-xl">
-    <ul role="list" class="ml-2 list-disc list-inside">
-      {% for company in object_list %}
-      <li class="mb-2">
-        <a href="{% url 'company-jobs' company.slug %}" class="text-lg font-semibold leading-6 text-gray-900 link">
-          {{ company.name }}
-        </a>
-      </li>
+</div>
+
+<div class="app-container py-8">
+  <ul role="list" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    {% for company in object_list %}
+    <li>
+      <a href="{% url 'company-jobs' company.slug %}" class="app-card block p-4 hover:border-zinc-300 hover:bg-zinc-50">
+        <span class="block truncate text-sm font-semibold text-zinc-950">{{ company.name }}</span>
+        <span class="mt-2 block text-xs text-zinc-500">View jobs</span>
+      </a>
+    </li>
+    {% empty %}
+    <li class="empty-state sm:col-span-2 lg:col-span-3 xl:col-span-4">
+      <h2 class="text-lg font-semibold text-zinc-950">No companies found</h2>
+      <p class="mt-2 text-sm leading-6 text-zinc-600">Companies will appear here after recent jobs are imported.</p>
+    </li>
     {% endfor %}
-    </ul>
-  </div>
+  </ul>
 </div>
 {% endblock content %}
 
