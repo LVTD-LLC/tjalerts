@@ -16,11 +16,29 @@ export default class extends Controller {
       this.renderSimilarPosts(data.similar_posts);
     } catch (error) {
       console.error('Error fetching similar posts:', error);
+      this.renderErrorState();
     }
   }
 
   renderSimilarPosts(similarPosts) {
+    if (similarPosts.length === 0) {
+      this.containerTarget.innerHTML = `
+        <li class="app-muted-panel text-sm leading-6 text-zinc-600">
+          No similar jobs found yet.
+        </li>
+      `;
+      return;
+    }
+
     this.containerTarget.innerHTML = similarPosts.map(post => this.renderPost(post)).join('');
+  }
+
+  renderErrorState() {
+    this.containerTarget.innerHTML = `
+      <li class="app-muted-panel text-sm leading-6 text-zinc-600">
+        Similar jobs are unavailable right now.
+      </li>
+    `;
   }
 
   renderPost(post) {
