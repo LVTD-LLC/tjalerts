@@ -29,26 +29,20 @@ export default class extends Controller {
   async search() {
     const query = this.searchTarget.value;
     if (query.length < 2) {
-      this.searchResultsTarget.innerHTML = '';
-      this.searchResultsTarget.classList.remove('border', 'border-zinc-200');
+      this.clearSearchResults();
       return;
     }
 
     const response = await fetch(`${this.searchUrlValue}?query=${encodeURIComponent(query)}`);
     const items = await response.json();
 
-    const filteredItems = items.filter(item => !this.selectedItems.has(item.id));
+    const filteredItems = items.filter(item => !this.selectedItems.has(String(item.id)));
 
     if (filteredItems.length > 0) {
       this.searchResultsTarget.classList.add('border', 'border-zinc-200');
-      this.searchResultsTarget.innerHTML = filteredItems.map(item => `
-        <div class="cursor-pointer rounded-md p-2 text-sm text-zinc-800 hover:bg-zinc-100" data-action="click->search-and-select#addItem" data-id="${item.id}" data-name="${item.name}" data-post-count="${item.post_count || ''}">
-          ${item.name}${item.post_count ? ` (${item.post_count} posts)` : ''}
-        </div>
-      `).join('');
+      this.searchResultsTarget.replaceChildren(...filteredItems.map(item => this.renderSearchResult(item)));
     } else {
-      this.searchResultsTarget.classList.remove('border', 'border-zinc-200');
-      this.searchResultsTarget.innerHTML = '';
+      this.clearSearchResults();
     }
   }
 
@@ -61,30 +55,15 @@ export default class extends Controller {
     this.addItemToSelection(id, name, postCount);
 
     this.searchTarget.value = '';
-    this.searchResultsTarget.innerHTML = '';
+    this.clearSearchResults();
   }
 
   addItemToSelection(id, name, postCount) {
-    if (!this.selectedItems.has(id)) {
-      this.selectedItems.add(id);
-      this.selectedResultsTarget.insertAdjacentHTML('beforeend', `
-        <div class="tag" data-id="${id}">
-          ${name}${postCount ? ` (${postCount} posts)` : ''}
-          <button type="button" class="ml-2 rounded-sm text-emerald-900 hover:bg-emerald-100" data-action="click->search-and-select#removeItem">
-            <span class="sr-only">Remove ${name}</span>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12" />
-            </svg>
-          </button>
-          <input
-            type="checkbox"
-            name="${this.typeValue}"
-            value=${id}
-            class="hidden"
-            checked
-          />
-        </div>
-      `);
+    const itemId = String(id);
+
+    if (!this.selectedItems.has(itemId)) {
+      this.selectedItems.add(itemId);
+      this.selectedResultsTarget.appendChild(this.renderSelectedItem(itemId, name, postCount));
     }
   }
 
@@ -93,5 +72,70 @@ export default class extends Controller {
     const id = itemElement.dataset.id;
     this.selectedItems.delete(id);
     itemElement.remove();
+  }
+
+  clearSearchResults() {
+    this.searchResultsTarget.classList.remove('border', 'border-zinc-200');
+    this.searchResultsTarget.replaceChildren();
+  }
+
+  renderSearchResult(item) {
+    const result = document.createElement('div');
+    result.className = 'cursor-pointer rounded-md p-2 text-sm text-zinc-800 hover:bg-zinc-100';
+    result.setAttribute('data-action', 'click->search-and-select#addItem');
+    result.dataset.id = String(item.id);
+    result.dataset.name = item.name;
+    result.dataset.postCount = item.post_count || '';
+    result.textContent = this.formatLabel(item.name, item.post_count);
+
+    return result;
+  }
+
+  renderSelectedItem(id, name, postCount) {
+    const item = document.createElement('div');
+    item.className = 'tag';
+    item.dataset.id = id;
+
+    const label = document.createElement('span');
+    label.textContent = this.formatLabel(name, postCount);
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'ml-2 rounded-sm text-emerald-900 hover:bg-emerald-100';
+    button.setAttribute('data-action', 'click->search-and-select#removeItem');
+
+    const screenReaderLabel = document.createElement('span');
+    screenReaderLabel.className = 'sr-only';
+    screenReaderLabel.textContent = `Remove ${name}`;
+
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    icon.setAttribute('class', 'h-3.5 w-3.5');
+    icon.setAttribute('fill', 'none');
+    icon.setAttribute('viewBox', '0 0 24 24');
+    icon.setAttribute('stroke', 'currentColor');
+    icon.setAttribute('aria-hidden', 'true');
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-linejoin', 'round');
+    path.setAttribute('stroke-width', '2');
+    path.setAttribute('d', 'M6 18 18 6M6 6l12 12');
+
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.name = this.typeValue;
+    input.value = id;
+    input.className = 'hidden';
+    input.checked = true;
+
+    icon.appendChild(path);
+    button.append(screenReaderLabel, icon);
+    item.append(label, button, input);
+
+    return item;
+  }
+
+  formatLabel(name, postCount) {
+    return postCount ? `${name} (${postCount} posts)` : name;
   }
 }

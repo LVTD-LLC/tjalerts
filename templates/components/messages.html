@@ -1,11 +1,11 @@
 {% if messages %}
-<div class="border-b border-zinc-200 bg-white">
-  <div class="app-container space-y-2 py-3">
+<div class="pointer-events-none fixed inset-x-0 top-4 z-50" aria-live="polite">
+  <div class="app-container space-y-2">
     {% for message in messages %}
     <div
       data-controller="reveal"
       data-reveal-target="item"
-      class="flex items-start justify-between gap-4 rounded-md border px-4 py-3 text-sm {% if message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}border-red-200 bg-red-50 text-red-900{% else %}border-emerald-200 bg-emerald-50 text-emerald-900{% endif %}"
+      class="pointer-events-auto flex items-start justify-between gap-4 rounded-md border px-4 py-3 text-sm shadow-lg {% if message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}border-red-200 bg-red-50 text-red-900{% else %}border-emerald-200 bg-emerald-50 text-emerald-900{% endif %}"
       role="status"
     >
       <p class="font-medium">{{ message }}</p>
