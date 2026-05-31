@@ -11,7 +11,7 @@ from django.contrib.sites.models import Site
 from django.core.exceptions import ValidationError
 from django.core.mail import EmailMultiAlternatives, send_mail
 from django.core.validators import validate_email
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Count
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -355,7 +355,7 @@ def apply_remote_ok_structured_defaults(remote_ok_job, extracted_data):
     )
 
     if compensation_summary:
-        extracted_data["compensation_summary"] = extracted_data.get("compensation_summary") or compensation_summary
+        extracted_data["compensation_summary"] = compensation_summary
         extracted_data["min_salary"] = salary_min
         extracted_data["max_salary"] = salary_max
 
@@ -412,6 +412,9 @@ def import_remote_ok_jobs(limit=None):
         try:
             create_remote_ok_post(job)
             imported_count += 1
+        except IntegrityError:
+            skipped_count += 1
+            logger.info("Remote OK job already imported by concurrent task", remote_ok_id=remote_ok_id)
         except (openai.RateLimitError, openai.APIError):
             raise
         except Exception as e:

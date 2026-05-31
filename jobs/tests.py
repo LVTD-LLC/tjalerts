@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from django.db import IntegrityError
 from django.test import SimpleTestCase, TestCase
 
 from jobs.choices import PostSource
@@ -10,6 +11,7 @@ from jobs.tasks import (
     build_remote_ok_extraction_text,
     clean_remote_ok_string,
     create_remote_ok_post,
+    import_remote_ok_jobs,
     merge_company_emails,
 )
 from jobs.utils import clean_job_json_object
@@ -67,6 +69,22 @@ class RemoteOkParsingTests(SimpleTestCase):
         assert data["locations"] == "Remote"
         assert data["is_remote"] is True
         assert data["company_job_application_link"] == "https://remoteOK.com/remote-jobs/example-123"
+        assert data["min_salary"] == 100000
+        assert data["max_salary"] == 140000
+
+    def test_apply_remote_ok_defaults_prefers_api_salary_summary(self):
+        job = {
+            "company": "Acme",
+            "position": "Python Engineer",
+            "location": "Remote",
+            "apply_url": "https://remoteOK.com/remote-jobs/example-123",
+            "salary_min": 100000,
+            "salary_max": 140000,
+        }
+
+        data = apply_remote_ok_structured_defaults(job, {"compensation_summary": "Competitive compensation"})
+
+        assert data["compensation_summary"] == "100000 - 140000"
         assert data["min_salary"] == 100000
         assert data["max_salary"] == 140000
 
@@ -146,3 +164,12 @@ class RemoteOkImportTests(TestCase):
         assert same_post.id == post.id
         assert Post.objects.filter(source=PostSource.REMOTE_OK, source_external_id="123").count() == 1
         assert mock_extract.call_count == 1
+
+    @patch("jobs.tasks.create_remote_ok_post", side_effect=IntegrityError)
+    @patch("jobs.tasks.fetch_remote_ok_jobs")
+    def test_import_remote_ok_jobs_counts_concurrent_integrity_errors_as_skips(self, mock_fetch, _mock_create):
+        mock_fetch.return_value = [{"id": "123"}]
+
+        result = import_remote_ok_jobs()
+
+        assert result == "Imported 0 Remote OK jobs. Skipped 1. Failed 0."
