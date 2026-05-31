@@ -2,12 +2,14 @@ from unittest.mock import patch
 
 from django.db import IntegrityError
 from django.test import SimpleTestCase, TestCase
+from django.utils import timezone
 
 from jobs.choices import PostSource
-from jobs.models import Post
+from jobs.models import Company, Post
 from jobs.tasks import (
     MAX_COMPANY_EMAILS_LENGTH,
     apply_remote_ok_structured_defaults,
+    backfill_vector_data,
     build_remote_ok_extraction_text,
     clean_remote_ok_string,
     create_remote_ok_post,
@@ -173,3 +175,18 @@ class RemoteOkImportTests(TestCase):
         result = import_remote_ok_jobs()
 
         assert result == "Imported 0 Remote OK jobs. Skipped 1. Failed 0."
+
+    @patch("jobs.tasks.get_embedding")
+    def test_backfill_vector_data_skips_posts_without_text(self, mock_get_embedding):
+        company = Company.objects.create(name="Acme")
+        post = Post.objects.create(
+            submitted_datetime=timezone.now(),
+            company=company,
+            source=PostSource.REMOTE_OK,
+            source_external_id="empty-text",
+        )
+
+        result = backfill_vector_data(post)
+
+        assert result == f"Job {post.id} has no text to embed, skipping."
+        mock_get_embedding.assert_not_called()

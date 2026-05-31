@@ -638,6 +638,9 @@ def backfill_vector_data(job):
     else:
         text = job.original_text or job.description
 
+    if not text:
+        return f"Job {job.id} has no text to embed, skipping."
+
     vector = get_embedding(text)
 
     job.vector = vector

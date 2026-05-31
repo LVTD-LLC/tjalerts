@@ -206,9 +206,12 @@ def update_min_and_max_salary_view(request):
 
 @staff_member_required(login_url="account_login")
 @require_POST
-def create_backfill_vector_data_jobs_view(request):
+def create_backfill_vector_data_jobs_view(request, rebuild=False):
     async_task(
-        create_backfill_vector_data_jobs, hook="jobs.hooks.print_result", group="Create Jobs to Update Vector Data."
+        create_backfill_vector_data_jobs,
+        rebuild,
+        hook="jobs.hooks.print_result",
+        group="Create Jobs to Update Vector Data.",
     )
 
     return redirect("admin-panel")
