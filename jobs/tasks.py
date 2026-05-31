@@ -15,6 +15,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Count
 from django.template.loader import render_to_string
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.utils.html import strip_tags
 from django_q.tasks import async_task
 from openai import OpenAI
@@ -335,6 +336,30 @@ def build_remote_ok_compensation_summary(remote_ok_job):
     return ""
 
 
+def get_remote_ok_submitted_datetime(remote_ok_job):
+    remote_ok_id = remote_ok_job.get("id")
+    epoch = remote_ok_job.get("epoch")
+
+    if epoch not in ["", None]:
+        try:
+            return datetime.fromtimestamp(int(epoch), tz=dt_timezone.utc)
+        except (TypeError, ValueError, OSError, OverflowError):
+            logger.warning("Remote OK job has invalid epoch", remote_ok_id=remote_ok_id, epoch=epoch)
+
+    raw_date = clean_remote_ok_string(remote_ok_job.get("date"))
+    if raw_date:
+        submitted_datetime = parse_datetime(raw_date)
+        if submitted_datetime:
+            if timezone.is_naive(submitted_datetime):
+                submitted_datetime = submitted_datetime.replace(tzinfo=dt_timezone.utc)
+            return submitted_datetime.astimezone(dt_timezone.utc)
+
+        logger.warning("Remote OK job has invalid date", remote_ok_id=remote_ok_id, date=raw_date)
+
+    logger.warning("Remote OK job has no submitted timestamp; using current time", remote_ok_id=remote_ok_id)
+    return timezone.now()
+
+
 def apply_remote_ok_structured_defaults(remote_ok_job, extracted_data):
     company = clean_remote_ok_string(remote_ok_job.get("company"))
     position = clean_remote_ok_string(remote_ok_job.get("position"))
@@ -370,7 +395,7 @@ def create_remote_ok_post(remote_ok_job):
 
     extraction_text = build_remote_ok_extraction_text(remote_ok_job)
     source_url = clean_remote_ok_string(remote_ok_job.get("url"))
-    submitted_timestamp = int(remote_ok_job["epoch"])
+    submitted_datetime = get_remote_ok_submitted_datetime(remote_ok_job)
 
     extracted_data = extract_job_data_from_text(extraction_text)
     extracted_data = apply_remote_ok_structured_defaults(remote_ok_job, extracted_data)
@@ -382,7 +407,7 @@ def create_remote_ok_post(remote_ok_job):
         source_external_id=remote_ok_id,
         source_url=source_url,
         source_payload=remote_ok_job,
-        submitted_datetime=datetime.fromtimestamp(submitted_timestamp, tz=dt_timezone.utc),
+        submitted_datetime=submitted_datetime,
         vector=get_embedding(extraction_text),
     )
 

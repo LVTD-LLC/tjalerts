@@ -13,6 +13,7 @@ from jobs.tasks import (
     build_remote_ok_extraction_text,
     clean_remote_ok_string,
     create_remote_ok_post,
+    get_remote_ok_submitted_datetime,
     import_remote_ok_jobs,
     merge_company_emails,
 )
@@ -89,6 +90,13 @@ class RemoteOkParsingTests(SimpleTestCase):
         assert data["compensation_summary"] == "100000 - 140000"
         assert data["min_salary"] == 100000
         assert data["max_salary"] == 140000
+
+    def test_remote_ok_submitted_datetime_falls_back_to_date(self):
+        submitted_datetime = get_remote_ok_submitted_datetime(
+            {"id": "123", "epoch": "not-a-timestamp", "date": "2026-05-30T12:34:56+00:00"}
+        )
+
+        assert submitted_datetime.isoformat() == "2026-05-30T12:34:56+00:00"
 
     def test_clean_job_json_object_normalizes_boolean_strings(self):
         data = clean_job_json_object(
