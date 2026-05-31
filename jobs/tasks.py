@@ -170,7 +170,10 @@ def analyze_hn_page(who_is_hiring_id, who_is_hiring_title, comment_id):
         "company_homepage",
     )
 
-    if job_application_link == company_homepage_link:
+    if not job_application_link:
+        job_posting_context = {}
+        job_posting_reader_content = ""
+    elif job_application_link == company_homepage_link:
         job_posting_context = {**company_homepage_context, "kind": "job_posting"} if company_homepage_context else {}
         job_posting_reader_content = company_homepage_reader_content
     else:

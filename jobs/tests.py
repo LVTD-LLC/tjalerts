@@ -136,5 +136,5 @@ class ReaderContextTests(SimpleTestCase):
 
         messages = completion_mock.call_args.kwargs["messages"]
         assert "untrusted data" in messages[0]["content"]
-        assert "UNTRUSTED_PAGE_CONTENT" in messages[1]["content"]
-        assert "END_UNTRUSTED_PAGE_CONTENT" in messages[1]["content"]
+        assert "<untrusted_page_content>" in messages[1]["content"]
+        assert "</untrusted_page_content>" in messages[1]["content"]
