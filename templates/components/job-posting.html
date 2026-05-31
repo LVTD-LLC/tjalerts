@@ -9,6 +9,9 @@
             Open role
           {% endif %}
         </p>
+        {% if object.source == "Remote OK" and object.source_url %}
+        <p class="mt-1 text-xs font-medium text-zinc-500">Source: Remote OK</p>
+        {% endif %}
         <h3 class="mt-1 truncate text-base font-semibold text-zinc-950">
           {% if object.titles.all.count >= 1 and object.titles.all.0.name %}
             {{ object.titles.all.0.name }}

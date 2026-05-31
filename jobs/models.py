@@ -15,9 +15,9 @@ class Post(TimeStampedModel):
     submitted_datetime = models.DateTimeField()
 
     # HN Specific
-    who_is_hiring_id = models.IntegerField()
-    who_is_hiring_title = models.CharField(max_length=25)
-    who_is_hiring_comment_id = models.IntegerField(unique=True)
+    who_is_hiring_id = models.IntegerField(null=True, blank=True)
+    who_is_hiring_title = models.CharField(max_length=25, blank=True)
+    who_is_hiring_comment_id = models.IntegerField(unique=True, null=True, blank=True)
     hn_username = models.CharField(max_length=50, blank=True)
 
     source = models.CharField(
@@ -25,6 +25,9 @@ class Post(TimeStampedModel):
         choices=PostSource.choices,
         default=PostSource.HACKER_NEWS,
     )
+    source_external_id = models.CharField(max_length=255, blank=True)
+    source_url = models.URLField(max_length=500, blank=True)
+    source_payload = models.JSONField(default=dict, blank=True)
 
     original_text = models.TextField(blank=True)
     titles = models.ManyToManyField("Title", related_name="post", blank=True, through="PostTitle")
@@ -77,7 +80,15 @@ class Post(TimeStampedModel):
                 opclasses=["vector_cosine_ops"],
             ),
             models.Index(fields=["who_is_hiring_comment_id"], name="index_who_is_hiring_comment_id"),
+            models.Index(fields=["source", "source_external_id"], name="index_post_source_ext_id"),
             models.Index(fields=["submitted_datetime"], name="index_post_submitted_datetime"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["source", "source_external_id"],
+                condition=~models.Q(source_external_id=""),
+                name="unique_post_source_external_id",
+            ),
         ]
 
 

@@ -1,6 +1,7 @@
 import json
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
+from html import unescape
 
 import httpx
 import openai
@@ -21,6 +22,7 @@ from openai import OpenAI
 from hn_jobs.utils import get_tjalerts_logger
 from users.models import CustomUser
 
+from jobs.choices import PostSource
 from jobs.filters import PostFilter
 from jobs.models import Alert, AlertEmailSend, Company, Email, Post, Technology, Title
 from jobs.utils import clean_job_json_object, fix_email, get_embedding, has_number, is_generic
@@ -30,6 +32,149 @@ logger = get_tjalerts_logger(__name__)
 client = OpenAI()
 
 MAX_COMPANY_EMAILS_LENGTH = 2000
+REMOTE_OK_API_URL = "https://remoteok.com/api"
+REMOTE_OK_USER_AGENT = "gettjalerts.com jobs importer (https://gettjalerts.com)"
+MOJIBAKE_MARKERS = ("\u00c3", "\u00c2", "\u00e2", "\u00d8", "\u00d9")
+
+
+def build_job_extraction_request(text):
+    return f""""Convert the text below into json object with the following valid keys (give me an empty string if there is no info, ignore the content in  brackets, it is only to explain what I need):
+        - company_name - (string)
+        - job_titles - (string of comma separated values)
+        - locations - (string of comma separated values)
+        - cities - (string of comma separated values)
+        - countries - (string of comma separated values)
+        - compensation_summary - (string, decribe the salary or other benefits)
+        - min_salary - (integer, if not available return 0)
+        - max_salary - (integer, if not available return 0)
+        - currency: (string, e.g "USD", "EUR", etc. if not available return "")
+        - is_remote - (boolean)
+        - remote_timezones - (string of comma separated values)
+        - is_onsite - (boolean)
+        - capacity - (string of comma separated values, options are 'Part-time Contractor', 'Full-time Contractor', 'Part-time Employee' and 'Full-time Employee', can't be empty)
+        - description
+        - technologies_used - (string of comma separated values, list of technologies that I might need to know and will use at this jobs)
+        - company_homepage_link - (url link)
+        - emails - (string of comma separated values)
+        - company_job_application_link - (url link)
+        - names_of_the_contact_person - (string of comma separated values)
+        - years_of_experience - (string of comma separated values, years of experience required to apply)
+        - levels_of_experience - (choose from these options: Junior, Mid-level, Senior, Principal, C-Level. figure out from description, can't be empty)
+
+        Don't add any text and only respond with a JSON Object.
+
+        Text: '''
+        {text}
+        '''
+    """  # noqa: E501
+
+
+def extract_job_data_from_text(text):
+    try:
+        completion = client.chat.completions.create(
+            model=settings.OPENAI_JOB_EXTRACTION_MODEL,
+            response_format={"type": "json_object"},
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant.",
+                },
+                {"role": "user", "content": build_job_extraction_request(text)},
+            ],
+        )
+        converted_comment_response = completion.choices[0].message
+    except (openai.RateLimitError, openai.APIError) as e:
+        raise e
+
+    try:
+        return json.loads(converted_comment_response.content)
+    except json.decoder.JSONDecodeError as e:
+        raise e
+
+
+def split_comma_separated_values(value):
+    return [item.strip() for item in str(value or "").split(",") if item.strip()]
+
+
+def coerce_salary(value):
+    if value in ["", None]:
+        return 0
+
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+def create_post_from_cleaned_data(
+    cleaned_data,
+    *,
+    source,
+    submitted_datetime,
+    vector,
+    source_external_id="",
+    source_url="",
+    source_payload=None,
+    who_is_hiring_id=None,
+    who_is_hiring_title="",
+    who_is_hiring_comment_id=None,
+    hn_username="",
+):
+    technology_names = split_comma_separated_values(cleaned_data["technologies_used"])
+    technologies = []
+    for name in technology_names:
+        obj, _ = Technology.objects.get_or_create(name=name)
+        technologies.append(obj)
+
+    job_title_names = split_comma_separated_values(cleaned_data["job_titles"])
+    job_titles = []
+    for job_title in job_title_names:
+        obj, _ = Title.objects.get_or_create(name=job_title)
+        job_titles.append(obj)
+
+    company_obj, _ = Company.objects.get_or_create(name=cleaned_data["company_name"])
+    if cleaned_data["company_homepage_link"]:
+        company_obj.company_homepage_link = cleaned_data["company_homepage_link"]
+    company_obj.emails = merge_company_emails(company_obj.emails, cleaned_data["emails"])
+    company_obj.save()
+
+    post = Post(
+        who_is_hiring_id=who_is_hiring_id,
+        who_is_hiring_title=who_is_hiring_title,
+        who_is_hiring_comment_id=who_is_hiring_comment_id,
+        submitted_datetime=submitted_datetime,
+        company=company_obj,
+        source=source,
+        source_external_id=str(source_external_id or ""),
+        source_url=source_url,
+        source_payload=source_payload or {},
+        original_text=cleaned_data["original_text"],
+        hn_username=hn_username,
+        description=cleaned_data["description"],
+        locations=cleaned_data["locations"],
+        cities=cleaned_data["cities"],
+        countries=cleaned_data["countries"],
+        is_remote=cleaned_data["is_remote"],
+        remote_timezones=cleaned_data["remote_timezones"],
+        is_onsite=cleaned_data["is_onsite"],
+        years_of_experience=cleaned_data["years_of_experience"],
+        capacity=cleaned_data["capacity"],
+        compensation_summary=cleaned_data["compensation_summary"],
+        min_salary=coerce_salary(cleaned_data["min_salary"]),
+        max_salary=coerce_salary(cleaned_data["max_salary"]),
+        currency=cleaned_data["currency"],
+        company_job_application_link=cleaned_data["company_job_application_link"],
+        names_of_the_contact_person=cleaned_data["names_of_the_contact_person"],
+        levels_of_experience=cleaned_data["levels_of_experience"],
+        emails=cleaned_data["emails"],
+        vector=vector,
+    )
+    post.save()
+
+    post.technologies.add(*technologies)
+    post.titles.add(*job_titles)
+
+    return post
 
 
 def merge_company_emails(existing_emails, new_emails):
@@ -74,7 +219,7 @@ def get_hn_pages_to_analyze(who_is_hiring_post_id):
             async_task(
                 analyze_hn_page,
                 int(data["id"]),
-                str(re.search("\(([^)]+)", data["title"]).group(1)),
+                str(re.search(r"\(([^)]+)", data["title"]).group(1)),
                 comment_id,
                 hook="jobs.hooks.print_result",
                 group="Analyze HN Page",
@@ -99,115 +244,181 @@ def analyze_hn_page(who_is_hiring_id, who_is_hiring_title, comment_id):
         pass
 
     who_is_hiring_comment_id = int(json_job["id"])
+    if (
+        Post.objects.filter(source=PostSource.HACKER_NEWS, source_external_id=str(who_is_hiring_comment_id)).exists()
+        or Post.objects.filter(who_is_hiring_comment_id=who_is_hiring_comment_id).exists()
+    ):
+        return "Comment already exists"
+
     hn_username = str(json_job["by"])
     unix_timestamp = int(json_job["time"])
     vector = get_embedding(json_job["text"])
 
-    request = f""""Convert the text below into json object with the following valid keys (give me an empty string if there is no info, ignore the content in  brackets, it is only to explain what I need):
-        - company_name - (string)
-        - job_titles - (string of comma separated values)
-        - locations - (string of comma separated values)
-        - cities - (string of comma separated values)
-        - countries - (string of comma separated values)
-        - compensation_summary - (string, decribe the salary or other benefits)
-        - min_salary - (integer, if not available return 0)
-        - max_salary - (integer, if not available return 0)
-        - currency: (string, e.g "USD", "EUR", etc. if not available return "")
-        - is_remote - (boolean)
-        - remote_timezones - (string of comma separated values)
-        - is_onsite - (boolean)
-        - capacity - (string of comma separated values, options are 'Part-time Contractor', 'Full-time Contractor', 'Part-time Employee' and 'Full-time Employee', can't be empty)
-        - description
-        - technologies_used - (string of comma separated values, list of technologies that I might need to know and will use at this jobs)
-        - company_homepage_link - (url link)
-        - emails - (string of comma separated values)
-        - company_job_application_link - (url link)
-        - names_of_the_contact_person - (string of comma separated values)
-        - years_of_experience - (string of comma separated values, years of experience required to apply)
-        - levels_of_experience - (choose from these options: Junior, Mid-level, Senior, Principal, C-Level. figure out from description, can't be empty)
-
-        Don't add any text and only respond with a JSON Object.
-
-        Text: '''
-        {json_job['text']}
-        '''
-    """  # noqa: E501
-
-    try:
-        completion = client.chat.completions.create(
-            model=settings.OPENAI_JOB_EXTRACTION_MODEL,
-            response_format={"type": "json_object"},
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a helpful assistant.",
-                },
-                {"role": "user", "content": request},
-            ],
-        )
-        converted_comment_response = completion.choices[0].message
-    except (openai.RateLimitError, openai.APIError) as e:
-        raise e
-
-    try:
-        json_converted_comment_response = json.loads(converted_comment_response.content)
-    except json.decoder.JSONDecodeError as e:
-        raise e
-
-    cleaned_data = clean_job_json_object(json_job, json_converted_comment_response)
-
-    technology_names = [name.strip() for name in cleaned_data["technologies_used"].split(",")]
-    technologies = []
-    for name in technology_names:
-        if name != "":
-            obj, _ = Technology.objects.get_or_create(name=name)
-            technologies.append(obj)
-
-    job_title_names = [name.strip() for name in cleaned_data["job_titles"].split(",")]
-    job_titles = []
-    for job_title in job_title_names:
-        if job_title != "":
-            obj, _ = Title.objects.get_or_create(name=job_title)
-            job_titles.append(obj)
-
-    company_obj, _ = Company.objects.get_or_create(name=cleaned_data["company_name"])
-    company_obj.company_homepage_link = cleaned_data["company_homepage_link"]
-    company_obj.emails = merge_company_emails(company_obj.emails, cleaned_data["emails"])
-    company_obj.save()
-
-    post = Post(
+    cleaned_data = clean_job_json_object(json_job, extract_job_data_from_text(json_job["text"]))
+    create_post_from_cleaned_data(
+        cleaned_data,
+        source=PostSource.HACKER_NEWS,
+        source_external_id=who_is_hiring_comment_id,
+        source_url=f"https://news.ycombinator.com/item?id={who_is_hiring_comment_id}",
+        source_payload=json_job,
         who_is_hiring_id=who_is_hiring_id,
         who_is_hiring_title=who_is_hiring_title,
         who_is_hiring_comment_id=who_is_hiring_comment_id,
-        submitted_datetime=datetime.fromtimestamp(unix_timestamp),
-        company=company_obj,
-        original_text=cleaned_data["original_text"],
         hn_username=hn_username,
-        description=cleaned_data["description"],
-        locations=cleaned_data["locations"],
-        cities=cleaned_data["cities"],
-        countries=cleaned_data["countries"],
-        is_remote=cleaned_data["is_remote"],
-        remote_timezones=cleaned_data["remote_timezones"],
-        is_onsite=cleaned_data["is_onsite"],
-        years_of_experience=cleaned_data["years_of_experience"],
-        capacity=cleaned_data["capacity"],
-        compensation_summary=cleaned_data["compensation_summary"],
-        min_salary=cleaned_data["min_salary"],
-        max_salary=cleaned_data["max_salary"],
-        currency=cleaned_data["currency"],
-        company_job_application_link=cleaned_data["company_job_application_link"],
-        names_of_the_contact_person=cleaned_data["names_of_the_contact_person"],
-        levels_of_experience=cleaned_data["levels_of_experience"],
-        emails=cleaned_data["emails"],
+        submitted_datetime=datetime.fromtimestamp(unix_timestamp, tz=dt_timezone.utc),
         vector=vector,
     )
-    post.save()
-
-    post.technologies.add(*technologies)
-    post.titles.add(*job_titles)
 
     return "Comment is saved."
+
+
+def clean_remote_ok_string(value):
+    value = str(value or "")
+
+    if any(marker in value for marker in MOJIBAKE_MARKERS):
+        try:
+            value = value.encode("latin1").decode("utf-8")
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            pass
+
+    return unescape(value).strip()
+
+
+def clean_remote_ok_description(value):
+    return re.sub(r"\s+", " ", strip_tags(clean_remote_ok_string(value))).strip()
+
+
+def fetch_remote_ok_jobs():
+    response = httpx.get(
+        REMOTE_OK_API_URL,
+        headers={"User-Agent": REMOTE_OK_USER_AGENT},
+        timeout=30,
+    )
+    response.raise_for_status()
+
+    data = response.json()
+    return [item for item in data if isinstance(item, dict) and item.get("id")]
+
+
+def build_remote_ok_extraction_text(remote_ok_job):
+    company = clean_remote_ok_string(remote_ok_job.get("company"))
+    position = clean_remote_ok_string(remote_ok_job.get("position"))
+    location = clean_remote_ok_string(remote_ok_job.get("location"))
+    description = clean_remote_ok_description(remote_ok_job.get("description"))
+    tags = ", ".join(clean_remote_ok_string(tag) for tag in remote_ok_job.get("tags", []) if tag)
+
+    parts = [
+        f"Company: {company}" if company else "",
+        f"Job title: {position}" if position else "",
+        "Source: Remote OK",
+        "Work arrangement: Remote",
+        f"Location: {location}" if location else "",
+        f"Tags: {tags}" if tags else "",
+        f"Salary min: {remote_ok_job.get('salary_min')}" if remote_ok_job.get("salary_min") else "",
+        f"Salary max: {remote_ok_job.get('salary_max')}" if remote_ok_job.get("salary_max") else "",
+        f"Description: {description}" if description else "",
+    ]
+
+    return "\n".join(part for part in parts if part)
+
+
+def build_remote_ok_compensation_summary(remote_ok_job):
+    salary_min = coerce_salary(remote_ok_job.get("salary_min"))
+    salary_max = coerce_salary(remote_ok_job.get("salary_max"))
+
+    if salary_min and salary_max and salary_min != salary_max:
+        return f"{salary_min} - {salary_max}"
+    if salary_min:
+        return str(salary_min)
+    if salary_max:
+        return str(salary_max)
+    return ""
+
+
+def apply_remote_ok_structured_defaults(remote_ok_job, extracted_data):
+    company = clean_remote_ok_string(remote_ok_job.get("company"))
+    position = clean_remote_ok_string(remote_ok_job.get("position"))
+    location = clean_remote_ok_string(remote_ok_job.get("location"))
+    application_link = clean_remote_ok_string(remote_ok_job.get("apply_url")) or clean_remote_ok_string(
+        remote_ok_job.get("url")
+    )
+    compensation_summary = build_remote_ok_compensation_summary(remote_ok_job)
+    salary_min = coerce_salary(remote_ok_job.get("salary_min"))
+    salary_max = coerce_salary(remote_ok_job.get("salary_max"))
+
+    extracted_data["company_name"] = extracted_data.get("company_name") or company
+    extracted_data["job_titles"] = extracted_data.get("job_titles") or position
+    extracted_data["locations"] = extracted_data.get("locations") or location
+    extracted_data["is_remote"] = True
+    extracted_data["company_job_application_link"] = (
+        extracted_data.get("company_job_application_link") or application_link
+    )
+
+    if compensation_summary:
+        extracted_data["compensation_summary"] = extracted_data.get("compensation_summary") or compensation_summary
+        extracted_data["min_salary"] = salary_min
+        extracted_data["max_salary"] = salary_max
+
+    return extracted_data
+
+
+def create_remote_ok_post(remote_ok_job):
+    remote_ok_id = str(remote_ok_job["id"])
+    existing_post = Post.objects.filter(source=PostSource.REMOTE_OK, source_external_id=remote_ok_id).first()
+    if existing_post:
+        return existing_post
+
+    extraction_text = build_remote_ok_extraction_text(remote_ok_job)
+    source_url = clean_remote_ok_string(remote_ok_job.get("url"))
+    submitted_timestamp = int(remote_ok_job["epoch"])
+
+    extracted_data = extract_job_data_from_text(extraction_text)
+    extracted_data = apply_remote_ok_structured_defaults(remote_ok_job, extracted_data)
+    cleaned_data = clean_job_json_object({"text": extraction_text}, extracted_data)
+
+    return create_post_from_cleaned_data(
+        cleaned_data,
+        source=PostSource.REMOTE_OK,
+        source_external_id=remote_ok_id,
+        source_url=source_url,
+        source_payload=remote_ok_job,
+        submitted_datetime=datetime.fromtimestamp(submitted_timestamp, tz=dt_timezone.utc),
+        vector=get_embedding(extraction_text),
+    )
+
+
+def import_remote_ok_jobs(limit=None):
+    jobs = fetch_remote_ok_jobs()
+
+    if settings.DEBUG and limit is None:
+        jobs = jobs[:10]
+    elif limit:
+        jobs = jobs[: int(limit)]
+
+    imported_count = 0
+    skipped_count = 0
+    failed_count = 0
+
+    for job in jobs:
+        remote_ok_id = str(job.get("id", ""))
+        if not remote_ok_id:
+            skipped_count += 1
+            continue
+
+        if Post.objects.filter(source=PostSource.REMOTE_OK, source_external_id=remote_ok_id).exists():
+            skipped_count += 1
+            continue
+
+        try:
+            create_remote_ok_post(job)
+            imported_count += 1
+        except (openai.RateLimitError, openai.APIError):
+            raise
+        except Exception as e:
+            failed_count += 1
+            logger.error("Remote OK job import failed", remote_ok_id=remote_ok_id, error=e)
+
+    return f"Imported {imported_count} Remote OK jobs. Skipped {skipped_count}. Failed {failed_count}."
 
 
 def create_valid_emails():
@@ -271,7 +482,7 @@ def find_bad_submitted_dates():
         .distinct()
     )
 
-    posts = Post.objects.filter(submitted_datetime__in=list_of_repeated_datetimes)
+    posts = Post.objects.filter(source=PostSource.HACKER_NEWS, submitted_datetime__in=list_of_repeated_datetimes)
 
     count = 0
     for post in posts:
@@ -287,6 +498,9 @@ def find_bad_submitted_dates():
 
 
 def fix_submitted_date(post):
+    if post.source != PostSource.HACKER_NEWS or not post.who_is_hiring_comment_id:
+        return "Post is not a Hacker News post"
+
     json_job = httpx.get(f"https://hacker-news.firebaseio.com/v0/item/{post.who_is_hiring_comment_id}.json").json()
 
     try:
@@ -295,7 +509,7 @@ def fix_submitted_date(post):
     except KeyError:
         pass
 
-    unix_timestamp = datetime.fromtimestamp(int(json_job["time"]))
+    unix_timestamp = datetime.fromtimestamp(int(json_job["time"]), tz=dt_timezone.utc)
 
     if post.submitted_datetime != unix_timestamp:
         post.submitted_datetime = unix_timestamp
@@ -308,7 +522,8 @@ def fix_submitted_date(post):
 @transaction.atomic
 def delete_duplicate_jobs_posts():
     duplicate_ids = (
-        Post.objects.values("who_is_hiring_comment_id")
+        Post.objects.filter(source=PostSource.HACKER_NEWS, who_is_hiring_comment_id__isnull=False)
+        .values("who_is_hiring_comment_id")
         .annotate(count=Count("who_is_hiring_comment_id"))
         .filter(count__gt=1)
     )
@@ -407,15 +622,20 @@ def create_backfill_vector_data_jobs(rebuild=False):
 
 
 def backfill_vector_data(job):
-    json_job = httpx.get(f"https://hacker-news.firebaseio.com/v0/item/{job.who_is_hiring_comment_id}.json").json()
+    if job.source == PostSource.HACKER_NEWS and job.who_is_hiring_comment_id:
+        json_job = httpx.get(f"https://hacker-news.firebaseio.com/v0/item/{job.who_is_hiring_comment_id}.json").json()
 
-    try:
-        if json_job["deleted"] is True:
-            return "Comment was deleted"
-    except KeyError:
-        pass
+        try:
+            if json_job["deleted"] is True:
+                return "Comment was deleted"
+        except KeyError:
+            pass
 
-    vector = get_embedding(json_job["text"])
+        text = json_job["text"]
+    else:
+        text = job.original_text or job.description
+
+    vector = get_embedding(text)
 
     job.vector = vector
     job.save(update_fields=["vector"])
