@@ -54,10 +54,26 @@
         <div class="rounded-lg border border-zinc-200 p-4">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
+              <h3 class="text-base font-semibold text-zinc-950">Import Remote OK jobs</h3>
+              <p class="mt-1 text-sm leading-6 text-zinc-600">Fetch recent jobs from Remote OK and import new postings.</p>
+            </div>
+            <form method="post" action="{% url 'import_remote_ok_jobs' %}">
+              {% csrf_token %}
+              <button type="submit" class="btn-secondary">Import</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-zinc-200 p-4">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
               <h3 class="text-base font-semibold text-zinc-950">Fix submitted dates</h3>
               <p class="mt-1 text-sm leading-6 text-zinc-600">Identify and fix incorrectly formatted submission dates.</p>
             </div>
-            <a href="{% url 'find-bad-submitted-dates' %}" class="btn-secondary">Fix dates</a>
+            <form method="post" action="{% url 'find-bad-submitted-dates' %}">
+              {% csrf_token %}
+              <button type="submit" class="btn-secondary">Fix dates</button>
+            </form>
           </div>
         </div>
 
@@ -67,7 +83,10 @@
               <h3 class="text-base font-semibold text-zinc-950">Populate salary fields</h3>
               <p class="mt-1 text-sm leading-6 text-zinc-600">Extract minimum and maximum salary data from job posts.</p>
             </div>
-            <a href="{% url 'update_min_and_max_salary' %}" class="btn-secondary">Populate</a>
+            <form method="post" action="{% url 'update_min_and_max_salary' %}">
+              {% csrf_token %}
+              <button type="submit" class="btn-secondary">Populate</button>
+            </form>
           </div>
         </div>
 
@@ -77,7 +96,10 @@
               <h3 class="text-base font-semibold text-zinc-950">Update vector fields</h3>
               <p class="mt-1 text-sm leading-6 text-zinc-600">Generate vector embeddings for semantic search.</p>
             </div>
-            <a href="{% url 'create_backfill_vector_data_jobs' rebuild=0 %}" class="btn-secondary">Update</a>
+            <form method="post" action="{% url 'create_backfill_vector_data_jobs' rebuild=0 %}">
+              {% csrf_token %}
+              <button type="submit" class="btn-secondary">Update</button>
+            </form>
           </div>
         </div>
       </div>

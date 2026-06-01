@@ -1,8 +1,10 @@
 from unittest.mock import Mock, patch
 
-from django.test import SimpleTestCase
-from django.test import override_settings
+from django.db import IntegrityError
+from django.test import SimpleTestCase, TestCase, override_settings
+from django.utils import timezone
 
+from jobs.choices import PostSource
 from jobs.enrichment import (
     augment_cleaned_job_data_with_context,
     build_reader_context,
@@ -10,7 +12,19 @@ from jobs.enrichment import (
     extract_structured_page_context,
     read_url_with_jina,
 )
-from jobs.tasks import MAX_COMPANY_EMAILS_LENGTH, merge_company_emails
+from jobs.models import Company, Post
+from jobs.tasks import (
+    MAX_COMPANY_EMAILS_LENGTH,
+    apply_remote_ok_structured_defaults,
+    backfill_vector_data,
+    build_remote_ok_extraction_text,
+    clean_remote_ok_string,
+    create_remote_ok_post,
+    get_remote_ok_submitted_datetime,
+    import_remote_ok_jobs,
+    merge_company_emails,
+)
+from jobs.utils import clean_job_json_object
 
 
 class CompanyEmailMergeTests(SimpleTestCase):
@@ -21,6 +35,176 @@ class CompanyEmailMergeTests(SimpleTestCase):
         long_email_blob = "a" * (MAX_COMPANY_EMAILS_LENGTH + 100)
 
         assert len(merge_company_emails("", long_email_blob)) == MAX_COMPANY_EMAILS_LENGTH
+
+
+class RemoteOkParsingTests(SimpleTestCase):
+    def test_clean_remote_ok_string_repairs_mojibake(self):
+        assert clean_remote_ok_string("We\u00e2\u0080\u0099re hiring in M\u00c3\u00a9xico") == (
+            "We\u2019re hiring in M\u00e9xico"
+        )
+
+    def test_build_remote_ok_extraction_text_strips_html_and_preserves_source(self):
+        job = {
+            "company": "Acme",
+            "position": "Senior Python Engineer",
+            "location": "Worldwide",
+            "tags": ["python", "django"],
+            "description": "<p>Build APIs &amp; backend systems.</p>",
+            "salary_min": 120000,
+            "salary_max": 160000,
+        }
+
+        text = build_remote_ok_extraction_text(job)
+
+        assert "Source: Remote OK" in text
+        assert "Job title: Senior Python Engineer" in text
+        assert "Build APIs & backend systems." in text
+        assert "<p>" not in text
+
+    def test_apply_remote_ok_defaults_keeps_structured_identity_fields(self):
+        job = {
+            "company": "Acme",
+            "position": "Python Engineer",
+            "location": "Remote",
+            "apply_url": "https://remoteOK.com/remote-jobs/example-123",
+            "url": "https://remoteOK.com/remote-jobs/example-123",
+            "salary_min": 100000,
+            "salary_max": 140000,
+        }
+
+        data = apply_remote_ok_structured_defaults(job, {})
+
+        assert data["company_name"] == "Acme"
+        assert data["job_titles"] == "Python Engineer"
+        assert data["locations"] == "Remote"
+        assert data["is_remote"] is True
+        assert data["company_job_application_link"] == "https://remoteOK.com/remote-jobs/example-123"
+        assert data["min_salary"] == 100000
+        assert data["max_salary"] == 140000
+
+    def test_apply_remote_ok_defaults_prefers_api_salary_summary(self):
+        job = {
+            "company": "Acme",
+            "position": "Python Engineer",
+            "location": "Remote",
+            "apply_url": "https://remoteOK.com/remote-jobs/example-123",
+            "salary_min": 100000,
+            "salary_max": 140000,
+        }
+
+        data = apply_remote_ok_structured_defaults(job, {"compensation_summary": "Competitive compensation"})
+
+        assert data["compensation_summary"] == "100000 - 140000"
+        assert data["min_salary"] == 100000
+        assert data["max_salary"] == 140000
+
+    def test_remote_ok_submitted_datetime_falls_back_to_date(self):
+        submitted_datetime = get_remote_ok_submitted_datetime(
+            {"id": "123", "epoch": "not-a-timestamp", "date": "2026-05-30T12:34:56+00:00"}
+        )
+
+        assert submitted_datetime.isoformat() == "2026-05-30T12:34:56+00:00"
+
+    def test_clean_job_json_object_normalizes_boolean_strings(self):
+        data = clean_job_json_object(
+            {"text": "Remote Python role"},
+            {
+                "company_name": "Acme",
+                "job_titles": "Python Engineer",
+                "is_remote": "Yes",
+                "is_onsite": "No",
+                "compensation_summary": "",
+            },
+        )
+
+        assert data["is_remote"] is True
+        assert data["is_onsite"] is False
+
+
+class RemoteOkImportTests(TestCase):
+    @patch("jobs.tasks.get_embedding", return_value=[0.0] * 1536)
+    @patch("jobs.tasks.extract_job_data_from_text")
+    def test_create_remote_ok_post_persists_source_identity_and_attribution(self, mock_extract, _mock_embedding):
+        mock_extract.return_value = {
+            "company_name": "",
+            "job_titles": "",
+            "locations": "",
+            "cities": "",
+            "countries": "",
+            "compensation_summary": "",
+            "min_salary": 0,
+            "max_salary": 0,
+            "currency": "",
+            "is_remote": True,
+            "remote_timezones": "",
+            "is_onsite": False,
+            "capacity": "Full-time Employee",
+            "description": "Build production Django APIs.",
+            "technologies_used": "Python, Django",
+            "company_homepage_link": "",
+            "emails": "",
+            "company_job_application_link": "",
+            "names_of_the_contact_person": "",
+            "years_of_experience": "",
+            "levels_of_experience": "Senior",
+        }
+        remote_ok_job = {
+            "id": "123",
+            "epoch": 1780120540,
+            "company": "Acme",
+            "position": "Senior Python Engineer",
+            "tags": ["python", "django"],
+            "description": "<p>Build production Django APIs.</p>",
+            "location": "Worldwide",
+            "apply_url": "https://remoteOK.com/remote-jobs/example-123",
+            "url": "https://remoteOK.com/remote-jobs/example-123",
+            "salary_min": 120000,
+            "salary_max": 160000,
+        }
+
+        post = create_remote_ok_post(remote_ok_job)
+
+        assert post.source == PostSource.REMOTE_OK
+        assert post.source_external_id == "123"
+        assert post.source_url == "https://remoteOK.com/remote-jobs/example-123"
+        assert post.who_is_hiring_comment_id is None
+        assert post.company.name == "Acme"
+        assert post.company_job_application_link == "https://remoteOK.com/remote-jobs/example-123"
+        assert post.min_salary == 120000
+        assert post.max_salary == 160000
+        assert list(post.titles.values_list("name", flat=True)) == ["Senior Python Engineer"]
+        assert set(post.technologies.values_list("name", flat=True)) == {"Python", "Django"}
+        assert Post.objects.filter(source=PostSource.REMOTE_OK, source_external_id="123").exists()
+
+        same_post = create_remote_ok_post(remote_ok_job)
+
+        assert same_post.id == post.id
+        assert Post.objects.filter(source=PostSource.REMOTE_OK, source_external_id="123").count() == 1
+        assert mock_extract.call_count == 1
+
+    @patch("jobs.tasks.create_remote_ok_post", side_effect=IntegrityError)
+    @patch("jobs.tasks.fetch_remote_ok_jobs")
+    def test_import_remote_ok_jobs_counts_concurrent_integrity_errors_as_skips(self, mock_fetch, _mock_create):
+        mock_fetch.return_value = [{"id": "123"}]
+
+        result = import_remote_ok_jobs()
+
+        assert result == "Imported 0 Remote OK jobs. Skipped 1. Failed 0."
+
+    @patch("jobs.tasks.get_embedding")
+    def test_backfill_vector_data_skips_posts_without_text(self, mock_get_embedding):
+        company = Company.objects.create(name="Acme")
+        post = Post.objects.create(
+            submitted_datetime=timezone.now(),
+            company=company,
+            source=PostSource.REMOTE_OK,
+            source_external_id="empty-text",
+        )
+
+        result = backfill_vector_data(post)
+
+        assert result == f"Job {post.id} has no text to embed, skipping."
+        mock_get_embedding.assert_not_called()
 
 
 class ReaderContextTests(SimpleTestCase):

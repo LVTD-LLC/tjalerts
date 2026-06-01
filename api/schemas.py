@@ -93,7 +93,10 @@ class JobSchema(Schema):
     locations: str
     technologies: List[str]
     title: List[str]
-    who_is_hiring_comment_id: int
+    source: str
+    source_url: str
+    source_external_id: str
+    who_is_hiring_comment_id: Optional[int]
     submitted_datetime: datetime
     emails: List[JobEmailSchema]
 

@@ -23,6 +23,9 @@ list_of_expected_keys = [
     "cities",
     "countries",
     "compensation_summary",
+    "min_salary",
+    "max_salary",
+    "currency",
     "is_remote",
     "remote_timezones",
     "is_onsite",
@@ -50,8 +53,8 @@ def clean_job_json_object(original_comment: dict, nlp_data: dict) -> dict:
 
     nlp_data["original_text"] = original_comment["text"]
 
-    check_boolean_value(nlp_data["is_remote"])
-    check_boolean_value(nlp_data["is_onsite"])
+    nlp_data["is_remote"] = check_boolean_value(nlp_data["is_remote"])
+    nlp_data["is_onsite"] = check_boolean_value(nlp_data["is_onsite"])
 
     if not has_number(nlp_data["compensation_summary"]):
         nlp_data["min_salary"] = 0
@@ -85,15 +88,13 @@ def sort_dates(dates):
 
 
 def check_boolean_value(boolean_value: any) -> bool:
-    if isinstance(boolean_value, bool) or boolean_value in [
-        "True",
-        "true",
-        "Yes",
-        "yes",
-    ]:
+    if isinstance(boolean_value, bool):
         return boolean_value
-    else:
-        return False
+
+    if boolean_value in ["True", "true", "Yes", "yes"]:
+        return True
+
+    return False
 
 
 def make_sure_all_keys_exists(data: dict, keys: list) -> dict:

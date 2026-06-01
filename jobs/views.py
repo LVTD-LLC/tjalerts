@@ -2,6 +2,7 @@ import json
 from datetime import timedelta
 
 from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import ValidationError
@@ -12,6 +13,7 @@ from django.http import HttpResponseRedirect, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
 from django_filters.views import FilterView
 from django_q.tasks import async_task
@@ -27,6 +29,7 @@ from jobs.tasks import (
     create_update_min_and_max_salary_jobs,
     find_bad_submitted_dates,
     find_users_to_alert,
+    import_remote_ok_jobs,
     send_confirmation_email,
 )
 from jobs.utils import (
@@ -183,12 +186,16 @@ class HighestPaidJobsView(ListView):
 
 
 # One time views
+@staff_member_required(login_url="account_login")
+@require_POST
 def find_bad_submitted_dates_view(request):
     async_task(find_bad_submitted_dates, hook="jobs.hooks.print_result", group="Find Bad Datetimes to Fix")
 
     return redirect("admin-panel")
 
 
+@staff_member_required(login_url="account_login")
+@require_POST
 def update_min_and_max_salary_view(request):
     async_task(
         create_update_min_and_max_salary_jobs, hook="jobs.hooks.print_result", group="Populate min and max salary"
@@ -197,10 +204,23 @@ def update_min_and_max_salary_view(request):
     return redirect("admin-panel")
 
 
-def create_backfill_vector_data_jobs_view(request):
+@staff_member_required(login_url="account_login")
+@require_POST
+def create_backfill_vector_data_jobs_view(request, rebuild=False):
     async_task(
-        create_backfill_vector_data_jobs, hook="jobs.hooks.print_result", group="Create Jobs to Update Vector Data."
+        create_backfill_vector_data_jobs,
+        rebuild,
+        hook="jobs.hooks.print_result",
+        group="Create Jobs to Update Vector Data.",
     )
+
+    return redirect("admin-panel")
+
+
+@staff_member_required(login_url="account_login")
+@require_POST
+def import_remote_ok_jobs_view(request):
+    async_task(import_remote_ok_jobs, hook="jobs.hooks.print_result", group="Import Remote OK Jobs")
 
     return redirect("admin-panel")
 
