@@ -9,7 +9,7 @@ from django.conf import settings
 from django.utils import timezone
 from openai import OpenAI
 
-from hn_jobs.posthog_events import ai_span, capture_event, model_from_feature_flag
+from hn_jobs.posthog_events import ai_span, capture_event, model_from_feature_flag, openai_usage_properties
 from hn_jobs.utils import get_tjalerts_logger
 
 logger = get_tjalerts_logger(__name__)
@@ -49,18 +49,6 @@ LIST_CONTEXT_KEYS = {
     "benefits",
     "notable_links",
 }
-
-
-def openai_usage_properties(completion):
-    usage = getattr(completion, "usage", None)
-    if not usage:
-        return {}
-
-    return {
-        "prompt_tokens": getattr(usage, "prompt_tokens", None),
-        "completion_tokens": getattr(usage, "completion_tokens", None),
-        "total_tokens": getattr(usage, "total_tokens", None),
-    }
 
 
 def extract_first_url(value):

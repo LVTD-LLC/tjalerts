@@ -249,11 +249,12 @@ class CreateCustomAlertView(SuccessMessageMixin, CreateView):
         #     messages.add_message(self.request, messages.WARNING, "Free users can only have 3 alerts.")
         #     return redirect("home")
         existing_alerts = Alert.objects.filter(email=form.instance.email)
-        if not user.is_authenticated and existing_alerts.exists():
+        existing_alert_count = existing_alerts.count()
+        if not user.is_authenticated and existing_alert_count:
             messages.add_message(self.request, messages.WARNING, "Sign up to create multiple alerts.")
             return redirect("home")
 
-        if user.is_authenticated and existing_alerts.exists():
+        if user.is_authenticated and existing_alert_count:
             if existing_alerts.latest("modified").confirmed is True or is_email_confirmed(user):
                 form.instance.confirmed = True
                 messages.add_message(
@@ -277,7 +278,7 @@ class CreateCustomAlertView(SuccessMessageMixin, CreateView):
                 "alert_type": "custom",
                 "confirmed": self.object.confirmed,
                 "authenticated": user.is_authenticated,
-                "existing_alert_count": existing_alerts.count(),
+                "existing_alert_count": existing_alert_count,
                 "filter_keys": sorted(self.object.filter.keys()),
             },
         )
@@ -295,6 +296,7 @@ class AlertCreateView(SuccessMessageMixin, CreateView):
         try:
             user = self.request.user
             existing_alerts = Alert.objects.filter(email=form.instance.email)
+            existing_alert_count = existing_alerts.count()
 
             if user.is_authenticated:
                 form.instance.user = user
@@ -312,11 +314,11 @@ class AlertCreateView(SuccessMessageMixin, CreateView):
                 messages.add_message(self.request, messages.WARNING, "Please use a Technology from the dropdown list.")
                 return redirect("home")
 
-            if not user.is_authenticated and existing_alerts.exists():
+            if not user.is_authenticated and existing_alert_count:
                 messages.add_message(self.request, messages.WARNING, "Sign up to create multiple alerts.")
                 return redirect("home")
 
-            if user.is_authenticated and existing_alerts.exists():
+            if user.is_authenticated and existing_alert_count:
                 if existing_alerts.latest("modified").confirmed is True:
                     form.instance.confirmed = True
                     messages.add_message(
@@ -344,7 +346,7 @@ class AlertCreateView(SuccessMessageMixin, CreateView):
                     "alert_type": "technology",
                     "confirmed": self.object.confirmed,
                     "authenticated": user.is_authenticated,
-                    "existing_alert_count": existing_alerts.count(),
+                    "existing_alert_count": existing_alert_count,
                     "technology_id": str(technology.id),
                     "technology_name": technology.name,
                 },

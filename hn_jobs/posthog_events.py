@@ -3,6 +3,7 @@ import json
 import logging
 import time
 from contextlib import contextmanager
+from threading import RLock
 from urllib.parse import unquote
 
 import posthog
@@ -17,6 +18,7 @@ SYSTEM_DISTINCT_ID = "system:tjalerts"
 SYSTEM_FLAG_DISTINCT_ID = "system:feature-flags"
 MODEL_FLAG_CACHE_SECONDS = 300
 _model_flag_cache = {}
+_model_flag_cache_lock = RLock()
 
 
 def posthog_enabled():
@@ -55,10 +57,11 @@ def browser_distinct_id_from_request(request):
     if not request:
         return None
 
-    cookie_name = f"ph_{getattr(settings, 'POSTHOG_API_KEY', '')}_posthog"
-    if not cookie_name:
+    api_key = getattr(settings, "POSTHOG_API_KEY", "")
+    if not api_key:
         return None
 
+    cookie_name = f"ph_{api_key}_posthog"
     raw_cookie = getattr(request, "COOKIES", {}).get(cookie_name)
     if not raw_cookie:
         return None
@@ -171,42 +174,56 @@ def evaluate_flags(*, distinct_id=SYSTEM_FLAG_DISTINCT_ID, groups=None, person_p
 
 
 def model_from_feature_flag(flag_key, default_model):
-    cached_value = _model_flag_cache.get(flag_key)
-    if cached_value and cached_value["expires_at"] > time.monotonic():
-        return cached_value["model"]
+    with _model_flag_cache_lock:
+        cached_value = _model_flag_cache.get(flag_key)
+        if cached_value and cached_value["expires_at"] > time.monotonic():
+            return cached_value["model"]
 
-    evaluations = evaluate_flags(flag_keys=[flag_key])
-    if not evaluations:
+        evaluations = evaluate_flags(flag_keys=[flag_key])
+        if not evaluations:
+            return cache_model_flag(flag_key, default_model)
+
+        try:
+            payload = evaluations.get_flag_payload(flag_key)
+        except AttributeError:
+            payload = None
+
+        if isinstance(payload, dict) and payload.get("model"):
+            return cache_model_flag(flag_key, payload["model"])
+
+        if isinstance(payload, str) and payload.strip():
+            return cache_model_flag(flag_key, payload.strip())
+
+        try:
+            flag_value = evaluations.get_flag(flag_key)
+        except AttributeError:
+            return cache_model_flag(flag_key, default_model)
+
+        if isinstance(flag_value, str) and flag_value.strip() and flag_value not in ["true", "false"]:
+            return cache_model_flag(flag_key, flag_value.strip())
+
         return cache_model_flag(flag_key, default_model)
-
-    try:
-        payload = evaluations.get_flag_payload(flag_key)
-    except AttributeError:
-        payload = None
-
-    if isinstance(payload, dict) and payload.get("model"):
-        return cache_model_flag(flag_key, payload["model"])
-
-    if isinstance(payload, str) and payload.strip():
-        return cache_model_flag(flag_key, payload.strip())
-
-    try:
-        flag_value = evaluations.get_flag(flag_key)
-    except AttributeError:
-        return cache_model_flag(flag_key, default_model)
-
-    if isinstance(flag_value, str) and flag_value.strip() and flag_value not in ["true", "false"]:
-        return cache_model_flag(flag_key, flag_value.strip())
-
-    return cache_model_flag(flag_key, default_model)
 
 
 def cache_model_flag(flag_key, model):
-    _model_flag_cache[flag_key] = {
-        "model": model,
-        "expires_at": time.monotonic() + MODEL_FLAG_CACHE_SECONDS,
-    }
+    with _model_flag_cache_lock:
+        _model_flag_cache[flag_key] = {
+            "model": model,
+            "expires_at": time.monotonic() + MODEL_FLAG_CACHE_SECONDS,
+        }
     return model
+
+
+def openai_usage_properties(completion):
+    usage = getattr(completion, "usage", None)
+    if not usage:
+        return {}
+
+    return {
+        "prompt_tokens": getattr(usage, "prompt_tokens", None),
+        "completion_tokens": getattr(usage, "completion_tokens", None),
+        "total_tokens": getattr(usage, "total_tokens", None),
+    }
 
 
 @contextmanager
