@@ -1,6 +1,7 @@
 import time
 
 import sentry_sdk
+from django.conf import settings
 
 
 class SentryMetricsMiddleware:
@@ -8,6 +9,9 @@ class SentryMetricsMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        if not settings.SENTRY_DSN or not settings.SENTRY_ENABLE_METRICS:
+            return self.get_response(request)
+
         start_time = time.perf_counter()
         response = self.get_response(request)
         duration_ms = (time.perf_counter() - start_time) * 1000

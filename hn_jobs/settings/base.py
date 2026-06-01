@@ -21,7 +21,7 @@ import sentry_sdk
 import structlog
 from posthog.sentry.posthog_integration import PostHogIntegration
 from sentry_sdk.integrations.django import DjangoIntegration
-from sentry_sdk.integrations.logging import LoggingIntegration, ignore_logger_for_sentry_logs
+from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
 from structlog_sentry import SentryProcessor
 
@@ -47,8 +47,17 @@ SITE_URL = env("SITE_URL", default="https://gettjalerts.com").rstrip("/")
 SENTRY_DSN = env("SENTRY_DSN", default="")
 SENTRY_RELEASE = env("SENTRY_RELEASE", default="")
 SENTRY_SEND_DEFAULT_PII = env.bool("SENTRY_SEND_DEFAULT_PII", default=False)
-SENTRY_TRACES_SAMPLE_RATE = env.float("SENTRY_TRACES_SAMPLE_RATE", default=1.0)
-SENTRY_PROFILE_SESSION_SAMPLE_RATE = env.float("SENTRY_PROFILE_SESSION_SAMPLE_RATE", default=1.0)
+SENTRY_EXPLORATION_MODE = env.bool(
+    "SENTRY_EXPLORATION_MODE",
+    default=ENVIRONMENT.lower() not in {"prod", "production"},
+)
+SENTRY_DEFAULT_SAMPLE_RATE = 1.0 if SENTRY_EXPLORATION_MODE else 0.2
+SENTRY_DEFAULT_REPLAY_SESSION_SAMPLE_RATE = 1.0 if SENTRY_EXPLORATION_MODE else 0.0
+SENTRY_TRACES_SAMPLE_RATE = env.float("SENTRY_TRACES_SAMPLE_RATE", default=SENTRY_DEFAULT_SAMPLE_RATE)
+SENTRY_PROFILE_SESSION_SAMPLE_RATE = env.float(
+    "SENTRY_PROFILE_SESSION_SAMPLE_RATE",
+    default=SENTRY_DEFAULT_SAMPLE_RATE,
+)
 SENTRY_ENABLE_LOGS = env.bool("SENTRY_ENABLE_LOGS", default=True)
 SENTRY_ENABLE_METRICS = env.bool("SENTRY_ENABLE_METRICS", default=True)
 SENTRY_LOG_LEVELS = {
@@ -66,7 +75,10 @@ SENTRY_BROWSER_TRACES_SAMPLE_RATE = env.float(
     "SENTRY_BROWSER_TRACES_SAMPLE_RATE",
     default=SENTRY_TRACES_SAMPLE_RATE,
 )
-SENTRY_BROWSER_REPLAYS_SESSION_SAMPLE_RATE = env.float("SENTRY_BROWSER_REPLAYS_SESSION_SAMPLE_RATE", default=1.0)
+SENTRY_BROWSER_REPLAYS_SESSION_SAMPLE_RATE = env.float(
+    "SENTRY_BROWSER_REPLAYS_SESSION_SAMPLE_RATE",
+    default=SENTRY_DEFAULT_REPLAY_SESSION_SAMPLE_RATE,
+)
 SENTRY_BROWSER_REPLAYS_ON_ERROR_SAMPLE_RATE = env.float("SENTRY_BROWSER_REPLAYS_ON_ERROR_SAMPLE_RATE", default=1.0)
 
 LOGFIRE_TOKEN = env("LOGFIRE_TOKEN", default="")
@@ -355,7 +367,6 @@ MJML_HTTPSERVERS = [
 
 if SENTRY_DSN:
     Q_CLUSTER["error_reporter"]["sentry"] = {"dsn": SENTRY_DSN}
-    ignore_logger_for_sentry_logs("tjalerts.*")
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         environment=ENVIRONMENT,
@@ -376,7 +387,7 @@ if SENTRY_DSN:
             LoggingIntegration(
                 level=SENTRY_LOG_LEVEL,
                 event_level=None,
-                sentry_logs_level=SENTRY_LOG_LEVEL if SENTRY_ENABLE_LOGS else None,
+                sentry_logs_level=None,
             ),
             PostHogIntegration(),
         ],
@@ -499,8 +510,10 @@ structlog_processors = [
     # structlog.processors.format_exc_info,
 ]
 
-if SENTRY_DSN:
+if SENTRY_DSN and SENTRY_ENABLE_LOGS:
     structlog_processors.append(send_structlog_to_sentry)
+
+if SENTRY_DSN:
     structlog_processors.append(
         SentryProcessor(
             event_level=logging.ERROR,

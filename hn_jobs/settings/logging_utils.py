@@ -78,5 +78,9 @@ def send_structlog_to_sentry(_logger, _method_name, event_dict):
         if key not in SENTRY_STRUCTLOG_RESERVED_KEYS:
             attributes[key] = normalize_telemetry_attribute(value)
 
-    log_method(message, attributes=attributes)
+    try:
+        log_method(message, attributes=attributes)
+    except Exception:
+        return event_dict
+
     return event_dict
