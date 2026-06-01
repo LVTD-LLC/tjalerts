@@ -30,20 +30,10 @@ shift $((OPTIND - 1))
 # If no valid option provided, default to server
 if [ "$server" = true ]; then
     python manage.py collectstatic --noinput
-    # Startup migrations keep simple deploys convenient, but the web process
-    # cannot serve traffic until this command exits. Keep migrations here
-    # schema-only and fast. Run large data backfills as separate one-off
-    # management commands or worker jobs before/after deploy; see
+    # Startup migrations are always run before Gunicorn starts. Keep migrations
+    # schema-only and fast; run large data backfills separately. See
     # docs/production-data-changes.md.
-    if [ "${RUN_MIGRATIONS_ON_STARTUP:-true}" != "false" ]; then
-        python manage.py migrate
-    else
-        echo "Skipping startup migrations because RUN_MIGRATIONS_ON_STARTUP=$RUN_MIGRATIONS_ON_STARTUP"
-        python manage.py migrate --check || {
-            echo "ERROR: Pending migrations detected. Run migrations before starting the server." >&2
-            exit 1
-        }
-    fi
+    python manage.py migrate
     # python manage.py djstripe_sync_models
     gunicorn ${PROJECT_NAME}.wsgi:application --bind 0.0.0.0:80 --workers 3 --threads 2 --reload
 else

@@ -18,9 +18,7 @@ Prefer this flow for production-scale data changes:
    required fields, and indexes. On PostgreSQL, create large indexes
    concurrently when possible.
 
-Use `RUN_MIGRATIONS_ON_STARTUP=false` only when migrations are being run by a
-separate release step or manually before the web process starts. Any other value
-runs startup migrations. Do not disable startup migrations without a replacement
-path, or new code may boot against an old schema. The entrypoint still runs
-`python manage.py migrate --check` in this mode so the web process fails fast if
-unapplied migrations remain.
+Startup migrations are intentionally always run before the web process starts.
+That makes it especially important to keep migrations quick and predictable:
+schema changes belong in migrations, while production-scale data rewrites belong
+in separate operational commands or worker jobs.
