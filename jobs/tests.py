@@ -24,7 +24,7 @@ from jobs.tasks import (
     import_remote_ok_jobs,
     merge_company_emails,
 )
-from jobs.utils import clean_job_json_object
+from jobs.utils import clean_job_json_object, is_probably_non_hiring_hn_comment, normalize_hn_comment_text
 
 
 class CompanyEmailMergeTests(SimpleTestCase):
@@ -322,3 +322,180 @@ class ReaderContextTests(SimpleTestCase):
         assert "untrusted data" in messages[0]["content"]
         assert "<untrusted_page_content>" in messages[1]["content"]
         assert "</untrusted_page_content>" in messages[1]["content"]
+
+
+class HNCommentHiringDetectionTests(SimpleTestCase):
+    def test_detects_who_wants_to_be_hired_style_comment(self):
+        comment = """
+        SEEKING WORK | Full-Stack Developer (Django, Vue, AWS)<p>
+        Location: Argentina (remote-friendly, US/EU time overlap)<p>
+        I'm a full-stack developer with a background in finance.<p>
+        GitHub: https://github.com/lorenzoreyes<p>
+        Email: lorenzoreyesx@gmail.com
+        """
+
+        assert is_probably_non_hiring_hn_comment(comment) is True
+
+    def test_detects_self_promotional_profile_without_hiring_signal(self):
+        comment = """
+        I'm a backend engineer with 8 years of Python experience.<p>
+        Portfolio: https://example.com<p>
+        Email: person@example.com
+        """
+
+        assert is_probably_non_hiring_hn_comment(comment) is True
+
+    def test_detects_self_promotional_profile_with_seniority_and_specialization(self):
+        comment = """
+        I'm a senior backend engineer with 10 years of Python experience.<p>
+        GitHub: https://github.com/person<p>
+        Email: person@example.com
+        """
+
+        assert is_probably_non_hiring_hn_comment(comment) is True
+
+    def test_detects_self_promotional_profile_with_staff_data_title(self):
+        comment = """
+        I am a staff data scientist focused on NLP and forecasting.<p>
+        Portfolio: https://example.com<p>
+        Email: person@example.com
+        """
+
+        assert is_probably_non_hiring_hn_comment(comment) is True
+
+    def test_detects_pipe_separated_seeking_work_header(self):
+        comment = """
+        Austin, TX | Python Developer | SEEKING WORK | Remote<p>
+        Django, FastAPI, Postgres, AWS<p>
+        GitHub: https://github.com/person
+        """
+
+        assert is_probably_non_hiring_hn_comment(comment) is True
+
+    def test_career_singular_is_not_a_company_hiring_signal(self):
+        comment = """
+        I'm a backend engineer and throughout my career I have built payments systems.<p>
+        GitHub: https://github.com/person<p>
+        Email: person@example.com
+        """
+
+        assert is_probably_non_hiring_hn_comment(comment) is True
+
+    def test_apply_without_application_context_is_not_a_company_hiring_signal(self):
+        comment = """
+        I'm a full-stack developer and I apply accessibility best practices daily.<p>
+        Portfolio: https://example.com<p>
+        Email: person@example.com
+        """
+
+        assert is_probably_non_hiring_hn_comment(comment) is True
+
+    def test_join_the_team_without_qualifier_is_not_a_company_hiring_signal(self):
+        comment = """
+        I'm a backend engineer interested in distributed systems and would love to join the team.<p>
+        Portfolio: https://example.com<p>
+        Email: person@example.com
+        """
+
+        assert is_probably_non_hiring_hn_comment(comment) is True
+
+    def test_market_commentary_is_not_a_company_hiring_signal(self):
+        comment = """
+        I'm a backend engineer with Python and Postgres experience. The market is hiring again, but selectively.<p>
+        Portfolio: https://example.com<p>
+        Email: person@example.com
+        """
+
+        assert is_probably_non_hiring_hn_comment(comment) is True
+
+    def test_allows_company_hiring_comment(self):
+        comment = """
+        Acme AI | Staff Backend Engineer | Remote (US) | Full-time<p>
+        We're hiring engineers to build infrastructure for our payments platform.
+        Apply at https://example.com/careers/backend-engineer
+        """
+
+        assert is_probably_non_hiring_hn_comment(comment) is False
+
+    def test_allows_company_looking_for_engineers_comment(self):
+        comment = """
+        ExampleCo | Berlin | Onsite<p>
+        We are looking for a full-stack developer to join our product team.
+        Send your resume to jobs@example.com.
+        """
+
+        assert is_probably_non_hiring_hn_comment(comment) is False
+
+    def test_allows_company_post_with_work_life_balance_phrase(self):
+        comment = """
+        Acme AI | Remote<p>
+        We are seeking work-life balance minded engineers for our infrastructure team.
+        """
+
+        assert is_probably_non_hiring_hn_comment(comment) is False
+
+    def test_allows_first_person_company_post_with_qualified_team_signal(self):
+        comment = """
+        Acme AI | Remote<p>
+        I'm a senior backend engineer at Acme, and we need another engineer to join our platform team.<p>
+        Email: jobs@example.com
+        """
+
+        assert is_probably_non_hiring_hn_comment(comment) is False
+
+    def test_allows_first_person_company_post_with_company_is_hiring_signal(self):
+        comment = """
+        Acme AI | Remote<p>
+        I'm a backend engineer at Acme. Our company is hiring another platform engineer.<p>
+        Email: jobs@example.com
+        """
+
+        assert is_probably_non_hiring_hn_comment(comment) is False
+
+    def test_allows_first_person_company_post_with_looking_for_signal(self):
+        comment = """
+        Acme AI | Remote<p>
+        I'm a senior engineer at Acme. We are looking for a junior developer.<p>
+        Email: jobs@example.com
+        """
+
+        assert is_probably_non_hiring_hn_comment(comment) is False
+
+    def test_allows_first_person_company_post_with_need_role_signal(self):
+        comment = """
+        Acme AI | Remote<p>
+        I'm a staff engineer at Acme. We need another backend engineer for the payments group.<p>
+        Email: jobs@example.com
+        """
+
+        assert is_probably_non_hiring_hn_comment(comment) is False
+
+    def test_allows_first_person_company_post_with_need_plural_role_signal(self):
+        comment = """
+        Acme AI | Remote<p>
+        I'm a staff engineer at Acme. We need backend engineers for the payments group.<p>
+        Email: jobs@example.com
+        """
+
+        assert is_probably_non_hiring_hn_comment(comment) is False
+
+    def test_allows_first_person_company_post_with_seeking_role_signal(self):
+        comment = """
+        Acme AI | Remote<p>
+        I'm a senior engineer at Acme. We are seeking another backend developer.<p>
+        Email: jobs@example.com
+        """
+
+        assert is_probably_non_hiring_hn_comment(comment) is False
+
+    def test_allows_first_person_company_post_with_seeking_plural_role_signal(self):
+        comment = """
+        Acme AI | Remote<p>
+        I'm a senior engineer at Acme. We are seeking backend developers.<p>
+        Email: jobs@example.com
+        """
+
+        assert is_probably_non_hiring_hn_comment(comment) is False
+
+    def test_normalizes_hacker_news_html(self):
+        assert normalize_hn_comment_text("Hello<p>Remote &amp; onsite<br>Apply") == "Hello\nRemote & onsite\nApply"

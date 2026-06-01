@@ -27,7 +27,14 @@ from jobs.choices import PostSource
 from jobs.enrichment import augment_cleaned_job_data_with_context, build_reader_context, extract_first_url
 from jobs.filters import PostFilter
 from jobs.models import Alert, AlertEmailSend, Company, Email, Post, Technology, Title
-from jobs.utils import clean_job_json_object, fix_email, get_embedding, has_number, is_generic
+from jobs.utils import (
+    clean_job_json_object,
+    fix_email,
+    get_embedding,
+    has_number,
+    is_generic,
+    is_probably_non_hiring_hn_comment,
+)
 
 logger = get_tjalerts_logger(__name__)
 
@@ -300,6 +307,10 @@ def analyze_hn_page(who_is_hiring_id, who_is_hiring_title, comment_id):
             return "Comment was deleted"
     except KeyError:
         pass
+
+    if is_probably_non_hiring_hn_comment(json_job.get("text", "")):
+        logger.info("Skipping non-hiring HN comment", comment_id=comment_id)
+        return "Comment is not a company hiring post"
 
     who_is_hiring_comment_id = int(json_job["id"])
     if (

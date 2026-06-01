@@ -1,10 +1,12 @@
 import re
 from datetime import datetime
+from html import unescape
 from itertools import combinations
 
 from allauth.account.models import EmailAddress
 from django.conf import settings
 from django.db.models import Count, Q
+from django.utils.html import strip_tags
 from openai import OpenAI
 
 from hn_jobs.utils import get_tjalerts_logger
@@ -39,6 +41,105 @@ list_of_expected_keys = [
     "years_of_experience",
     "levels_of_experience",
 ]
+
+
+NON_HIRING_COMMENT_OPENING_PATTERNS = [
+    r"\bseeking\s+work(?![-/\w])",
+    r"\blooking\s+for\s+work(?![-/\w])",
+    r"\bavailable\s+for\s+hire\b",
+    r"\bopen\s+to\s+work\b",
+    r"\bhire\s+me\b",
+    (r"\bseeking\s+" r"(?:employment|a\s+(?:job|role|position)|remote\s+work|contract\s+work|freelance\s+work)\b"),
+    (
+        r"\blooking\s+for\s+"
+        r"(?:employment|a\s+(?:job|role|position)|remote\s+work|contract\s+work|"
+        r"freelance\s+work|new\s+(?:role|position|opportunity))\b"
+    ),
+]
+
+NON_HIRING_COMMENT_BODY_PATTERNS = [
+    r"\bwho wants to be hired\b",
+    r"\bposted (?:this )?(?:in|on) the wrong thread\b",
+    r"\bshould (?:be|go) (?:in|on) the (?:who wants to be hired|freelancer|seeking work) thread\b",
+    r"\bmy\s+(?:resume|r\u00e9sum\u00e9|cv)\b",
+]
+
+SELF_PROMOTION_TITLE_PATTERN = (
+    r"(?:(?:junior|mid[- ]level|midlevel|mid|senior|staff|principal|lead|founding|experienced)\s+)?"
+    r"(?:full[- ]stack|frontend|front[- ]end|backend|back[- ]end|software|data|mobile|"
+    r"devops|machine learning|ml|ai)?\s*"
+    r"(?:engineer|developer|designer|scientist)"
+)
+
+SELF_PROMOTION_PATTERNS = [
+    r"\bi(?:'|\u2019)?m\s+(?:an?\s+)?" + SELF_PROMOTION_TITLE_PATTERN + r"\b",
+    r"\bi am\s+(?:an?\s+)?" + SELF_PROMOTION_TITLE_PATTERN + r"\b",
+]
+
+CONTACT_MARKER_PATTERNS = [
+    r"\bgithub\s*:",
+    r"\blinkedin\s*:",
+    r"\bportfolio\s*:",
+    r"\bemail\s*:",
+]
+
+COMPANY_HIRING_ROLE_PATTERN = (
+    r"(?:engineers?|developers?|devs?|designers?|scientists?|managers?|leads?|contractors?|"
+    r"consultants?|candidates?|persons?|people)"
+)
+
+COMPANY_HIRING_SIGNAL_PATTERNS = [
+    r"\b(?:we(?:'|\u2019)?re|we are|our team is)\s+hiring\b",
+    r"\b(?:my|our)\s+company\s+(?:is|are)\s+hiring\b",
+    r"\bwe(?:'|\u2019)?re\s+looking\s+for\b",
+    r"\bwe are\s+looking\s+for\b",
+    r"\bwe(?:'|\u2019)?re\s+seeking\s+(?:(?:an?|another)\s+)?(?:[\w-]+\s+){0,4}" + COMPANY_HIRING_ROLE_PATTERN + r"\b",
+    r"\bwe are\s+seeking\s+(?:(?:an?|another)\s+)?(?:[\w-]+\s+){0,4}" + COMPANY_HIRING_ROLE_PATTERN + r"\b",
+    r"\bwe need\s+(?:an?\s+)?(?:[\w-]+\s+){0,4}" + COMPANY_HIRING_ROLE_PATTERN + r"\b",
+    r"\bwe need\s+(?:someone|somebody|people|folks|candidates?)\b",
+    r"\bopen roles?\b",
+    r"\bpositions?\s+(?:available|open)\b",
+    r"\bapply\s+(?:at|now|here|online|directly|via|through|below)\b",
+    r"\bcareers\s*(?::|/)",
+    r"\bcareers\s+(?:at|page|portal|site)\b",
+    r"/careers(?:/|\b)",
+    r"\bjoin our(?:\s+[\w-]+){0,3}\s+team\b",
+    r"\bjoin the(?:\s+[\w-]+){1,3}\s+team\b",
+]
+
+OPENING_COMMENT_LINE_COUNT = 4
+
+
+def normalize_hn_comment_text(text: str) -> str:
+    text = re.sub(r"(?i)<\s*(?:p|br)\s*/?>", "\n", text or "")
+    text = strip_tags(text)
+    text = unescape(text)
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\s*\n\s*", "\n", text)
+    return text.strip()
+
+
+def is_probably_non_hiring_hn_comment(text: str) -> bool:
+    normalized_text = normalize_hn_comment_text(text)
+    if not normalized_text:
+        return True
+
+    lowercase_text = normalized_text.lower()
+    compact_text = re.sub(r"\s+", " ", lowercase_text)
+    opening_lines = "\n".join(lowercase_text.splitlines()[:OPENING_COMMENT_LINE_COUNT])
+    opening_text = re.sub(r"\s+", " ", opening_lines)
+
+    if any(re.search(pattern, opening_text) for pattern in NON_HIRING_COMMENT_OPENING_PATTERNS):
+        return True
+
+    if any(re.search(pattern, compact_text) for pattern in NON_HIRING_COMMENT_BODY_PATTERNS):
+        return True
+
+    has_self_promotion = any(re.search(pattern, compact_text) for pattern in SELF_PROMOTION_PATTERNS)
+    has_contact_marker = any(re.search(pattern, compact_text) for pattern in CONTACT_MARKER_PATTERNS)
+    has_company_hiring_signal = any(re.search(pattern, compact_text) for pattern in COMPANY_HIRING_SIGNAL_PATTERNS)
+
+    return has_self_promotion and has_contact_marker and not has_company_hiring_signal
 
 
 def clean_job_json_object(original_comment: dict, nlp_data: dict) -> dict:
