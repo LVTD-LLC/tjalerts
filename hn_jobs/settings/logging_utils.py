@@ -55,33 +55,33 @@ def enrich_sentry_metric(metric, _hint):
 
 
 def send_structlog_to_sentry(_logger, _method_name, event_dict):
-    level = event_dict.get("level", "info")
-    log_method = SENTRY_LOG_METHODS.get(level, sentry_sdk.logger.info)
-    message = str(event_dict.get("event", ""))
-
-    attributes = {
-        "sentry.origin": "auto.log.structlog",
-        "logger.name": normalize_telemetry_attribute(event_dict.get("logger")),
-    }
-
-    record = event_dict.get("_record")
-    if isinstance(record, logging.LogRecord):
-        attributes.update(
-            {
-                "code.file.path": record.pathname,
-                "code.function.name": record.funcName,
-                "code.line.number": record.lineno,
-                "process.pid": record.process,
-                "thread.id": record.thread,
-                "thread.name": record.threadName,
-            }
-        )
-
-    for key, value in event_dict.items():
-        if key not in SENTRY_STRUCTLOG_RESERVED_KEYS:
-            attributes[key] = normalize_telemetry_attribute(value)
-
     try:
+        level = event_dict.get("level", "info")
+        log_method = SENTRY_LOG_METHODS.get(level, sentry_sdk.logger.info)
+        message = str(event_dict.get("event", ""))
+
+        attributes = {
+            "sentry.origin": "auto.log.structlog",
+            "logger.name": normalize_telemetry_attribute(event_dict.get("logger")),
+        }
+
+        record = event_dict.get("_record")
+        if isinstance(record, logging.LogRecord):
+            attributes.update(
+                {
+                    "code.file.path": record.pathname,
+                    "code.function.name": record.funcName,
+                    "code.line.number": record.lineno,
+                    "process.pid": record.process,
+                    "thread.id": record.thread,
+                    "thread.name": record.threadName,
+                }
+            )
+
+        for key, value in event_dict.items():
+            if key not in SENTRY_STRUCTLOG_RESERVED_KEYS:
+                attributes[key] = normalize_telemetry_attribute(value)
+
         log_method(message, attributes=attributes)
     except Exception:
         return event_dict
