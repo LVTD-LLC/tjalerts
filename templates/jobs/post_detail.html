@@ -49,9 +49,15 @@
         <a href="{{ object.split_application_links.0 }}?utm_source=gettjalerts.com" target="_blank" class="btn-primary">Apply</a>
         {% endif %}
         {% if object.source == "Hacker News" %}
-        <a href="https://news.ycombinator.com/item?id={{ object.who_is_hiring_comment_id }}&utm_source=gettjalerts.com" target="_blank" class="btn-secondary">View on Hacker News</a>
+        <a href="https://news.ycombinator.com/item?id={{ object.who_is_hiring_comment_id }}&utm_source=gettjalerts.com" target="_blank" class="btn-secondary gap-2">
+          <img src="{% static 'vendors/images/source-hacker-news.svg' %}" alt="" class="h-4 w-4 shrink-0 rounded-sm" aria-hidden="true" />
+          View on Hacker News
+        </a>
         {% elif object.source == "Remote OK" and object.source_url %}
-        <a href="{{ object.source_url }}" target="_blank" class="btn-secondary">View on Remote OK</a>
+        <a href="{{ object.source_url }}" target="_blank" class="btn-secondary gap-2">
+          <img src="{% static 'vendors/images/source-remote-ok.png' %}" alt="" class="h-4 w-4 shrink-0 rounded-sm" aria-hidden="true" />
+          View on Remote OK
+        </a>
         {% endif %}
         {% if object.company.company_homepage_link %}
         <a href="{{ object.company.fixed_company_homepage_link }}" target="_blank" class="btn-secondary">Company site</a>
