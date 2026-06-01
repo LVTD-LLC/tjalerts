@@ -92,7 +92,7 @@ CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS")
 DEBUG = env("DEBUG")
 
 POSTHOG_API_KEY = env("POSTHOG_API_KEY", default="")
-POSTHOG_HOST = env("POSTHOG_HOST", default="https://app.posthog.com").rstrip("/")
+POSTHOG_HOST = env("POSTHOG_HOST", default="https://us.posthog.com").rstrip("/")
 POSTHOG_INGEST_HOST = env("POSTHOG_INGEST_HOST", default="https://us.i.posthog.com").rstrip("/")
 POSTHOG_ENABLED = env.bool("POSTHOG_ENABLED", default=bool(POSTHOG_API_KEY) and not DEBUG)
 POSTHOG_AI_OBSERVABILITY_ENABLED = env.bool(
@@ -107,7 +107,7 @@ POSTHOG_MW_CAPTURE_EXCEPTIONS = env.bool("POSTHOG_MW_CAPTURE_EXCEPTIONS", defaul
 
 configure_posthog_client(
     api_key=POSTHOG_API_KEY,
-    host=POSTHOG_HOST,
+    host=POSTHOG_INGEST_HOST,
     enabled=POSTHOG_ENABLED,
     debug=DEBUG,
 )

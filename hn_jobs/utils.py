@@ -43,6 +43,7 @@ def site_metadata(request):
         "ENVIRONMENT": settings.ENVIRONMENT,
         "POSTHOG_API_KEY": settings.POSTHOG_API_KEY,
         "POSTHOG_HOST": settings.POSTHOG_HOST,
+        "POSTHOG_INGEST_HOST": settings.POSTHOG_INGEST_HOST,
         "POSTHOG_ENABLED": settings.POSTHOG_ENABLED,
         "POSTHOG_DISTINCT_ID": distinct_id_for_user(user),
     }
