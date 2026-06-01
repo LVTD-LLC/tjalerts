@@ -20,6 +20,14 @@ from django.utils.html import strip_tags
 from django_q.tasks import async_task
 from openai import OpenAI
 
+from hn_jobs.posthog_events import (
+    ai_span,
+    capture_event,
+    company_group,
+    distinct_id_for_email,
+    identify_company,
+    model_from_feature_flag,
+)
 from hn_jobs.utils import get_tjalerts_logger
 from users.models import CustomUser
 
@@ -44,6 +52,18 @@ MAX_COMPANY_EMAILS_LENGTH = 2000
 REMOTE_OK_API_URL = "https://remoteok.com/api"
 REMOTE_OK_USER_AGENT = "gettjalerts.com jobs importer (https://gettjalerts.com)"
 MOJIBAKE_MARKERS = ("\u00c3", "\u00c2", "\u00e2", "\u00d8", "\u00d9")
+
+
+def openai_usage_properties(completion):
+    usage = getattr(completion, "usage", None)
+    if not usage:
+        return {}
+
+    return {
+        "prompt_tokens": getattr(usage, "prompt_tokens", None),
+        "completion_tokens": getattr(usage, "completion_tokens", None),
+        "total_tokens": getattr(usage, "total_tokens", None),
+    }
 
 
 def build_job_extraction_request(text):
@@ -79,26 +99,65 @@ def build_job_extraction_request(text):
 
 
 def extract_job_data_from_text(text):
+    model = model_from_feature_flag("job-extraction-model", settings.OPENAI_JOB_EXTRACTION_MODEL)
+    request = build_job_extraction_request(text)
+
     try:
-        completion = client.chat.completions.create(
-            model=settings.OPENAI_JOB_EXTRACTION_MODEL,
-            response_format={"type": "json_object"},
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a helpful assistant.",
-                },
-                {"role": "user", "content": build_job_extraction_request(text)},
-            ],
-        )
+        with ai_span(
+            "ai.job_extraction",
+            attributes={
+                "ai.workflow": "job_extraction",
+                "gen_ai.request.model": model,
+                "input_length": len(text or ""),
+            },
+        ):
+            completion = client.chat.completions.create(
+                model=model,
+                response_format={"type": "json_object"},
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a helpful assistant.",
+                    },
+                    {"role": "user", "content": request},
+                ],
+            )
         converted_comment_response = completion.choices[0].message
     except (openai.RateLimitError, openai.APIError) as e:
+        capture_event(
+            "ai job extraction failed",
+            properties={
+                "model": model,
+                "error_type": type(e).__name__,
+                "input_length": len(text or ""),
+            },
+        )
         raise e
 
     try:
-        return json.loads(converted_comment_response.content)
+        parsed_response = json.loads(converted_comment_response.content)
     except json.decoder.JSONDecodeError as e:
+        capture_event(
+            "ai job extraction json failed",
+            properties={
+                "model": model,
+                "error_type": type(e).__name__,
+                "input_length": len(text or ""),
+                **openai_usage_properties(completion),
+            },
+        )
         raise e
+
+    capture_event(
+        "ai job extraction completed",
+        properties={
+            "model": model,
+            "input_length": len(text or ""),
+            **openai_usage_properties(completion),
+        },
+    )
+
+    return parsed_response
 
 
 def split_comma_separated_values(value):
@@ -191,6 +250,25 @@ def create_post_from_cleaned_data(
     post.technologies.add(*technologies)
     post.titles.add(*job_titles)
 
+    identify_company(company_obj)
+    capture_event(
+        "job imported",
+        properties={
+            "post_id": str(post.id),
+            "source": source,
+            "source_external_id": str(source_external_id or ""),
+            "company_id": str(company_obj.id),
+            "company_name": company_obj.name,
+            "technology_count": len(technologies),
+            "title_count": len(job_titles),
+            "has_email": bool(cleaned_data["emails"]),
+            "has_application_link": bool(cleaned_data["company_job_application_link"]),
+            "has_salary": bool(post.min_salary or post.max_salary),
+            "is_remote": post.is_remote,
+        },
+        groups=company_group(company_obj),
+    )
+
     return post
 
 
@@ -267,6 +345,14 @@ def get_hn_pages_to_analyze(who_is_hiring_post_id):
     data = httpx.get(f"https://hacker-news.firebaseio.com/v0/item/{who_is_hiring_post_id}.json").json()
 
     if "Who is hiring" not in data["title"]:
+        capture_event(
+            "hn import skipped",
+            properties={
+                "who_is_hiring_post_id": who_is_hiring_post_id,
+                "reason": "not_who_is_hiring",
+                "title": data.get("title", ""),
+            },
+        )
         return "Not a Who is hiring post"
 
     list_of_comment_ids = data["kids"]
@@ -296,61 +382,126 @@ def get_hn_pages_to_analyze(who_is_hiring_post_id):
     except httpx.RequestException as e:
         logger.error("Ping failed", error=e)
 
+    capture_event(
+        "hn import queued",
+        properties={
+            "who_is_hiring_post_id": who_is_hiring_post_id,
+            "who_is_hiring_title": data["title"],
+            "queued_count": count,
+            "comment_count": len(list_of_comment_ids),
+        },
+    )
+
     return f"{count} have been sent to be analyzed."
 
 
 def analyze_hn_page(who_is_hiring_id, who_is_hiring_title, comment_id):
-    json_job = httpx.get(f"https://hacker-news.firebaseio.com/v0/item/{comment_id}.json").json()
-
-    try:
-        if json_job["deleted"] is True:
-            return "Comment was deleted"
-    except KeyError:
-        pass
-
-    if is_probably_non_hiring_hn_comment(json_job.get("text", "")):
-        logger.info("Skipping non-hiring HN comment", comment_id=comment_id)
-        return "Comment is not a company hiring post"
-
-    who_is_hiring_comment_id = int(json_job["id"])
-    if (
-        Post.objects.filter(source=PostSource.HACKER_NEWS, source_external_id=str(who_is_hiring_comment_id)).exists()
-        or Post.objects.filter(who_is_hiring_comment_id=who_is_hiring_comment_id).exists()
+    with ai_span(
+        "ai.hn_job_import",
+        attributes={
+            "ai.workflow": "hn_job_import",
+            "who_is_hiring_id": who_is_hiring_id,
+            "comment_id": comment_id,
+        },
     ):
-        return "Comment already exists"
+        try:
+            json_job = httpx.get(f"https://hacker-news.firebaseio.com/v0/item/{comment_id}.json").json()
 
-    hn_username = str(json_job["by"])
-    unix_timestamp = int(json_job["time"])
-    vector = get_embedding(json_job["text"])
+            try:
+                if json_job["deleted"] is True:
+                    capture_event(
+                        "hn job import skipped",
+                        properties={
+                            "who_is_hiring_id": who_is_hiring_id,
+                            "comment_id": comment_id,
+                            "reason": "deleted",
+                        },
+                    )
+                    return "Comment was deleted"
+            except KeyError:
+                pass
 
-    cleaned_data = clean_job_json_object(json_job, extract_job_data_from_text(json_job["text"]))
-    (
-        cleaned_data,
-        company_homepage_context,
-        company_homepage_reader_content,
-        job_posting_context,
-        job_posting_reader_content,
-    ) = enrich_cleaned_data_with_reader_context(cleaned_data)
+            if is_probably_non_hiring_hn_comment(json_job.get("text", "")):
+                logger.info("Skipping non-hiring HN comment", comment_id=comment_id)
+                capture_event(
+                    "hn job import skipped",
+                    properties={
+                        "who_is_hiring_id": who_is_hiring_id,
+                        "comment_id": comment_id,
+                        "reason": "not_hiring_post",
+                    },
+                )
+                return "Comment is not a company hiring post"
 
-    create_post_from_cleaned_data(
-        cleaned_data,
-        source=PostSource.HACKER_NEWS,
-        source_external_id=who_is_hiring_comment_id,
-        source_url=f"https://news.ycombinator.com/item?id={who_is_hiring_comment_id}",
-        source_payload=json_job,
-        who_is_hiring_id=who_is_hiring_id,
-        who_is_hiring_title=who_is_hiring_title,
-        who_is_hiring_comment_id=who_is_hiring_comment_id,
-        hn_username=hn_username,
-        submitted_datetime=datetime.fromtimestamp(unix_timestamp, tz=dt_timezone.utc),
-        company_homepage_context=company_homepage_context,
-        company_homepage_reader_content=company_homepage_reader_content,
-        job_posting_context=job_posting_context,
-        job_posting_reader_content=job_posting_reader_content,
-        vector=vector,
-    )
+            who_is_hiring_comment_id = int(json_job["id"])
+            if (
+                Post.objects.filter(
+                    source=PostSource.HACKER_NEWS, source_external_id=str(who_is_hiring_comment_id)
+                ).exists()
+                or Post.objects.filter(who_is_hiring_comment_id=who_is_hiring_comment_id).exists()
+            ):
+                capture_event(
+                    "hn job import skipped",
+                    properties={
+                        "who_is_hiring_id": who_is_hiring_id,
+                        "comment_id": who_is_hiring_comment_id,
+                        "reason": "already_exists",
+                    },
+                )
+                return "Comment already exists"
 
-    return "Comment is saved."
+            hn_username = str(json_job["by"])
+            unix_timestamp = int(json_job["time"])
+            vector = get_embedding(json_job["text"])
+
+            cleaned_data = clean_job_json_object(json_job, extract_job_data_from_text(json_job["text"]))
+            (
+                cleaned_data,
+                company_homepage_context,
+                company_homepage_reader_content,
+                job_posting_context,
+                job_posting_reader_content,
+            ) = enrich_cleaned_data_with_reader_context(cleaned_data)
+
+            post = create_post_from_cleaned_data(
+                cleaned_data,
+                source=PostSource.HACKER_NEWS,
+                source_external_id=who_is_hiring_comment_id,
+                source_url=f"https://news.ycombinator.com/item?id={who_is_hiring_comment_id}",
+                source_payload=json_job,
+                who_is_hiring_id=who_is_hiring_id,
+                who_is_hiring_title=who_is_hiring_title,
+                who_is_hiring_comment_id=who_is_hiring_comment_id,
+                hn_username=hn_username,
+                submitted_datetime=datetime.fromtimestamp(unix_timestamp, tz=dt_timezone.utc),
+                company_homepage_context=company_homepage_context,
+                company_homepage_reader_content=company_homepage_reader_content,
+                job_posting_context=job_posting_context,
+                job_posting_reader_content=job_posting_reader_content,
+                vector=vector,
+            )
+
+            capture_event(
+                "hn job import completed",
+                properties={
+                    "who_is_hiring_id": who_is_hiring_id,
+                    "comment_id": who_is_hiring_comment_id,
+                    "post_id": str(post.id),
+                    "hn_username": hn_username,
+                },
+                groups=company_group(post.company),
+            )
+            return "Comment is saved."
+        except Exception as e:
+            capture_event(
+                "hn job import failed",
+                properties={
+                    "who_is_hiring_id": who_is_hiring_id,
+                    "comment_id": comment_id,
+                    "error_type": type(e).__name__,
+                },
+            )
+            raise
 
 
 def clean_remote_ok_string(value):
@@ -526,6 +677,17 @@ def import_remote_ok_jobs(limit=None):
             failed_count += 1
             logger.error("Remote OK job import failed", remote_ok_id=remote_ok_id, error=e)
 
+    capture_event(
+        "remote ok import completed",
+        properties={
+            "imported_count": imported_count,
+            "skipped_count": skipped_count,
+            "failed_count": failed_count,
+            "fetched_count": len(jobs),
+            "limit": limit,
+        },
+    )
+
     return f"Imported {imported_count} Remote OK jobs. Skipped {skipped_count}. Failed {failed_count}."
 
 
@@ -533,6 +695,9 @@ def create_valid_emails():
     posts_with_emails = Post.objects.exclude(emails="")
 
     count = 0
+    valid_count = 0
+    approved_count = 0
+    generic_count = 0
     for post in posts_with_emails:
         # Split the name and pair it with a name if one exists.
         email_list = post.emails.split(",")
@@ -565,11 +730,18 @@ def create_valid_emails():
             is_approved = False
             if name != "" and name.lower() in email.split("@")[0].lower():
                 is_approved = True
+                approved_count += 1
+
+            email_is_generic = is_generic(email)
+            if email_is_valid:
+                valid_count += 1
+            if email_is_generic:
+                generic_count += 1
 
             Email.objects.create(
                 email=email,
                 email_is_valid=email_is_valid,
-                email_is_generic=is_generic(email),
+                email_is_generic=email_is_generic,
                 name=name,
                 company=company,
                 post=post,
@@ -577,6 +749,17 @@ def create_valid_emails():
             )
             count += 1
             logger.info("Email for post was created.", post=post, email=email)
+
+    capture_event(
+        "contacts validated",
+        properties={
+            "created_count": count,
+            "valid_count": valid_count,
+            "approved_count": approved_count,
+            "generic_count": generic_count,
+            "posts_with_emails_count": posts_with_emails.count(),
+        },
+    )
 
     return f"Created {count} emails."
 
@@ -666,6 +849,7 @@ def create_update_min_and_max_salary_jobs():
 
 
 def update_min_and_max_salary(job):
+    model = model_from_feature_flag("salary-extraction-model", settings.OPENAI_SALARY_EXTRACTION_MODEL)
 
     request = f"""Find the minimum and maximum salary for the job, based on the following information: '{job.compensation_summary}'.
 If there is no minimum or maximum salary, return 0. Do not lie, or make up numbers.
@@ -678,17 +862,25 @@ Return a valid JSON Object with the following format:
 }}
 Do not return anything else. Just the JSON Object."""  # noqa: E501
 
-    completion = client.chat.completions.create(
-        model=settings.OPENAI_SALARY_EXTRACTION_MODEL,
-        response_format={"type": "json_object"},
-        messages=[
-            {
-                "role": "system",
-                "content": "You are a helpful assistant.",
-            },
-            {"role": "user", "content": request},
-        ],
-    )
+    with ai_span(
+        "ai.salary_extraction",
+        attributes={
+            "ai.workflow": "salary_extraction",
+            "gen_ai.request.model": model,
+            "post_id": str(job.id),
+        },
+    ):
+        completion = client.chat.completions.create(
+            model=model,
+            response_format={"type": "json_object"},
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant.",
+                },
+                {"role": "user", "content": request},
+            ],
+        )
     converted_comment_response = completion.choices[0].message
 
     json_converted_comment_response = json.loads(converted_comment_response.content)
@@ -706,6 +898,18 @@ Do not return anything else. Just the JSON Object."""  # noqa: E501
 
     job.currency = json_converted_comment_response["currency"]
     job.save(update_fields=["min_salary", "max_salary", "currency"])
+
+    capture_event(
+        "ai salary extraction completed",
+        properties={
+            "model": model,
+            "post_id": str(job.id),
+            "has_salary": bool(min_salary or max_salary),
+            "currency": job.currency,
+            **openai_usage_properties(completion),
+        },
+        groups=company_group(job.company),
+    )
 
     return f"Job {job.id} has been updated."
 
@@ -772,6 +976,13 @@ def send_confirmation_email(instance, confirmation_url):
         [instance["email"]],
         fail_silently=False,
     )
+    capture_event(
+        "alert confirmation email sent",
+        distinct_id=distinct_id_for_email(instance["email"]),
+        properties={
+            "technology_selected": instance.get("technology_selected", ""),
+        },
+    )
 
 
 def find_users_to_alert():
@@ -797,6 +1008,15 @@ def find_users_to_alert():
         )
         count += 1
 
+    capture_event(
+        "alert digest queued",
+        properties={
+            "queued_count": count,
+            "eligible_email_count": alert_emails.count(),
+            "recent_email_count": recent_alert_emails.count(),
+        },
+    )
+
     return f"{count} alerts have been sent."
 
 
@@ -821,6 +1041,15 @@ def send_alerts(email, alerts):
         )
 
     if context["new_jobs_count"] == 0:
+        capture_event(
+            "alert digest skipped",
+            distinct_id=distinct_id_for_email(email),
+            properties={
+                "reason": "no_new_jobs",
+                "alert_count": len(context["alerts"]),
+                "user_status": "unknown",
+            },
+        )
         return f"{email} has no new jobs"
 
     if CustomUser.objects.filter(email=email).exists():
@@ -844,6 +1073,17 @@ def send_alerts(email, alerts):
     )
     letter.attach_alternative(html_content, "text/html")
     letter.send()
+
+    capture_event(
+        "alert digest sent",
+        distinct_id=distinct_id_for_email(email),
+        properties={
+            "alert_count": len(context["alerts"]),
+            "new_jobs_count": context["new_jobs_count"],
+            "user_status": user_status,
+            "alert_email_send_id": str(alert_email_send.id),
+        },
+    )
 
     return f"{email} is sent"
 

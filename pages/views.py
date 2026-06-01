@@ -4,6 +4,7 @@ from django.urls import reverse_lazy
 from django.views.generic import FormView, TemplateView
 from django_q.tasks import async_task
 
+from hn_jobs.posthog_events import capture_request_event
 from hn_jobs.utils import add_users_context, get_tjalerts_logger
 from jobs.forms import CreateAlertForm, GenericForm
 from jobs.queries import get_latest_submissions, get_most_popular_technologies, get_most_popular_titles
@@ -76,6 +77,13 @@ class SupportView(FormView):
 
     def form_valid(self, form):
         async_task(email_support_request, form.cleaned_data, hook="hooks.email_sent")
+        capture_request_event(
+            self.request,
+            "support request submitted",
+            properties={
+                "authenticated": self.request.user.is_authenticated,
+            },
+        )
         return super(SupportView, self).form_valid(form)
 
     def get_form_kwargs(self):
@@ -131,5 +139,10 @@ class AdminPanelView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     def form_valid(self, form):
         who_is_hiring_post_id = form.cleaned_data.get("who_is_hiring_post_id")
         async_task(get_hn_pages_to_analyze, who_is_hiring_post_id, hook="hooks.print_result")
+        capture_request_event(
+            self.request,
+            "admin task queued",
+            properties={"task": "get_hn_pages_to_analyze", "who_is_hiring_post_id": who_is_hiring_post_id},
+        )
         messages.add_message(self.request, messages.SUCCESS, f"Task triggered for post ID: {who_is_hiring_post_id}")
         return super(AdminPanelView, self).form_valid(form)

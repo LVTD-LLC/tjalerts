@@ -9,6 +9,7 @@ from ninja import NinjaAPI, Query
 from ninja.errors import HttpError
 
 from blog.models import BlogPost
+from hn_jobs.posthog_events import capture_request_event
 from hn_jobs.utils import get_tjalerts_logger
 from jobs.models import Company, Email, Post, Technology, TechnologyMapping, Title
 from jobs.queries import get_similar_posts_from_db
@@ -39,6 +40,7 @@ def companies(request):
 @api.get("/create-emails")
 def create_emails(request):
     async_task(create_valid_emails)  # noqa: F821
+    capture_request_event(request, "admin task queued", properties={"task": "create_valid_emails"})
     return "Task Started"
 
 

@@ -18,6 +18,7 @@ from django.views.generic import CreateView, DetailView, ListView, TemplateView,
 from django_filters.views import FilterView
 from django_q.tasks import async_task
 
+from hn_jobs.posthog_events import capture_event, capture_request_event, distinct_id_for_email
 from hn_jobs.utils import add_users_context, build_absolute_site_url, get_tjalerts_logger, validate_technology_selected
 from jobs.constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
 from jobs.filters import PostFilter
@@ -190,6 +191,7 @@ class HighestPaidJobsView(ListView):
 @require_POST
 def find_bad_submitted_dates_view(request):
     async_task(find_bad_submitted_dates, hook="jobs.hooks.print_result", group="Find Bad Datetimes to Fix")
+    capture_request_event(request, "admin task queued", properties={"task": "find_bad_submitted_dates"})
 
     return redirect("admin-panel")
 
@@ -200,6 +202,7 @@ def update_min_and_max_salary_view(request):
     async_task(
         create_update_min_and_max_salary_jobs, hook="jobs.hooks.print_result", group="Populate min and max salary"
     )
+    capture_request_event(request, "admin task queued", properties={"task": "create_update_min_and_max_salary_jobs"})
 
     return redirect("admin-panel")
 
@@ -213,6 +216,11 @@ def create_backfill_vector_data_jobs_view(request, rebuild=False):
         hook="jobs.hooks.print_result",
         group="Create Jobs to Update Vector Data.",
     )
+    capture_request_event(
+        request,
+        "admin task queued",
+        properties={"task": "create_backfill_vector_data_jobs", "rebuild": bool(rebuild)},
+    )
 
     return redirect("admin-panel")
 
@@ -221,6 +229,7 @@ def create_backfill_vector_data_jobs_view(request, rebuild=False):
 @require_POST
 def import_remote_ok_jobs_view(request):
     async_task(import_remote_ok_jobs, hook="jobs.hooks.print_result", group="Import Remote OK Jobs")
+    capture_request_event(request, "admin task queued", properties={"task": "import_remote_ok_jobs"})
 
     return redirect("admin-panel")
 
@@ -259,7 +268,21 @@ class CreateCustomAlertView(SuccessMessageMixin, CreateView):
 
         async_task(find_users_to_alert, group="Find Users to Alert")
 
-        return super(CreateCustomAlertView, self).form_valid(form)
+        response = super(CreateCustomAlertView, self).form_valid(form)
+        capture_request_event(
+            self.request,
+            "alert created",
+            properties={
+                "alert_id": str(self.object.id),
+                "alert_type": "custom",
+                "confirmed": self.object.confirmed,
+                "authenticated": user.is_authenticated,
+                "existing_alert_count": existing_alerts.count(),
+                "filter_keys": sorted(self.object.filter.keys()),
+            },
+        )
+
+        return response
 
 
 class AlertCreateView(SuccessMessageMixin, CreateView):
@@ -312,15 +335,40 @@ class AlertCreateView(SuccessMessageMixin, CreateView):
 
             async_task(find_users_to_alert, group="Find Users to Alert")
 
-            return super(AlertCreateView, self).form_valid(form)
+            response = super(AlertCreateView, self).form_valid(form)
+            capture_request_event(
+                self.request,
+                "alert created",
+                properties={
+                    "alert_id": str(self.object.id),
+                    "alert_type": "technology",
+                    "confirmed": self.object.confirmed,
+                    "authenticated": user.is_authenticated,
+                    "existing_alert_count": existing_alerts.count(),
+                    "technology_id": str(technology.id),
+                    "technology_name": technology.name,
+                },
+            )
+
+            return response
 
         except IntegrityError as e:
             logger.error("IntegrityError in AlertCreateView", error={str(e)})
+            capture_request_event(
+                self.request,
+                "alert creation failed",
+                properties={"error_type": type(e).__name__},
+            )
             messages.add_message(self.request, messages.ERROR, f"An error occurred: {str(e)}")
             return redirect("home")
         except Exception as e:
             messages.add_message(self.request, messages.ERROR, "An unexpected error occurred. Please try again.")
             logger.error("Exception in AlertCreateView", error={str(e)})
+            capture_request_event(
+                self.request,
+                "alert creation failed",
+                properties={"error_type": type(e).__name__},
+            )
             return redirect("home")
 
 
@@ -335,6 +383,15 @@ class ConfirmAlertView(SuccessMessageMixin, UpdateView):
         response = super(ConfirmAlertView, self).form_valid(form)
         async_task(add_email_to_buttondown, self.object.email, tag="user", group="Add Email to Buttondown")
         async_task(find_users_to_alert, group="Find Users to Alert")
+        capture_event(
+            "alert confirmed",
+            distinct_id=distinct_id_for_email(self.object.email),
+            properties={
+                "alert_id": str(self.object.id),
+                "alert_type": "custom" if self.object.name else "technology",
+                "authenticated": bool(self.object.user_id),
+            },
+        )
 
         return response
 
@@ -350,6 +407,16 @@ def unauthed_weekly_digest_view(request, alert_email_send_id):
     name = f"{Technology.objects.get(id=alert.filter['technologies'][0]).name} Alert"
 
     context = {"alert": alert, "queryset": queryset, "name": name}
+    capture_event(
+        "alert digest viewed",
+        distinct_id=distinct_id_for_email(alert.email),
+        properties={
+            "alert_email_send_id": str(alert_email_send.id),
+            "alert_id": str(alert.id),
+            "authenticated": False,
+            "job_count": queryset.count(),
+        },
+    )
     return render(request, template_name, context)
 
 
@@ -360,6 +427,15 @@ def unsubscribe_from_unauthed_alert(request, alert_email_send_id):
     if request.method == "POST":
         alert.unsubscribed = True
         alert.save()
+        capture_event(
+            "alert unsubscribed",
+            distinct_id=distinct_id_for_email(alert.email),
+            properties={
+                "alert_id": str(alert.id),
+                "alert_email_send_id": str(alert_email_send.id),
+                "authenticated": False,
+            },
+        )
         messages.success(request, "You have been unsubscribed from the alert successfully.")
         return redirect(reverse("home"))
 
@@ -373,6 +449,15 @@ def toggle_subscription_from_authed_alert(request, alert_id):
     if request.method == "POST":
         alert.unsubscribed = not alert.unsubscribed
         alert.save()
+        capture_request_event(
+            request,
+            "alert subscription toggled",
+            properties={
+                "alert_id": str(alert.id),
+                "unsubscribed": alert.unsubscribed,
+                "authenticated": True,
+            },
+        )
 
         custom_message = (
             "You have been unsubscribed from the alert successfully."
@@ -420,6 +505,16 @@ def authed_weekly_digest_view(request):
                     "queryset": queryset,
                 }
             )
+
+    capture_request_event(
+        request,
+        "alert digest viewed",
+        properties={
+            "authenticated": True,
+            "alert_count": len(context["alerts"]),
+            "alert_email_send_id": str(email_send.id),
+        },
+    )
 
     return render(request, template_name, context)
 
