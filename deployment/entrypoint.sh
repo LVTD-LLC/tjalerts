@@ -35,7 +35,7 @@ if [ "$server" = true ]; then
     # schema-only and fast. Run large data backfills as separate one-off
     # management commands or worker jobs before/after deploy; see
     # docs/production-data-changes.md.
-    if [ "${RUN_MIGRATIONS_ON_STARTUP:-true}" = "true" ]; then
+    if [ "${RUN_MIGRATIONS_ON_STARTUP:-true}" != "false" ]; then
         python manage.py migrate
     else
         echo "Skipping startup migrations because RUN_MIGRATIONS_ON_STARTUP=$RUN_MIGRATIONS_ON_STARTUP"
