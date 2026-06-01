@@ -30,7 +30,10 @@ def scrubbing_callback(m: logfire.ScrubMatch):
 
 
 def normalize_telemetry_attribute(value):
-    if value is None or isinstance(value, (str, bool, int, float)):
+    if value is None:
+        return ""
+
+    if isinstance(value, (str, bool, int, float)):
         return value
 
     if isinstance(value, BaseException):

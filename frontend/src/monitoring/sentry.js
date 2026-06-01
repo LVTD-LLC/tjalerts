@@ -37,7 +37,7 @@ const initSentry = async () => {
     maskAllText: true,
   });
   addIntegration(integrations, Sentry.consoleLoggingIntegration, {
-    levels: ["info", "log", "warn", "error"],
+    levels: ["warn", "error"],
   });
 
   Sentry.init({
