@@ -91,10 +91,10 @@ CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS")
 
 DEBUG = env("DEBUG")
 
-POSTHOG_API_KEY = env("POSTHOG_API_KEY", default="")
-POSTHOG_HOST = env("POSTHOG_HOST", default="https://us.posthog.com").rstrip("/")
-POSTHOG_INGEST_HOST = env("POSTHOG_INGEST_HOST", default="https://us.i.posthog.com").rstrip("/")
-POSTHOG_ENABLED = env.bool("POSTHOG_ENABLED", default=bool(POSTHOG_API_KEY) and not DEBUG)
+POSTHOG_API_KEY = env("POSTHOG_API_KEY", default="").strip()
+POSTHOG_HOST = env("POSTHOG_HOST", default="https://us.posthog.com").strip().rstrip("/")
+POSTHOG_INGEST_HOST = env("POSTHOG_INGEST_HOST", default="https://us.i.posthog.com").strip().rstrip("/")
+POSTHOG_ENABLED = env.bool("POSTHOG_ENABLED", default=bool(POSTHOG_API_KEY) and not DEBUG) and bool(POSTHOG_API_KEY)
 POSTHOG_AI_OBSERVABILITY_ENABLED = env.bool(
     "POSTHOG_AI_OBSERVABILITY_ENABLED",
     default=POSTHOG_ENABLED,
@@ -561,7 +561,7 @@ LOGGING = {
 
 if POSTHOG_LOGS_CONFIGURED:
     LOGGING["handlers"]["posthog_logs"] = {
-        "class": "opentelemetry.sdk._logs.LoggingHandler",
+        "class": "hn_jobs.settings.observability.SanitizingOTelLoggingHandler",
         "level": POSTHOG_LOG_LEVEL,
     }
     LOGGING["loggers"]["tjalerts"]["handlers"].append("posthog_logs")

@@ -49,17 +49,24 @@ def normalize_telemetry_attribute(value):
     if isinstance(value, BaseException):
         return f"{type(value).__name__}: {value}"
 
+    if isinstance(value, (list, tuple)):
+        return [normalize_telemetry_attribute(item) for item in value]
+
     return str(value)
 
 
+def normalize_telemetry_attributes(attributes):
+    return {key: normalize_telemetry_attribute(value) for key, value in (attributes or {}).items()}
+
+
 def enrich_sentry_log(log, _hint):
-    log.setdefault("attributes", {})
+    log["attributes"] = normalize_telemetry_attributes(log.get("attributes"))
     log["attributes"]["service.name"] = "tjalerts"
     return log
 
 
 def enrich_sentry_metric(metric, _hint):
-    metric.setdefault("attributes", {})
+    metric["attributes"] = normalize_telemetry_attributes(metric.get("attributes"))
     metric["attributes"]["service.name"] = "tjalerts"
     return metric
 

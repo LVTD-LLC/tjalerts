@@ -18,6 +18,9 @@ and this project tries to adhere to [Semantic Versioning](https://semver.org/spe
 - Updated OpenAI model defaults for HN job extraction to `gpt-5.4-nano`, salary parsing to `gpt-5-nano`, and made chat/embedding model names configurable via Django settings.
 - Removed the unsafe btree index on `Company.emails` and bounded the denormalized company email summary to prevent oversized index-row errors during HN job analysis.
 
+### Fixed
+- Sanitized Sentry/PostHog/OTel telemetry attributes and disabled PostHog integrations for blank API keys to prevent observability exporters from raising runtime errors.
+
 ## [0.0.3] - 2024-06-25
 ### Added
 - Search for titles and technologies
