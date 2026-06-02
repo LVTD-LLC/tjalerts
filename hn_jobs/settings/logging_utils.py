@@ -13,6 +13,16 @@ SENTRY_LOG_METHODS = {
     "fatal": sentry_sdk.logger.fatal,
 }
 
+SENTRY_LOG_LEVELS = {
+    "debug": logging.DEBUG,
+    "info": logging.INFO,
+    "warning": logging.WARNING,
+    "warn": logging.WARNING,
+    "error": logging.ERROR,
+    "critical": logging.CRITICAL,
+    "fatal": logging.CRITICAL,
+}
+
 SENTRY_STRUCTLOG_RESERVED_KEYS = {
     "event",
     "level",
@@ -54,9 +64,12 @@ def enrich_sentry_metric(metric, _hint):
     return metric
 
 
-def send_structlog_to_sentry(_logger, _method_name, event_dict):
+def send_structlog_to_sentry(_logger, _method_name, event_dict, *, min_level=logging.INFO):
     try:
-        level = event_dict.get("level", "info")
+        level = str(event_dict.get("level") or _method_name or "info").lower()
+        if SENTRY_LOG_LEVELS.get(level, logging.INFO) < min_level:
+            return event_dict
+
         log_method = SENTRY_LOG_METHODS.get(level, sentry_sdk.logger.info)
         message = str(event_dict.get("event", ""))
 

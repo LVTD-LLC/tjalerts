@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 
 import logging
 import os
+from functools import partial
 from pathlib import Path
 
 import environ
@@ -505,7 +506,7 @@ structlog_processors = [
 ]
 
 if SENTRY_DSN and SENTRY_ENABLE_LOGS:
-    structlog_processors.append(send_structlog_to_sentry)
+    structlog_processors.append(partial(send_structlog_to_sentry, min_level=SENTRY_LOG_LEVEL))
 
 if SENTRY_DSN:
     structlog_processors.append(
