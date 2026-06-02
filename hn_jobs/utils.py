@@ -52,9 +52,8 @@ def site_metadata(request):
 def add_users_context(context, user, self=None):
     try:
         context["email_verified"] = EmailAddress.objects.get_for_user(user, user.email).verified
-    except EmailAddress.DoesNotExist:
-        context["email_verified"] = False
-        logger.warning("Email address record missing", user_id=user.id, email=user.email)
+    except EmailAddress.DoesNotExist as e:
+        logger.warning("Email Error", error=e)
 
     if self:
         alias_request_user(self.request)
