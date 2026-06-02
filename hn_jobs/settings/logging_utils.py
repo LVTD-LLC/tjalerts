@@ -42,6 +42,10 @@ def scrubbing_callback(m: logfire.ScrubMatch):
         return m.value
 
 
+def stable_json_sort_key(value):
+    return json.dumps(value, sort_keys=True, default=str)
+
+
 def normalize_telemetry_attribute(value):
     if value is None:
         return ""
@@ -59,13 +63,22 @@ def normalize_telemetry_attribute(value):
         return [normalize_telemetry_attribute(item) for item in value]
 
     if isinstance(value, (set, frozenset)):
-        return str(value)
+        normalized = [normalize_telemetry_attribute(item) for item in value]
+        return json.dumps(sorted(normalized, key=stable_json_sort_key), sort_keys=True, default=str)
 
     if isinstance(value, Mapping):
         normalized = {str(key): normalize_telemetry_attribute(item) for key, item in value.items()}
         return json.dumps(normalized, sort_keys=True, default=str)
 
     return str(value)
+
+
+def normalize_telemetry_body(value):
+    normalized = normalize_telemetry_attribute(value)
+    if isinstance(normalized, str):
+        return normalized
+
+    return json.dumps(normalized, sort_keys=True, default=str)
 
 
 def normalize_telemetry_attributes(attributes):

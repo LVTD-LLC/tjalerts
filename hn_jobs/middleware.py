@@ -1,7 +1,11 @@
+import logging
 import time
 
 import sentry_sdk
 from django.conf import settings
+
+
+logger = logging.getLogger(__name__)
 
 
 def route_name_from_request(request):
@@ -12,14 +16,15 @@ def route_name_from_request(request):
     return "unknown"
 
 
-def capture_http_server_metrics(request, *, duration_ms, status_code):
-    status_class = f"{status_code // 100}xx" if status_code else "exception"
+def capture_http_server_metrics(request, *, duration_ms, status_code, error=None):
     attributes = {
         "http.request.method": request.method,
         "http.response.status_code": status_code,
-        "http.response.status_class": status_class,
+        "http.response.status_class": f"{status_code // 100}xx",
         "http.route": route_name_from_request(request),
     }
+    if error is not None:
+        attributes["error.type"] = type(error).__name__
 
     if settings.SENTRY_ENABLE_METRICS:
         try:
@@ -31,7 +36,7 @@ def capture_http_server_metrics(request, *, duration_ms, status_code):
                 attributes=attributes,
             )
         except Exception:
-            pass
+            logger.debug("Failed to emit Sentry request metrics", exc_info=True)
 
     if settings.SENTRY_ENABLE_LOGS:
         try:
@@ -46,7 +51,7 @@ def capture_http_server_metrics(request, *, duration_ms, status_code):
                 },
             )
         except Exception:
-            pass
+            logger.debug("Failed to emit Sentry request log", exc_info=True)
 
 
 class SentryMetricsMiddleware:
@@ -60,9 +65,9 @@ class SentryMetricsMiddleware:
         start_time = time.perf_counter()
         try:
             response = self.get_response(request)
-        except Exception:
+        except Exception as error:
             duration_ms = (time.perf_counter() - start_time) * 1000
-            capture_http_server_metrics(request, duration_ms=duration_ms, status_code=0)
+            capture_http_server_metrics(request, duration_ms=duration_ms, status_code=500, error=error)
             raise
 
         duration_ms = (time.perf_counter() - start_time) * 1000

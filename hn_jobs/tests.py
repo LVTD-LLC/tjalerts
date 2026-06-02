@@ -7,7 +7,12 @@ import posthog
 from django.test import SimpleTestCase, override_settings
 
 from hn_jobs.middleware import SentryMetricsMiddleware
-from hn_jobs.settings.logging_utils import enrich_sentry_log, enrich_sentry_metric, normalize_telemetry_attribute
+from hn_jobs.settings.logging_utils import (
+    enrich_sentry_log,
+    enrich_sentry_metric,
+    normalize_telemetry_attribute,
+    normalize_telemetry_body,
+)
 from hn_jobs.settings.observability import (
     SanitizingOTelLoggingHandler,
     configure_posthog_ai_observability,
@@ -33,9 +38,11 @@ class ObservabilityTests(SimpleTestCase):
         error = ValueError("broken")
         request_id = UUID("946539af-c999-421e-9ecb-65d47934c45c")
 
-        assert normalize_telemetry_attribute({0.02}) == "{0.02}"
+        assert normalize_telemetry_attribute({0.02}) == "[0.02]"
+        assert normalize_telemetry_attribute({"beta", "alpha"}) == '["alpha", "beta"]'
         assert normalize_telemetry_attribute(error) == "ValueError: broken"
         assert normalize_telemetry_attribute(request_id) == "946539af-c999-421e-9ecb-65d47934c45c"
+        assert normalize_telemetry_body([request_id]) == '["946539af-c999-421e-9ecb-65d47934c45c"]'
         assert (
             normalize_telemetry_attribute({"request_id": request_id})
             == '{"request_id": "946539af-c999-421e-9ecb-65d47934c45c"}'
@@ -47,9 +54,9 @@ class ObservabilityTests(SimpleTestCase):
         log = enrich_sentry_log({"attributes": {"ratio": {0.02}, "error": error}}, None)
         metric = enrich_sentry_metric({"attributes": {"ratio": {0.02}, "error": error}}, None)
 
-        assert log["attributes"]["ratio"] == "{0.02}"
+        assert log["attributes"]["ratio"] == "[0.02]"
         assert log["attributes"]["error"] == "ValueError: broken"
-        assert metric["attributes"]["ratio"] == "{0.02}"
+        assert metric["attributes"]["ratio"] == "[0.02]"
         assert metric["attributes"]["error"] == "ValueError: broken"
 
     def test_posthog_client_treats_whitespace_api_key_as_disabled(self):
@@ -96,7 +103,7 @@ class ObservabilityTests(SimpleTestCase):
 
         attributes = SanitizingOTelLoggingHandler._get_attributes(record)
 
-        assert attributes["ratio"] == "{0.02}"
+        assert attributes["ratio"] == "[0.02]"
         assert attributes["error"] == "ValueError: broken"
 
     def test_otel_log_handler_normalizes_structured_record_body(self):
@@ -113,6 +120,11 @@ class ObservabilityTests(SimpleTestCase):
         translated = SanitizingOTelLoggingHandler()._translate(record)
 
         assert translated.body == '{"request_id": "946539af-c999-421e-9ecb-65d47934c45c"}'
+
+        record.msg = [UUID("946539af-c999-421e-9ecb-65d47934c45c")]
+        translated = SanitizingOTelLoggingHandler()._translate(record)
+
+        assert translated.body == '["946539af-c999-421e-9ecb-65d47934c45c"]'
 
     @override_settings(SENTRY_DSN="https://public@example.com/1", SENTRY_ENABLE_METRICS=True, SENTRY_ENABLE_LOGS=True)
     def test_sentry_metrics_middleware_emits_metrics_and_structured_log(self):
@@ -172,4 +184,6 @@ class ObservabilityTests(SimpleTestCase):
         count_mock.assert_called_once()
         distribution_mock.assert_called_once()
         logger_mock.assert_called_once()
-        assert logger_mock.call_args.kwargs["attributes"]["http.response.status_class"] == "exception"
+        assert logger_mock.call_args.kwargs["attributes"]["error.type"] == "ValueError"
+        assert logger_mock.call_args.kwargs["attributes"]["http.response.status_code"] == 500
+        assert logger_mock.call_args.kwargs["attributes"]["http.response.status_class"] == "5xx"
