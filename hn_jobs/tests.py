@@ -5,7 +5,11 @@ import posthog
 from django.test import SimpleTestCase
 
 from hn_jobs.settings.logging_utils import enrich_sentry_log, enrich_sentry_metric, normalize_telemetry_attribute
-from hn_jobs.settings.observability import SanitizingOTelLoggingHandler, configure_posthog_client
+from hn_jobs.settings.observability import (
+    SanitizingOTelLoggingHandler,
+    configure_posthog_ai_observability,
+    configure_posthog_client,
+)
 from hn_jobs.sitemaps import HighestPaidJobsListicleSitemap
 
 
@@ -51,6 +55,18 @@ class ObservabilityTests(SimpleTestCase):
         finally:
             posthog.project_api_key = original_api_key
             posthog.disabled = original_disabled
+
+    def test_posthog_ai_observability_treats_whitespace_api_key_as_disabled(self):
+        with patch("hn_jobs.settings.observability.build_posthog_span_processor") as build_processor_mock:
+            result = configure_posthog_ai_observability(
+                api_key="   ",
+                ingest_host="https://us.i.posthog.com",
+                environment="test",
+                enabled=True,
+            )
+
+        assert result is None
+        build_processor_mock.assert_not_called()
 
     def test_otel_log_handler_normalizes_record_extra_attributes(self):
         record = logging.LogRecord(

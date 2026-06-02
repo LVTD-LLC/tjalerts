@@ -59,6 +59,7 @@ def build_posthog_span_processor(*, api_key, ingest_host):
 
 
 def configure_posthog_ai_observability(*, api_key, ingest_host, environment, enabled):
+    api_key = normalize_api_key(api_key)
     if not enabled or not api_key:
         return None
 
