@@ -1,14 +1,12 @@
-import json
 import math
-from urllib.parse import unquote
 
-import posthog
 import structlog
 from allauth.account.models import EmailAddress
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.forms.utils import ErrorList
 
+from hn_jobs.posthog_events import alias_request_user, distinct_id_for_user
 from jobs.models import Technology
 
 
@@ -29,6 +27,7 @@ def build_absolute_site_url(path="/"):
 
 
 def site_metadata(request):
+    user = getattr(request, "user", None)
     return {
         "SITE_URL": settings.SITE_URL,
         "SENTRY_BROWSER_CONFIG": {
@@ -41,6 +40,12 @@ def site_metadata(request):
             "replaysOnErrorSampleRate": settings.SENTRY_BROWSER_REPLAYS_ON_ERROR_SAMPLE_RATE,
             "enableLogs": settings.SENTRY_ENABLE_LOGS,
         },
+        "ENVIRONMENT": settings.ENVIRONMENT,
+        "POSTHOG_API_KEY": settings.POSTHOG_API_KEY,
+        "POSTHOG_HOST": settings.POSTHOG_HOST,
+        "POSTHOG_INGEST_HOST": settings.POSTHOG_INGEST_HOST,
+        "POSTHOG_ENABLED": settings.POSTHOG_ENABLED,
+        "POSTHOG_DISTINCT_ID": distinct_id_for_user(user),
     }
 
 
@@ -51,11 +56,7 @@ def add_users_context(context, user, self=None):
         logger.warning("Email Error", error=e)
 
     if self:
-        posthog_cookie = self.request.COOKIES.get(f"ph_{posthog.project_api_key}_posthog")
-        if posthog_cookie:
-            cookie_dict = json.loads(unquote(posthog_cookie))
-            if cookie_dict["distinct_id"] and self.request.user.is_authenticated:
-                posthog.alias(cookie_dict["distinct_id"], self.request.user.email)
+        alias_request_user(self.request)
 
     return context
 

@@ -9,6 +9,7 @@ from django.db.models import Count, Q
 from django.utils.html import strip_tags
 from openai import OpenAI
 
+from hn_jobs.posthog_events import ai_span, capture_event, model_from_feature_flag
 from hn_jobs.utils import get_tjalerts_logger
 from jobs.choices import PostSource
 from jobs.constants import GENERIC_KEYWORDS
@@ -261,8 +262,28 @@ def has_number(input_string):
 
 def get_embedding(text):
     text = text.replace("\n", " ")
+    model = model_from_feature_flag("embedding-model", settings.OPENAI_EMBEDDING_MODEL)
 
-    embedding = client.embeddings.create(input=[text], model=settings.OPENAI_EMBEDDING_MODEL)
+    with ai_span(
+        "ai.embedding",
+        attributes={
+            "ai.workflow": "embedding",
+            "gen_ai.request.model": model,
+            "input_length": len(text),
+        },
+    ):
+        embedding = client.embeddings.create(input=[text], model=model)
+
+    usage = getattr(embedding, "usage", None)
+    capture_event(
+        "ai embedding completed",
+        properties={
+            "model": model,
+            "input_length": len(text),
+            "prompt_tokens": getattr(usage, "prompt_tokens", None) if usage else None,
+            "total_tokens": getattr(usage, "total_tokens", None) if usage else None,
+        },
+    )
 
     return embedding.data[0].embedding
 

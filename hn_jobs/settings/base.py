@@ -17,13 +17,19 @@ from pathlib import Path
 
 import environ
 import logfire
-import posthog
 import sentry_sdk
 import structlog
-from posthog.sentry.posthog_integration import PostHogIntegration
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
+from hn_jobs.settings.observability import (
+    build_posthog_span_processor,
+    configure_ai_capture_content,
+    configure_posthog_ai_observability,
+    configure_posthog_client,
+    configure_posthog_logs,
+    instrument_openai,
+)
 from structlog_sentry import SentryProcessor
 
 from hn_jobs.settings.logging_utils import (
@@ -78,18 +84,86 @@ SENTRY_BROWSER_REPLAYS_ON_ERROR_SAMPLE_RATE = env.float("SENTRY_BROWSER_REPLAYS_
 
 LOGFIRE_TOKEN = env("LOGFIRE_TOKEN", default="")
 
-if LOGFIRE_TOKEN != "":
-    logfire.configure(
-        environment=ENVIRONMENT,
-        scrubbing=logfire.ScrubbingOptions(callback=scrubbing_callback),
-    )
-
 SECRET_KEY = env("SECRET_KEY")
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS")
 
 DEBUG = env("DEBUG")
+
+POSTHOG_API_KEY = env("POSTHOG_API_KEY", default="")
+POSTHOG_HOST = env("POSTHOG_HOST", default="https://us.posthog.com").rstrip("/")
+POSTHOG_INGEST_HOST = env("POSTHOG_INGEST_HOST", default="https://us.i.posthog.com").rstrip("/")
+POSTHOG_ENABLED = env.bool("POSTHOG_ENABLED", default=bool(POSTHOG_API_KEY) and not DEBUG)
+POSTHOG_AI_OBSERVABILITY_ENABLED = env.bool(
+    "POSTHOG_AI_OBSERVABILITY_ENABLED",
+    default=POSTHOG_ENABLED,
+)
+POSTHOG_AI_CAPTURE_CONTENT = env.bool("POSTHOG_AI_CAPTURE_CONTENT", default=False)
+POSTHOG_LOGS_ENABLED = env.bool("POSTHOG_LOGS_ENABLED", default=POSTHOG_ENABLED)
+POSTHOG_LOG_LEVEL = env("POSTHOG_LOG_LEVEL", default="INFO")
+POSTHOG_LOG_TIMEOUT_SECONDS = env.float("POSTHOG_LOG_TIMEOUT_SECONDS", default=10)
+POSTHOG_MW_CAPTURE_EXCEPTIONS = env.bool("POSTHOG_MW_CAPTURE_EXCEPTIONS", default=POSTHOG_ENABLED)
+
+configure_posthog_client(
+    api_key=POSTHOG_API_KEY,
+    host=POSTHOG_INGEST_HOST,
+    enabled=POSTHOG_ENABLED,
+    debug=DEBUG,
+)
+configure_ai_capture_content(POSTHOG_AI_CAPTURE_CONTENT)
+
+posthog_span_processor = None
+if LOGFIRE_TOKEN:
+    if POSTHOG_AI_OBSERVABILITY_ENABLED:
+        posthog_span_processor = build_posthog_span_processor(
+            api_key=POSTHOG_API_KEY,
+            ingest_host=POSTHOG_INGEST_HOST,
+        )
+
+    logfire.configure(
+        environment=ENVIRONMENT,
+        scrubbing=logfire.ScrubbingOptions(callback=scrubbing_callback),
+        additional_span_processors=[posthog_span_processor] if posthog_span_processor else None,
+    )
+
+    if posthog_span_processor:
+        instrument_openai()
+elif POSTHOG_AI_OBSERVABILITY_ENABLED:
+    posthog_span_processor = configure_posthog_ai_observability(
+        api_key=POSTHOG_API_KEY,
+        ingest_host=POSTHOG_INGEST_HOST,
+        environment=ENVIRONMENT,
+        enabled=POSTHOG_AI_OBSERVABILITY_ENABLED,
+    )
+
+POSTHOG_LOGS_CONFIGURED = configure_posthog_logs(
+    api_key=POSTHOG_API_KEY,
+    ingest_host=POSTHOG_INGEST_HOST,
+    environment=ENVIRONMENT,
+    enabled=POSTHOG_LOGS_ENABLED,
+    timeout_seconds=POSTHOG_LOG_TIMEOUT_SECONDS,
+)
+
+
+def posthog_middleware_extra_tags(request):
+    user = getattr(request, "user", None)
+    return {
+        "environment": ENVIRONMENT,
+        "authenticated": bool(user and user.is_authenticated),
+        "user_is_staff": bool(user and user.is_authenticated and user.is_staff),
+    }
+
+
+def posthog_middleware_request_filter(request):
+    if not POSTHOG_ENABLED:
+        return False
+
+    return not request.path.startswith(("/static/", "/__debug__/"))
+
+
+POSTHOG_MW_EXTRA_TAGS = posthog_middleware_extra_tags
+POSTHOG_MW_REQUEST_FILTER = posthog_middleware_request_filter
 
 # Application definition
 INSTALLED_APPS = [
@@ -139,7 +213,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "posthog.sentry.django.PosthogDistinctIdMiddleware",
+    "posthog.integrations.django.PosthogContextMiddleware",
     # "django_structlog.middlewares.RequestMiddleware",
 ]
 
@@ -384,7 +458,6 @@ if SENTRY_DSN:
                 event_level=None,
                 sentry_logs_level=None,
             ),
-            PostHogIntegration(),
         ],
         attach_stacktrace=True,
         include_local_variables=True,
@@ -393,14 +466,6 @@ if SENTRY_DSN:
 INTERNAL_IPS = [
     "127.0.0.1",
 ]
-
-posthog.project_api_key = env("POSTHOG_API_KEY")
-posthog.host = "https://app.posthog.com"
-if DEBUG:
-    # posthog.debug = True
-    posthog.disabled = True
-
-POSTHOG_DJANGO = {"distinct_id": lambda request: request.user and request.user.distinct_id}
 
 HEALTHCHECKS_HOST = "https://healthchecks.cr.lvtd.dev/ping"
 
@@ -493,6 +558,14 @@ LOGGING = {
         },
     },
 }
+
+if POSTHOG_LOGS_CONFIGURED:
+    LOGGING["handlers"]["posthog_logs"] = {
+        "class": "opentelemetry.sdk._logs.LoggingHandler",
+        "level": POSTHOG_LOG_LEVEL,
+    }
+    LOGGING["loggers"]["tjalerts"]["handlers"].append("posthog_logs")
+    LOGGING["loggers"]["django.request"]["handlers"].append("posthog_logs")
 
 structlog_processors = [
     structlog.contextvars.merge_contextvars,

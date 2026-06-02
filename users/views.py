@@ -6,6 +6,7 @@ from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import UpdateView
 
+from hn_jobs.posthog_events import capture_request_event, capture_user_event
 from hn_jobs.utils import add_users_context, get_tjalerts_logger
 from jobs.models import Alert
 
@@ -34,6 +35,15 @@ class UserSettingsView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
 
         return context
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        capture_user_event(
+            self.object,
+            "user profile updated",
+            properties={"updated_fields": sorted(form.changed_data)},
+        )
+        return response
+
 
 def resend_email_confirmation_email(request):
     user = request.user
@@ -42,5 +52,6 @@ def resend_email_confirmation_email(request):
     emailaddress = EmailAddress.objects.get_for_user(user, user.email)
 
     adapter.send_confirmation_mail(request, emailaddress, signup=False)
+    capture_request_event(request, "email confirmation resent", properties={"email_verified": emailaddress.verified})
 
     return redirect("settings")
