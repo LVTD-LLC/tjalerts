@@ -14,6 +14,9 @@ and this project tries to adhere to [Semantic Versioning](https://semver.org/spe
 **Security** in case of vulnerabilities.
 
 ## Unreleased
+### Fixed
+- Prevented missing allauth email address records from crashing settings/email verification paths or sending non-serializable exception objects to Sentry logging.
+
 ### Changed
 - Updated OpenAI model defaults for HN job extraction to `gpt-5.4-nano`, salary parsing to `gpt-5-nano`, and made chat/embedding model names configurable via Django settings.
 - Removed the unsafe btree index on `Company.emails` and bounded the denormalized company email summary to prevent oversized index-row errors during HN job analysis.
