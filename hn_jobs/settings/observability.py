@@ -1,5 +1,6 @@
 import logging
 import os
+from copy import copy
 
 import posthog
 from opentelemetry import trace
@@ -12,7 +13,7 @@ from opentelemetry.sdk.resources import DEPLOYMENT_ENVIRONMENT, SERVICE_NAME, Re
 from opentelemetry.sdk.trace import TracerProvider
 from posthog.ai.otel import PostHogSpanProcessor
 
-from hn_jobs.settings.logging_utils import normalize_telemetry_attributes
+from hn_jobs.settings.logging_utils import normalize_telemetry_attributes, normalize_telemetry_body
 
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,13 @@ class SanitizingOTelLoggingHandler(LoggingHandler):
     @staticmethod
     def _get_attributes(record):
         return normalize_telemetry_attributes(LoggingHandler._get_attributes(record))
+
+    def _translate(self, record):
+        sanitized_record = copy(record)
+        if not sanitized_record.args and not isinstance(sanitized_record.msg, str):
+            sanitized_record.msg = normalize_telemetry_body(sanitized_record.msg)
+
+        return super()._translate(sanitized_record)
 
 
 def normalize_api_key(api_key):

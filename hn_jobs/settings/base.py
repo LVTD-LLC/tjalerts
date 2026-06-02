@@ -456,7 +456,7 @@ if SENTRY_DSN:
             LoggingIntegration(
                 level=SENTRY_LOG_LEVEL,
                 event_level=None,
-                sentry_logs_level=None,
+                sentry_logs_level=SENTRY_LOG_LEVEL if SENTRY_ENABLE_LOGS else None,
             ),
         ],
         attach_stacktrace=True,
