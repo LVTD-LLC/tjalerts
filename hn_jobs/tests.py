@@ -10,6 +10,8 @@ from hn_jobs.middleware import SentryMetricsMiddleware
 from hn_jobs.settings.logging_utils import (
     enrich_sentry_log,
     enrich_sentry_metric,
+    get_sentry_log_method,
+    normalize_structlog_event,
     normalize_telemetry_attribute,
     normalize_telemetry_body,
 )
@@ -48,16 +50,44 @@ class ObservabilityTests(SimpleTestCase):
             == '{"request_id": "946539af-c999-421e-9ecb-65d47934c45c"}'
         )
 
+    def test_structlog_events_are_normalized_before_otel_processors(self):
+        request_id = UUID("946539af-c999-421e-9ecb-65d47934c45c")
+        record = logging.LogRecord(
+            name="tjalerts.test",
+            level=logging.INFO,
+            pathname=__file__,
+            lineno=1,
+            msg="message",
+            args=(),
+            exc_info=None,
+        )
+
+        event = normalize_structlog_event(
+            None,
+            "info",
+            {"event": "loaded", "level": "info", "tech_id": request_id, "_record": record},
+        )
+
+        assert event["tech_id"] == "946539af-c999-421e-9ecb-65d47934c45c"
+        assert event["_record"] is record
+
+    def test_sentry_log_method_returns_none_when_logs_api_is_unavailable(self):
+        with patch("hn_jobs.settings.logging_utils.sentry_sdk.logger", None, create=True):
+            assert get_sentry_log_method("info") is None
+
     def test_sentry_log_and_metric_attributes_are_normalized(self):
         error = ValueError("broken")
+        request_id = UUID("946539af-c999-421e-9ecb-65d47934c45c")
 
-        log = enrich_sentry_log({"attributes": {"ratio": {0.02}, "error": error}}, None)
-        metric = enrich_sentry_metric({"attributes": {"ratio": {0.02}, "error": error}}, None)
+        log = enrich_sentry_log({"attributes": {"ratio": {0.02}, "error": error, "item_id": request_id}}, None)
+        metric = enrich_sentry_metric({"attributes": {"ratio": {0.02}, "error": error, "item_id": request_id}}, None)
 
         assert log["attributes"]["ratio"] == "[0.02]"
         assert log["attributes"]["error"] == "ValueError: broken"
+        assert log["attributes"]["item_id"] == "946539af-c999-421e-9ecb-65d47934c45c"
         assert metric["attributes"]["ratio"] == "[0.02]"
         assert metric["attributes"]["error"] == "ValueError: broken"
+        assert metric["attributes"]["item_id"] == "946539af-c999-421e-9ecb-65d47934c45c"
 
     def test_posthog_client_treats_whitespace_api_key_as_disabled(self):
         original_api_key = posthog.project_api_key
@@ -98,13 +128,16 @@ class ObservabilityTests(SimpleTestCase):
             args=(),
             exc_info=None,
         )
+        request_id = UUID("946539af-c999-421e-9ecb-65d47934c45c")
         record.ratio = {0.02}
         record.error = ValueError("broken")
+        record.item_id = request_id
 
         attributes = SanitizingOTelLoggingHandler._get_attributes(record)
 
         assert attributes["ratio"] == "[0.02]"
         assert attributes["error"] == "ValueError: broken"
+        assert attributes["item_id"] == "946539af-c999-421e-9ecb-65d47934c45c"
 
     def test_otel_log_handler_normalizes_structured_record_body(self):
         record = logging.LogRecord(
