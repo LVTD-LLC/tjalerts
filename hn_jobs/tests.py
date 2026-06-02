@@ -46,6 +46,8 @@ class ObservabilityTests(SimpleTestCase):
     def test_posthog_client_treats_whitespace_api_key_as_disabled(self):
         original_api_key = posthog.project_api_key
         original_disabled = posthog.disabled
+        original_host = posthog.host
+        original_debug = posthog.debug
 
         try:
             configure_posthog_client(api_key="   ", host="https://us.i.posthog.com", enabled=True, debug=False)
@@ -55,6 +57,8 @@ class ObservabilityTests(SimpleTestCase):
         finally:
             posthog.project_api_key = original_api_key
             posthog.disabled = original_disabled
+            posthog.host = original_host
+            posthog.debug = original_debug
 
     def test_posthog_ai_observability_treats_whitespace_api_key_as_disabled(self):
         with patch("hn_jobs.settings.observability.build_posthog_span_processor") as build_processor_mock:
