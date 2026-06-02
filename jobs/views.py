@@ -355,7 +355,7 @@ class AlertCreateView(SuccessMessageMixin, CreateView):
             return response
 
         except IntegrityError as e:
-            logger.error("IntegrityError in AlertCreateView", error={str(e)})
+            logger.error("IntegrityError in AlertCreateView", error=str(e))
             capture_request_event(
                 self.request,
                 "alert creation failed",
@@ -365,7 +365,7 @@ class AlertCreateView(SuccessMessageMixin, CreateView):
             return redirect("home")
         except Exception as e:
             messages.add_message(self.request, messages.ERROR, "An unexpected error occurred. Please try again.")
-            logger.error("Exception in AlertCreateView", error={str(e)})
+            logger.error("Exception in AlertCreateView", error=str(e))
             capture_request_event(
                 self.request,
                 "alert creation failed",

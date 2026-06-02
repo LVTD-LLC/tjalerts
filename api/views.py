@@ -188,7 +188,7 @@ def get_technologies_details(request, id: str):
     if technology:
         technology["id"] = str(technology["id"])
 
-    logger.info("get_technologies_details", duration={round(time.time() - start_time, 2)})
+    logger.info("get_technologies_details", duration=round(time.time() - start_time, 2))
 
     return technology
 
@@ -225,7 +225,7 @@ def get_title_details(request, id: str):
     if title:
         title["id"] = str(title["id"])
 
-    logger.info("get_technologies_details", duration={round(time.time() - start_time, 2)})
+    logger.info("get_title_details", duration=round(time.time() - start_time, 2))
 
     return title
 
