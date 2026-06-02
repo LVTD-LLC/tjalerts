@@ -1,4 +1,5 @@
 import "../styles/index.css";
+import "../monitoring/sentry";
 
 import { Application } from "@hotwired/stimulus";
 import { definitionsFromContext } from "@hotwired/stimulus-webpack-helpers";

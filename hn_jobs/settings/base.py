@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 
 import logging
 import os
+from functools import partial
 from pathlib import Path
 
 import environ
@@ -23,8 +24,14 @@ from posthog.sentry.posthog_integration import PostHogIntegration
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
-from hn_jobs.settings.logging_utils import scrubbing_callback
 from structlog_sentry import SentryProcessor
+
+from hn_jobs.settings.logging_utils import (
+    enrich_sentry_log,
+    enrich_sentry_metric,
+    scrubbing_callback,
+    send_structlog_to_sentry,
+)
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
@@ -39,6 +46,35 @@ SITE_URL = env("SITE_URL", default="https://gettjalerts.com").rstrip("/")
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
 SENTRY_DSN = env("SENTRY_DSN", default="")
+SENTRY_RELEASE = env("SENTRY_RELEASE", default="")
+SENTRY_SEND_DEFAULT_PII = env.bool("SENTRY_SEND_DEFAULT_PII", default=False)
+SENTRY_TRACES_SAMPLE_RATE = env.float("SENTRY_TRACES_SAMPLE_RATE", default=1.0)
+SENTRY_PROFILE_SESSION_SAMPLE_RATE = env.float(
+    "SENTRY_PROFILE_SESSION_SAMPLE_RATE",
+    default=1.0,
+)
+SENTRY_ENABLE_LOGS = env.bool("SENTRY_ENABLE_LOGS", default=True)
+SENTRY_ENABLE_METRICS = env.bool("SENTRY_ENABLE_METRICS", default=True)
+SENTRY_LOG_LEVELS = {
+    "DEBUG": logging.DEBUG,
+    "INFO": logging.INFO,
+    "WARNING": logging.WARNING,
+    "ERROR": logging.ERROR,
+    "CRITICAL": logging.CRITICAL,
+}
+SENTRY_LOG_LEVEL = SENTRY_LOG_LEVELS.get(env("SENTRY_LOG_LEVEL", default="INFO").upper(), logging.INFO)
+
+SENTRY_ENABLE_BROWSER = env.bool("SENTRY_ENABLE_BROWSER", default=True)
+SENTRY_BROWSER_DSN = env("SENTRY_BROWSER_DSN", default=SENTRY_DSN)
+SENTRY_BROWSER_TRACES_SAMPLE_RATE = env.float(
+    "SENTRY_BROWSER_TRACES_SAMPLE_RATE",
+    default=SENTRY_TRACES_SAMPLE_RATE,
+)
+SENTRY_BROWSER_REPLAYS_SESSION_SAMPLE_RATE = env.float(
+    "SENTRY_BROWSER_REPLAYS_SESSION_SAMPLE_RATE",
+    default=1.0,
+)
+SENTRY_BROWSER_REPLAYS_ON_ERROR_SAMPLE_RATE = env.float("SENTRY_BROWSER_REPLAYS_ON_ERROR_SAMPLE_RATE", default=1.0)
 
 LOGFIRE_TOKEN = env("LOGFIRE_TOKEN", default="")
 
@@ -99,6 +135,7 @@ MIDDLEWARE = [
     # "django.middleware.cache.FetchFromCacheMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "hn_jobs.middleware.SentryMetricsMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -328,17 +365,26 @@ if SENTRY_DSN:
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         environment=ENVIRONMENT,
-        send_default_pii=False,
-        traces_sample_rate=1,
-        profile_session_sample_rate=1,
+        release=SENTRY_RELEASE or None,
+        send_default_pii=SENTRY_SEND_DEFAULT_PII,
+        traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,
+        profile_session_sample_rate=SENTRY_PROFILE_SESSION_SAMPLE_RATE,
         profile_lifecycle="trace",
+        enable_logs=SENTRY_ENABLE_LOGS,
+        enable_metrics=SENTRY_ENABLE_METRICS,
+        before_send_log=enrich_sentry_log,
+        before_send_metric=enrich_sentry_metric,
+        auto_session_tracking=True,
+        stream_gen_ai_spans=True,
         integrations=[
             DjangoIntegration(),
             RedisIntegration(),
+            LoggingIntegration(
+                level=SENTRY_LOG_LEVEL,
+                event_level=None,
+                sentry_logs_level=None,
+            ),
             PostHogIntegration(),
-        ],
-        disabled_integrations=[
-            LoggingIntegration(),
         ],
         attach_stacktrace=True,
         include_local_variables=True,
@@ -458,6 +504,9 @@ structlog_processors = [
     structlog.processors.StackInfoRenderer(),
     # structlog.processors.format_exc_info,
 ]
+
+if SENTRY_DSN and SENTRY_ENABLE_LOGS:
+    structlog_processors.append(partial(send_structlog_to_sentry, min_level=SENTRY_LOG_LEVEL))
 
 if SENTRY_DSN:
     structlog_processors.append(

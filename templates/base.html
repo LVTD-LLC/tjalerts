@@ -33,6 +33,7 @@
   {% endblock meta %}
 
   {% stylesheet_pack 'index' %}
+  {{ SENTRY_BROWSER_CONFIG|json_script:"tjalerts-sentry-config" }}
   {% javascript_pack 'index' attrs='defer' %}
 
   <script defer data-domain="gettjalerts.com" src="https://plausible-v2.cr.lvtd.dev/js/script.js"></script>

@@ -31,6 +31,16 @@ def build_absolute_site_url(path="/"):
 def site_metadata(request):
     return {
         "SITE_URL": settings.SITE_URL,
+        "SENTRY_BROWSER_CONFIG": {
+            "dsn": settings.SENTRY_BROWSER_DSN if settings.SENTRY_ENABLE_BROWSER else "",
+            "environment": settings.ENVIRONMENT,
+            "release": settings.SENTRY_RELEASE,
+            "siteUrl": settings.SITE_URL,
+            "tracesSampleRate": settings.SENTRY_BROWSER_TRACES_SAMPLE_RATE,
+            "replaysSessionSampleRate": settings.SENTRY_BROWSER_REPLAYS_SESSION_SAMPLE_RATE,
+            "replaysOnErrorSampleRate": settings.SENTRY_BROWSER_REPLAYS_ON_ERROR_SAMPLE_RATE,
+            "enableLogs": settings.SENTRY_ENABLE_LOGS,
+        },
     }
 
 

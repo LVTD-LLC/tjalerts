@@ -33,7 +33,7 @@ logfire = "^3.12.0"
 pydantic-ai = "^0.0.48"
 httpx = "^0.28.1"
 django-ninja = "^1.4.0"
-sentry-sdk = "^2.41.0"
+sentry-sdk = "^2.61.1"
 structlog-sentry = "^2.2.1"
 django-q2 = {extras = ["sentry"], version = "^1.8.0"}
 django-allauth = "^65.12.1"
