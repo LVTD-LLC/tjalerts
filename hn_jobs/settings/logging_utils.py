@@ -6,15 +6,26 @@ from uuid import UUID
 import logfire
 import sentry_sdk
 
-SENTRY_LOG_METHODS = {
-    "debug": sentry_sdk.logger.debug,
-    "info": sentry_sdk.logger.info,
-    "warning": sentry_sdk.logger.warning,
-    "warn": sentry_sdk.logger.warning,
-    "error": sentry_sdk.logger.error,
-    "critical": sentry_sdk.logger.fatal,
-    "fatal": sentry_sdk.logger.fatal,
+
+SENTRY_LOG_METHOD_NAMES = {
+    "debug": "debug",
+    "info": "info",
+    "warning": "warning",
+    "warn": "warning",
+    "error": "error",
+    "critical": "fatal",
+    "fatal": "fatal",
 }
+
+
+def get_sentry_log_method(level):
+    logger = getattr(sentry_sdk, "logger", None)
+    if logger is None:
+        return None
+
+    method_name = SENTRY_LOG_METHOD_NAMES.get(level, "info")
+    return getattr(logger, method_name, None)
+
 
 SENTRY_LOG_LEVELS = {
     "debug": logging.DEBUG,
@@ -85,6 +96,13 @@ def normalize_telemetry_attributes(attributes):
     return {str(key): normalize_telemetry_attribute(value) for key, value in (attributes or {}).items()}
 
 
+def normalize_structlog_event(_logger, _method_name, event_dict):
+    return {
+        key: value if key in SENTRY_STRUCTLOG_RESERVED_KEYS else normalize_telemetry_attribute(value)
+        for key, value in event_dict.items()
+    }
+
+
 def enrich_sentry_log(log, _hint):
     log["attributes"] = normalize_telemetry_attributes(log.get("attributes"))
     log["attributes"]["service.name"] = "tjalerts"
@@ -103,7 +121,10 @@ def send_structlog_to_sentry(_logger, _method_name, event_dict, *, min_level=log
         if SENTRY_LOG_LEVELS.get(level, logging.INFO) < min_level:
             return event_dict
 
-        log_method = SENTRY_LOG_METHODS.get(level, sentry_sdk.logger.info)
+        log_method = get_sentry_log_method(level)
+        if log_method is None:
+            return event_dict
+
         message = str(event_dict.get("event", ""))
 
         attributes = {

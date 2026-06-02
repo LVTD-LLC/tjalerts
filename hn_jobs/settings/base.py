@@ -35,6 +35,7 @@ from structlog_sentry import SentryProcessor
 from hn_jobs.settings.logging_utils import (
     enrich_sentry_log,
     enrich_sentry_metric,
+    normalize_structlog_event,
     scrubbing_callback,
     send_structlog_to_sentry,
 )
@@ -576,6 +577,7 @@ structlog_processors = [
     structlog.stdlib.PositionalArgumentsFormatter(),
     structlog.processors.StackInfoRenderer(),
     # structlog.processors.format_exc_info,
+    normalize_structlog_event,
 ]
 
 if SENTRY_DSN and SENTRY_ENABLE_LOGS:
