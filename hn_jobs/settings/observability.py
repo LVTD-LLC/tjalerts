@@ -6,17 +6,32 @@ from opentelemetry import trace
 from opentelemetry._logs import get_logger_provider, set_logger_provider
 from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
 from opentelemetry.instrumentation.openai_v2 import OpenAIInstrumentor
-from opentelemetry.sdk._logs import LoggerProvider
+from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.resources import DEPLOYMENT_ENVIRONMENT, SERVICE_NAME, Resource
 from opentelemetry.sdk.trace import TracerProvider
 from posthog.ai.otel import PostHogSpanProcessor
 
+from hn_jobs.settings.logging_utils import normalize_telemetry_attributes
+
 
 logger = logging.getLogger(__name__)
 
 
+class SanitizingOTelLoggingHandler(LoggingHandler):
+    @staticmethod
+    def _get_attributes(record):
+        return normalize_telemetry_attributes(LoggingHandler._get_attributes(record))
+
+
+def normalize_api_key(api_key):
+    return str(api_key or "").strip()
+
+
 def configure_posthog_client(*, api_key, host, enabled, debug):
+    api_key = normalize_api_key(api_key)
+    enabled = bool(enabled and api_key)
+
     posthog.project_api_key = api_key
     posthog.host = host
     posthog.disabled = not enabled
@@ -36,6 +51,7 @@ def build_posthog_resource(*, environment):
 
 
 def build_posthog_span_processor(*, api_key, ingest_host):
+    api_key = normalize_api_key(api_key)
     if not api_key:
         return None
 
@@ -43,6 +59,7 @@ def build_posthog_span_processor(*, api_key, ingest_host):
 
 
 def configure_posthog_ai_observability(*, api_key, ingest_host, environment, enabled):
+    api_key = normalize_api_key(api_key)
     if not enabled or not api_key:
         return None
 
@@ -63,6 +80,7 @@ def instrument_openai():
 
 
 def configure_posthog_logs(*, api_key, ingest_host, environment, enabled, timeout_seconds=10):
+    api_key = normalize_api_key(api_key)
     if not enabled or not api_key:
         return False
 
