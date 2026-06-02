@@ -15,6 +15,20 @@ from .models import CustomUser
 logger = get_tjalerts_logger(__name__)
 
 
+def get_or_create_user_email_address(user):
+    has_primary_email = EmailAddress.objects.filter(user=user, primary=True).exists()
+    emailaddress, created = EmailAddress.objects.get_or_create(
+        user=user,
+        email=user.email,
+        defaults={"primary": not has_primary_email, "verified": False},
+    )
+
+    if created:
+        logger.warning("Email address record created for confirmation resend", user_id=user.id, email=user.email)
+
+    return emailaddress
+
+
 class UserSettingsView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
     login_url = "account_login"
     model = CustomUser
@@ -49,7 +63,7 @@ def resend_email_confirmation_email(request):
     user = request.user
 
     adapter = get_adapter(request)
-    emailaddress = EmailAddress.objects.get_for_user(user, user.email)
+    emailaddress = get_or_create_user_email_address(user)
 
     adapter.send_confirmation_mail(request, emailaddress, signup=False)
     capture_request_event(request, "email confirmation resent", properties={"email_verified": emailaddress.verified})
