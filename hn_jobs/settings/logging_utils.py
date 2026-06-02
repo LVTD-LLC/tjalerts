@@ -1,4 +1,7 @@
+import json
 import logging
+from collections.abc import Mapping
+from uuid import UUID
 
 import logfire
 import sentry_sdk
@@ -46,17 +49,27 @@ def normalize_telemetry_attribute(value):
     if isinstance(value, (str, bool, int, float)):
         return value
 
+    if isinstance(value, UUID):
+        return str(value)
+
     if isinstance(value, BaseException):
         return f"{type(value).__name__}: {value}"
 
     if isinstance(value, (list, tuple)):
         return [normalize_telemetry_attribute(item) for item in value]
 
+    if isinstance(value, (set, frozenset)):
+        return str(value)
+
+    if isinstance(value, Mapping):
+        normalized = {str(key): normalize_telemetry_attribute(item) for key, item in value.items()}
+        return json.dumps(normalized, sort_keys=True, default=str)
+
     return str(value)
 
 
 def normalize_telemetry_attributes(attributes):
-    return {key: normalize_telemetry_attribute(value) for key, value in (attributes or {}).items()}
+    return {str(key): normalize_telemetry_attribute(value) for key, value in (attributes or {}).items()}
 
 
 def enrich_sentry_log(log, _hint):

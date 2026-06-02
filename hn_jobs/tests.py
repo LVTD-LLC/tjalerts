@@ -1,9 +1,12 @@
 import logging
+from types import SimpleNamespace
 from unittest.mock import patch
+from uuid import UUID
 
 import posthog
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
 
+from hn_jobs.middleware import SentryMetricsMiddleware
 from hn_jobs.settings.logging_utils import enrich_sentry_log, enrich_sentry_metric, normalize_telemetry_attribute
 from hn_jobs.settings.observability import (
     SanitizingOTelLoggingHandler,
@@ -28,9 +31,15 @@ class SitemapTests(SimpleTestCase):
 class ObservabilityTests(SimpleTestCase):
     def test_normalize_telemetry_attribute_handles_exporter_unsafe_values(self):
         error = ValueError("broken")
+        request_id = UUID("946539af-c999-421e-9ecb-65d47934c45c")
 
         assert normalize_telemetry_attribute({0.02}) == "{0.02}"
         assert normalize_telemetry_attribute(error) == "ValueError: broken"
+        assert normalize_telemetry_attribute(request_id) == "946539af-c999-421e-9ecb-65d47934c45c"
+        assert (
+            normalize_telemetry_attribute({"request_id": request_id})
+            == '{"request_id": "946539af-c999-421e-9ecb-65d47934c45c"}'
+        )
 
     def test_sentry_log_and_metric_attributes_are_normalized(self):
         error = ValueError("broken")
@@ -89,3 +98,78 @@ class ObservabilityTests(SimpleTestCase):
 
         assert attributes["ratio"] == "{0.02}"
         assert attributes["error"] == "ValueError: broken"
+
+    def test_otel_log_handler_normalizes_structured_record_body(self):
+        record = logging.LogRecord(
+            name="tjalerts.test",
+            level=logging.INFO,
+            pathname=__file__,
+            lineno=1,
+            msg={"request_id": UUID("946539af-c999-421e-9ecb-65d47934c45c")},
+            args=(),
+            exc_info=None,
+        )
+
+        translated = SanitizingOTelLoggingHandler()._translate(record)
+
+        assert translated.body == '{"request_id": "946539af-c999-421e-9ecb-65d47934c45c"}'
+
+    @override_settings(SENTRY_DSN="https://public@example.com/1", SENTRY_ENABLE_METRICS=True, SENTRY_ENABLE_LOGS=True)
+    def test_sentry_metrics_middleware_emits_metrics_and_structured_log(self):
+        request = SimpleNamespace(method="GET", resolver_match=SimpleNamespace(view_name="jobs:list"))
+        response = SimpleNamespace(status_code=200)
+        middleware = SentryMetricsMiddleware(lambda _request: response)
+
+        with (
+            patch("hn_jobs.middleware.sentry_sdk.metrics.count") as count_mock,
+            patch("hn_jobs.middleware.sentry_sdk.metrics.distribution") as distribution_mock,
+            patch("hn_jobs.middleware.sentry_sdk.logger.info") as logger_mock,
+        ):
+            result = middleware(request)
+
+        assert result is response
+        count_mock.assert_called_once()
+        distribution_mock.assert_called_once()
+        logger_mock.assert_called_once()
+        assert logger_mock.call_args.kwargs["attributes"]["http.route"] == "jobs:list"
+        assert logger_mock.call_args.kwargs["attributes"]["http.response.status_code"] == 200
+
+    @override_settings(SENTRY_DSN="https://public@example.com/1", SENTRY_ENABLE_METRICS=False, SENTRY_ENABLE_LOGS=True)
+    def test_sentry_metrics_middleware_logs_when_metrics_are_disabled(self):
+        request = SimpleNamespace(method="GET", resolver_match=SimpleNamespace(view_name="jobs:list"))
+        response = SimpleNamespace(status_code=200)
+        middleware = SentryMetricsMiddleware(lambda _request: response)
+
+        with (
+            patch("hn_jobs.middleware.sentry_sdk.metrics.count") as count_mock,
+            patch("hn_jobs.middleware.sentry_sdk.metrics.distribution") as distribution_mock,
+            patch("hn_jobs.middleware.sentry_sdk.logger.info") as logger_mock,
+        ):
+            result = middleware(request)
+
+        assert result is response
+        count_mock.assert_not_called()
+        distribution_mock.assert_not_called()
+        logger_mock.assert_called_once()
+
+    @override_settings(SENTRY_DSN="https://public@example.com/1", SENTRY_ENABLE_METRICS=True, SENTRY_ENABLE_LOGS=True)
+    def test_sentry_metrics_middleware_emits_exception_metric(self):
+        request = SimpleNamespace(method="GET", resolver_match=SimpleNamespace(view_name="jobs:list"))
+
+        def raise_error(_request):
+            raise ValueError("broken")
+
+        middleware = SentryMetricsMiddleware(raise_error)
+
+        with (
+            patch("hn_jobs.middleware.sentry_sdk.metrics.count") as count_mock,
+            patch("hn_jobs.middleware.sentry_sdk.metrics.distribution") as distribution_mock,
+            patch("hn_jobs.middleware.sentry_sdk.logger.info") as logger_mock,
+        ):
+            with self.assertRaises(ValueError):
+                middleware(request)
+
+        count_mock.assert_called_once()
+        distribution_mock.assert_called_once()
+        logger_mock.assert_called_once()
+        assert logger_mock.call_args.kwargs["attributes"]["http.response.status_class"] == "exception"
