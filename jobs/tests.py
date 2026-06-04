@@ -1,8 +1,11 @@
 from unittest.mock import Mock, patch
 
 import httpx
+from allauth.account.models import EmailAddress
+from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.test import SimpleTestCase, TestCase, override_settings
+from django.urls import reverse
 from django.utils import timezone
 
 from jobs.choices import PostSource
@@ -13,7 +16,7 @@ from jobs.enrichment import (
     extract_structured_page_context,
     read_url_with_jina,
 )
-from jobs.models import Company, Post
+from jobs.models import Alert, Company, Post, Technology, Title
 from jobs.tasks import (
     MAX_COMPANY_EMAILS_LENGTH,
     apply_remote_ok_structured_defaults,
@@ -32,7 +35,149 @@ from jobs.tasks import (
     parse_we_work_remotely_feed,
     parse_we_work_remotely_title,
 )
-from jobs.utils import clean_job_json_object, is_probably_non_hiring_hn_comment, normalize_hn_comment_text
+from jobs.utils import (
+    build_intent_alert_suggestions,
+    canonical_filter_key,
+    clean_job_json_object,
+    is_probably_non_hiring_hn_comment,
+    normalize_hn_comment_text,
+)
+
+
+class IntentAlertSuggestionTests(TestCase):
+    def test_builds_broad_and_specific_alert_filters(self):
+        technology = Technology.objects.create(name="Python")
+        title = Title.objects.create(name="Backend Engineer")
+
+        suggestions = build_intent_alert_suggestions(
+            "Remote Backend Engineer roles using Python, Postgres, and infrastructure work.",
+            max_alerts=3,
+        )
+
+        assert len(suggestions) == 3
+        assert suggestions[0]["filter"]["technologies"] == [str(technology.id)]
+        assert suggestions[0]["filter"]["titles"] == [str(title.id)]
+        assert suggestions[0]["filter"]["is_remote"] == "True"
+        assert suggestions[-1] == {
+            "name": "Job brief match",
+            "filter": {
+                "vector": "Remote Backend Engineer roles using Python, Postgres, and infrastructure work.",
+                "is_remote": "True",
+            },
+        }
+
+    def test_builds_broad_alert_when_no_names_match(self):
+        suggestions = build_intent_alert_suggestions(
+            "Remote climate infrastructure work with salary transparency and async-friendly teams.",
+            max_alerts=3,
+        )
+
+        assert suggestions == [
+            {
+                "name": "Job brief match",
+                "filter": {
+                    "vector": "Remote climate infrastructure work with salary transparency and async-friendly teams.",
+                    "is_remote": "True",
+                },
+            }
+        ]
+
+    def test_canonical_filter_key_ignores_list_order(self):
+        first_key = canonical_filter_key({"technologies": ["2", "1"], "titles": ["3"]})
+        second_key = canonical_filter_key({"titles": ["3"], "technologies": ["1", "2"]})
+
+        assert first_key == second_key
+
+
+class CreateIntentAlertsViewTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            username="intent-user",
+            email="intent@example.com",
+            password="password",
+        )
+
+    def verify_email(self):
+        EmailAddress.objects.create(user=self.user, email=self.user.email, verified=True, primary=True)
+
+    @patch("jobs.views.async_task")
+    def test_verified_user_creates_confirmed_alerts(self, mock_async_task):
+        self.verify_email()
+        Technology.objects.create(name="Python")
+        Title.objects.create(name="Backend Engineer")
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("create-intent-alerts"),
+            {
+                "intent": "Remote Backend Engineer roles using Python, Postgres, and infrastructure work.",
+            },
+        )
+
+        assert response.status_code == 302
+        assert response["Location"] == reverse("settings")
+        alerts = Alert.objects.filter(email=self.user.email)
+        assert alerts.count() == 3
+        assert all(alert.confirmed for alert in alerts)
+        assert all(alert.user == self.user for alert in alerts)
+        assert any(alert.filter.get("technologies") for alert in alerts)
+        assert any(alert.filter.get("vector") for alert in alerts)
+        mock_async_task.assert_called_once()
+
+    @patch("jobs.views.async_task")
+    def test_repeat_submission_does_not_duplicate_active_alerts(self, mock_async_task):
+        self.verify_email()
+        self.client.force_login(self.user)
+        intent = "Remote climate infrastructure work with salary transparency and async-friendly teams."
+
+        self.client.post(reverse("create-intent-alerts"), {"intent": intent})
+        response = self.client.post(reverse("create-intent-alerts"), {"intent": intent})
+
+        assert response.status_code == 302
+        alerts = Alert.objects.filter(email=self.user.email)
+        assert alerts.count() == 1
+        assert alerts.first().filter == {"vector": intent, "is_remote": "True"}
+        mock_async_task.assert_called_once()
+
+    @patch("jobs.views.async_task")
+    def test_reactivated_alert_queues_matching_task(self, mock_async_task):
+        self.verify_email()
+        self.client.force_login(self.user)
+        intent = "Remote climate infrastructure work with salary transparency and async-friendly teams."
+        alert = Alert.objects.create(
+            user=self.user,
+            email=self.user.email,
+            confirmed=False,
+            unsubscribed=True,
+            name="Job brief match",
+            filter={"vector": intent, "is_remote": "True"},
+        )
+
+        response = self.client.post(reverse("create-intent-alerts"), {"intent": intent})
+
+        assert response.status_code == 302
+        alert.refresh_from_db()
+        assert alert.confirmed is True
+        assert alert.unsubscribed is False
+        mock_async_task.assert_called_once()
+
+    @patch("jobs.views.async_task")
+    def test_unverified_user_cannot_create_intent_alerts(self, mock_async_task):
+        EmailAddress.objects.create(user=self.user, email=self.user.email, verified=False, primary=True)
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("create-intent-alerts"),
+            {
+                "intent": "Remote Backend Engineer roles using Python, Postgres, and infrastructure work.",
+            },
+        )
+
+        assert response.status_code == 302
+        assert response["Location"] == reverse("settings")
+        assert Alert.objects.filter(email=self.user.email).count() == 0
+        mock_async_task.assert_not_called()
 
 
 class CompanyEmailMergeTests(SimpleTestCase):
