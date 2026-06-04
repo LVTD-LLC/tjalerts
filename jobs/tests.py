@@ -1,3 +1,4 @@
+from datetime import timedelta
 from unittest.mock import Mock, patch
 
 import httpx
@@ -17,6 +18,7 @@ from jobs.enrichment import (
     extract_structured_page_context,
     read_url_with_jina,
 )
+from jobs.filters import PostFilter
 from jobs.models import Alert, Company, Post, Technology, Title
 from jobs.queries import get_most_popular_technologies, get_most_popular_titles
 from jobs.tasks import (
@@ -237,6 +239,68 @@ class CompanyEmailMergeTests(SimpleTestCase):
         long_email_blob = "a" * (MAX_COMPANY_EMAILS_LENGTH + 100)
 
         assert len(merge_company_emails("", long_email_blob)) == MAX_COMPANY_EMAILS_LENGTH
+
+
+class PostFilterTests(TestCase):
+    def test_remove_duplicate_employers_keeps_latest_post_per_employer(self):
+        now = timezone.now()
+        acme = Company.objects.create(name="Acme")
+        beta = Company.objects.create(name="Beta")
+        stale_acme_post = Post.objects.create(
+            submitted_datetime=now - timedelta(days=2),
+            company=acme,
+            description="Older Acme role",
+        )
+        latest_acme_post = Post.objects.create(
+            submitted_datetime=now,
+            company=acme,
+            description="Latest Acme role",
+        )
+        beta_post = Post.objects.create(
+            submitted_datetime=now - timedelta(hours=1),
+            company=beta,
+            description="Beta role",
+        )
+
+        filtered_posts = PostFilter(
+            {"remove_duplicate_employers": "true"},
+            queryset=Post.objects.all(),
+        ).qs
+
+        post_ids = list(filtered_posts.values_list("id", flat=True))
+
+        assert post_ids == [latest_acme_post.id, beta_post.id]
+        assert stale_acme_post.id not in post_ids
+
+    def test_remove_duplicate_employers_respects_selected_ordering(self):
+        now = timezone.now()
+        acme = Company.objects.create(name="Acme")
+        beta = Company.objects.create(name="Beta")
+        high_salary_acme_post = Post.objects.create(
+            submitted_datetime=now - timedelta(days=2),
+            company=acme,
+            description="Higher salary Acme role",
+            max_salary=200000,
+        )
+        Post.objects.create(
+            submitted_datetime=now,
+            company=acme,
+            description="Newer lower salary Acme role",
+            max_salary=100000,
+        )
+        beta_post = Post.objects.create(
+            submitted_datetime=now - timedelta(days=1),
+            company=beta,
+            description="Beta role",
+            max_salary=150000,
+        )
+
+        filtered_posts = PostFilter(
+            {"remove_duplicate_employers": "true", "o": "-max_salary"},
+            queryset=Post.objects.all(),
+        ).qs
+
+        assert list(filtered_posts.values_list("id", flat=True)) == [high_salary_acme_post.id, beta_post.id]
 
 
 class RemoteOkParsingTests(SimpleTestCase):
