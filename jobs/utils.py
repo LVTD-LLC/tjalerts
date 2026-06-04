@@ -36,6 +36,7 @@ list_of_expected_keys = [
     "is_onsite",
     "capacity",
     "description",
+    "job_details",
     "technologies_used",
     "company_homepage_link",
     "emails",
@@ -294,7 +295,7 @@ def default_alert_name(alert, idx):
     if "technologies" in alert.filter and len(alert.filter) == 1 and alert.filter["technologies"][0]:
         return f"{Technology.objects.get(id=alert.filter['technologies'][0]).name} Alert"
     else:
-        return alert.name if alert.name else f"Alert #{idx+1}"
+        return alert.name if alert.name else f"Alert #{idx + 1}"
 
 
 def build_intent_alert_suggestions(intent, max_alerts=3):

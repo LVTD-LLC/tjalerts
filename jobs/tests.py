@@ -17,6 +17,7 @@ from jobs.enrichment import (
     build_reader_context,
     extract_first_url,
     extract_structured_page_context,
+    normalize_job_details,
     read_url_with_jina,
 )
 from jobs.filters import PostFilter
@@ -427,6 +428,9 @@ class RemoteOkParsingTests(SimpleTestCase):
         assert data["company_job_application_link"] == "https://remoteOK.com/remote-jobs/example-123"
         assert data["min_salary"] == 100000
         assert data["max_salary"] == 140000
+        assert data["job_details"]["canonical_job_url"] == "https://remoteOK.com/remote-jobs/example-123"
+        assert data["job_details"]["remote_policy"] == "Remote"
+        assert data["job_details"]["direct_apply"] == "external"
 
     def test_apply_remote_ok_defaults_prefers_api_salary_summary(self):
         job = {
@@ -637,6 +641,11 @@ class WeWorkRemotelyParsingTests(SimpleTestCase):
         assert data["description"] == "Build APIs."
         assert data["is_remote"] is True
         assert data["company_job_application_link"] == "https://weworkremotely.com/remote-jobs/acme-python-engineer"
+        assert data["job_details"]["canonical_job_url"] == (
+            "https://weworkremotely.com/remote-jobs/acme-python-engineer"
+        )
+        assert data["job_details"]["remote_policy"] == "Anywhere in the World"
+        assert data["job_details"]["remote_scope"] == "worldwide"
 
 
 class PostFilterTests(TestCase):
@@ -804,6 +813,9 @@ class RemoteOkImportTests(TestCase):
         assert post.company_job_application_link == "https://remoteOK.com/remote-jobs/example-123"
         assert post.min_salary == 120000
         assert post.max_salary == 160000
+        assert post.job_details["canonical_job_url"] == "https://remoteOK.com/remote-jobs/example-123"
+        assert post.job_details["compensation_notes"] == "120000 - 160000"
+        assert post.job_details["remote_policy"] == "Worldwide"
         assert list(post.titles.values_list("name", flat=True)) == ["Senior Python Engineer"]
         assert set(post.technologies.values_list("name", flat=True)) == {"Python", "Django"}
         assert Post.objects.filter(source=PostSource.REMOTE_OK, source_external_id="123").exists()
@@ -892,6 +904,11 @@ class WeWorkRemotelyImportTests(TestCase):
         assert post.company_job_application_link == "https://weworkremotely.com/remote-jobs/acme-senior-python-engineer"
         assert post.description == "Build production Django APIs."
         assert post.submitted_datetime.isoformat() == "2026-06-02T20:15:53+00:00"
+        assert post.job_details["canonical_job_url"] == (
+            "https://weworkremotely.com/remote-jobs/acme-senior-python-engineer"
+        )
+        assert post.job_details["remote_policy"] == "Anywhere in the World"
+        assert post.job_details["remote_scope"] == "worldwide"
         assert list(post.titles.values_list("name", flat=True)) == ["Senior Python Engineer"]
         assert set(post.technologies.values_list("name", flat=True)) == {"Python", "Django"}
         assert Post.objects.filter(
@@ -924,6 +941,31 @@ class WeWorkRemotelyImportTests(TestCase):
 class ReaderContextTests(SimpleTestCase):
     def test_extract_first_url_normalizes_embedded_urls(self):
         assert extract_first_url('Apply at <a href="www.example.com/jobs">jobs</a>.') == "https://www.example.com/jobs"
+
+    def test_normalize_job_details_coerces_lists_scalars_and_urls(self):
+        details = normalize_job_details(
+            {
+                "responsibilities": "Build APIs, Review code",
+                "requirements": "Unknown",
+                "required_technologies": ["Python", "Django"],
+                "benefits": ["Health insurance", "Unknown", {"text": "bad"}],
+                "portfolio_required": True,
+                "canonical_job_url": "example.com/jobs/backend,",
+                "application_instructions": {"text": "Apply through the site"},
+                "work_authorization": "N/A",
+                "unknown_key": "ignored",
+            }
+        )
+
+        assert details["responsibilities"] == ["Build APIs", "Review code"]
+        assert details["requirements"] == []
+        assert details["required_technologies"] == ["Python", "Django"]
+        assert details["benefits"] == ["Health insurance"]
+        assert details["portfolio_required"] == "Yes"
+        assert details["canonical_job_url"] == "https://example.com/jobs/backend"
+        assert details["application_instructions"] == ""
+        assert details["work_authorization"] == ""
+        assert "unknown_key" not in details
 
     @override_settings(
         JINA_READER_API_KEY="jina-key",
@@ -990,6 +1032,10 @@ class ReaderContextTests(SimpleTestCase):
             "compensation_summary": "",
             "levels_of_experience": "",
             "description": "",
+            "job_details": {
+                "required_technologies": ["Python"],
+                "remote_policy": "Remote within Europe",
+            },
         }
         job_posting_context = {
             "structured": {
@@ -1000,9 +1046,24 @@ class ReaderContextTests(SimpleTestCase):
                 "compensation": "$150k-$180k",
                 "seniority": "Senior",
                 "page_summary": "Build internal platform systems.",
+                "responsibilities": ["Own APIs"],
+                "requirements": ["5 years of backend experience"],
+                "required_technologies": ["Django"],
+                "nice_to_have_technologies": ["Kubernetes"],
+                "timezone_requirements": ["CET overlap"],
+                "employment_type": "Full-time",
+                "application_instructions": "Email your resume.",
+                "confidence": "medium",
             }
         }
-        company_homepage_context = {"structured": {"company_name": "Example Homepage"}}
+        company_homepage_context = {
+            "structured": {
+                "company_name": "Example Homepage",
+                "industry": "Developer tools",
+                "product_or_service": "Internal platform",
+                "confidence": "high",
+            }
+        }
 
         enriched_data = augment_cleaned_job_data_with_context(
             cleaned_data,
@@ -1012,11 +1073,22 @@ class ReaderContextTests(SimpleTestCase):
 
         assert enriched_data["company_name"] == "Example Co"
         assert enriched_data["job_titles"] == "Backend Engineer, Platform Engineer"
-        assert enriched_data["technologies_used"] == "Python, Django"
+        assert enriched_data["technologies_used"] == "Python, Django, Kubernetes"
         assert enriched_data["locations"] == "Remote, Berlin"
         assert enriched_data["compensation_summary"] == "$150k-$180k"
         assert enriched_data["levels_of_experience"] == "Senior"
         assert enriched_data["description"] == "Build internal platform systems."
+        assert enriched_data["remote_timezones"] == "CET overlap"
+        assert enriched_data["capacity"] == "Full-time"
+        assert enriched_data["job_details"]["responsibilities"] == ["Own APIs"]
+        assert enriched_data["job_details"]["requirements"] == ["5 years of backend experience"]
+        assert enriched_data["job_details"]["required_technologies"] == ["Python", "Django"]
+        assert enriched_data["job_details"]["nice_to_have_technologies"] == ["Kubernetes"]
+        assert enriched_data["job_details"]["remote_policy"] == "Remote within Europe"
+        assert enriched_data["job_details"]["industry"] == "Developer tools"
+        assert enriched_data["job_details"]["product_or_service"] == "Internal platform"
+        assert enriched_data["job_details"]["application_instructions"] == "Email your resume."
+        assert enriched_data["job_details"]["extraction_confidence"] == "medium"
 
     @override_settings(OPENAI_PAGE_CONTEXT_EXTRACTION_MODEL="test-model")
     @patch("jobs.enrichment.client.chat.completions.create")

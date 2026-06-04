@@ -18,6 +18,53 @@ client = OpenAI()
 
 URL_PATTERN = re.compile(r"""(?:https?://|www\.)[^\s<>"']+""", re.IGNORECASE)
 TRAILING_URL_PUNCTUATION = ".,;:!?)\\]}'\""
+UNKNOWN_DETAIL_VALUES = {"unknown", "empty", "not specified", "n/a", "null", "none"}
+
+JOB_DETAIL_LIST_KEYS = {
+    "responsibilities",
+    "requirements",
+    "required_technologies",
+    "nice_to_have_technologies",
+    "timezone_requirements",
+    "benefits",
+    "duplicate_signals",
+}
+
+JOB_DETAIL_SCALAR_KEYS = [
+    "remote_policy",
+    "remote_scope",
+    "travel_requirements",
+    "relocation_support",
+    "visa_sponsorship",
+    "work_authorization",
+    "security_clearance",
+    "employment_type",
+    "salary_period",
+    "salary_location_basis",
+    "compensation_notes",
+    "equity",
+    "bonus",
+    "application_instructions",
+    "application_email_subject",
+    "portfolio_required",
+    "github_required",
+    "cover_letter_required",
+    "application_deadline",
+    "direct_apply",
+    "industry",
+    "product_or_service",
+    "company_hq",
+    "company_size",
+    "company_stage",
+    "company_funding",
+    "open_source",
+    "company_mission",
+    "job_status",
+    "canonical_job_url",
+    "extraction_confidence",
+]
+
+JOB_DETAIL_KEYS = [*sorted(JOB_DETAIL_LIST_KEYS), *JOB_DETAIL_SCALAR_KEYS]
 
 STRUCTURED_CONTEXT_KEYS = [
     "page_summary",
@@ -28,14 +75,42 @@ STRUCTURED_CONTEXT_KEYS = [
     "job_titles",
     "responsibilities",
     "requirements",
+    "required_technologies",
+    "nice_to_have_technologies",
     "technologies",
     "locations",
     "remote_policy",
+    "remote_scope",
+    "timezone_requirements",
+    "travel_requirements",
+    "relocation_support",
+    "visa_sponsorship",
+    "work_authorization",
+    "security_clearance",
     "compensation",
+    "salary_period",
+    "salary_location_basis",
+    "equity",
+    "bonus",
     "benefits",
     "seniority",
     "employment_type",
     "application_instructions",
+    "application_email_subject",
+    "portfolio_required",
+    "github_required",
+    "cover_letter_required",
+    "application_deadline",
+    "direct_apply",
+    "company_hq",
+    "company_size",
+    "company_stage",
+    "company_funding",
+    "open_source",
+    "company_mission",
+    "job_status",
+    "canonical_job_url",
+    "duplicate_signals",
     "notable_links",
     "confidence",
 ]
@@ -44,10 +119,58 @@ LIST_CONTEXT_KEYS = {
     "job_titles",
     "responsibilities",
     "requirements",
+    "required_technologies",
+    "nice_to_have_technologies",
     "technologies",
     "locations",
+    "timezone_requirements",
     "benefits",
+    "duplicate_signals",
     "notable_links",
+}
+
+JOB_CONTEXT_TO_DETAIL_KEYS = {
+    "responsibilities": "responsibilities",
+    "requirements": "requirements",
+    "required_technologies": "required_technologies",
+    "nice_to_have_technologies": "nice_to_have_technologies",
+    "remote_policy": "remote_policy",
+    "remote_scope": "remote_scope",
+    "timezone_requirements": "timezone_requirements",
+    "travel_requirements": "travel_requirements",
+    "relocation_support": "relocation_support",
+    "visa_sponsorship": "visa_sponsorship",
+    "work_authorization": "work_authorization",
+    "security_clearance": "security_clearance",
+    "compensation": "compensation_notes",
+    "salary_period": "salary_period",
+    "salary_location_basis": "salary_location_basis",
+    "equity": "equity",
+    "bonus": "bonus",
+    "benefits": "benefits",
+    "employment_type": "employment_type",
+    "application_instructions": "application_instructions",
+    "application_email_subject": "application_email_subject",
+    "portfolio_required": "portfolio_required",
+    "github_required": "github_required",
+    "cover_letter_required": "cover_letter_required",
+    "application_deadline": "application_deadline",
+    "direct_apply": "direct_apply",
+    "job_status": "job_status",
+    "canonical_job_url": "canonical_job_url",
+    "duplicate_signals": "duplicate_signals",
+    "confidence": "extraction_confidence",
+}
+
+COMPANY_CONTEXT_TO_DETAIL_KEYS = {
+    "product_or_service": "product_or_service",
+    "industry": "industry",
+    "company_hq": "company_hq",
+    "company_size": "company_size",
+    "company_stage": "company_stage",
+    "company_funding": "company_funding",
+    "open_source": "open_source",
+    "company_mission": "company_mission",
 }
 
 
@@ -217,14 +340,42 @@ Return only a valid JSON object with these exact keys:
 - job_titles: array of role titles mentioned
 - responsibilities: array of responsibilities mentioned
 - requirements: array of candidate requirements mentioned
+- required_technologies: array of technologies that appear required for the job
+- nice_to_have_technologies: array of optional or preferred technologies
 - technologies: array of technologies, tools, languages, frameworks, or platforms mentioned
 - locations: array of locations or timezones mentioned
 - remote_policy: remote, hybrid, onsite, timezone, or relocation details
+- remote_scope: worldwide, country-limited, region-limited, timezone-limited, hybrid, onsite, or unclear
+- timezone_requirements: array of timezones or required overlap windows
+- travel_requirements: travel expectations, if visible
+- relocation_support: relocation support or requirement, if visible
+- visa_sponsorship: visa sponsorship details, if visible
+- work_authorization: work authorization restrictions, if visible
+- security_clearance: security clearance requirements, if visible
 - compensation: salary, equity, benefits, or compensation details
+- salary_period: yearly, monthly, hourly, contract, or unclear
+- salary_location_basis: whether salary depends on location, if visible
+- equity: equity details, if visible
+- bonus: bonus details, if visible
 - benefits: array of benefits or perks
 - seniority: seniority level if visible
 - employment_type: full-time, part-time, contractor, internship, etc.
 - application_instructions: how to apply, if stated
+- application_email_subject: required email subject line, if stated
+- portfolio_required: whether a portfolio is required, preferred, not required, or unclear
+- github_required: whether GitHub is required, preferred, not required, or unclear
+- cover_letter_required: whether a cover letter is required, preferred, not required, or unclear
+- application_deadline: deadline or closing date, if visible
+- direct_apply: whether the page supports direct apply, points to another ATS, email, or unclear
+- company_hq: company headquarters, if visible
+- company_size: company size or headcount, if visible
+- company_stage: startup stage, public company status, bootstrapped, etc.
+- company_funding: funding details, if visible
+- open_source: open-source signal or notable public repos, if visible
+- company_mission: concise mission or market description
+- job_status: open, closed, expired, unclear, or another visible status
+- canonical_job_url: canonical job posting URL, if visible
+- duplicate_signals: array of URLs or signals that suggest this posting appears elsewhere
 - notable_links: array of useful links visible in the content
 - confidence: high, medium, or low
 
@@ -308,10 +459,21 @@ def normalize_structured_context(page_context):
 def augment_cleaned_job_data_with_context(cleaned_data, job_posting_context, company_homepage_context):
     job_context = job_posting_context.get("structured", {})
     company_context = company_homepage_context.get("structured", {})
+    job_details = normalize_job_details(cleaned_data.get("job_details", {}))
+
+    merge_context_into_job_details(job_details, job_context, JOB_CONTEXT_TO_DETAIL_KEYS)
+    merge_context_into_job_details(job_details, company_context, COMPANY_CONTEXT_TO_DETAIL_KEYS)
 
     cleaned_data["technologies_used"] = merge_csv_values(
         cleaned_data.get("technologies_used", ""),
         get_context_list(job_context, "technologies"),
+    )
+    cleaned_data["technologies_used"] = merge_csv_values(
+        cleaned_data.get("technologies_used", ""),
+        [
+            *job_details["required_technologies"],
+            *job_details["nice_to_have_technologies"],
+        ],
     )
     cleaned_data["job_titles"] = merge_csv_values(
         cleaned_data.get("job_titles", ""),
@@ -324,8 +486,81 @@ def augment_cleaned_job_data_with_context(cleaned_data, job_posting_context, com
     fill_empty_field(cleaned_data, "description", job_context.get("page_summary", ""))
     fill_empty_field(cleaned_data, "company_name", job_context.get("company_name", ""))
     fill_empty_field(cleaned_data, "company_name", company_context.get("company_name", ""))
+    fill_empty_field(cleaned_data, "remote_timezones", job_details["timezone_requirements"])
+    fill_empty_field(cleaned_data, "capacity", job_details.get("employment_type", ""))
+
+    cleaned_data["job_details"] = job_details
 
     return cleaned_data
+
+
+def normalize_job_details(job_details):
+    if not isinstance(job_details, dict):
+        job_details = {}
+
+    normalized_details = {}
+    for key in JOB_DETAIL_KEYS:
+        normalized_details[key] = normalize_job_detail_value(key, job_details.get(key))
+
+    canonical_url = normalized_details.get("canonical_job_url", "")
+    if canonical_url:
+        normalized_details["canonical_job_url"] = normalize_url(canonical_url)
+
+    return normalized_details
+
+
+def normalize_job_detail_value(key, value):
+    if key in JOB_DETAIL_LIST_KEYS:
+        return normalize_job_detail_list_value(value)
+
+    if isinstance(value, list):
+        return ", ".join(str(item).strip() for item in value if str(item).strip())
+
+    if isinstance(value, bool):
+        return "Yes" if value else "No"
+
+    if value is None or isinstance(value, dict):
+        return ""
+
+    value = str(value or "").strip()
+    if value.lower() in UNKNOWN_DETAIL_VALUES:
+        return ""
+
+    return value
+
+
+def normalize_job_detail_list_value(value):
+    return [item for item in split_context_values(value) if item.lower() not in UNKNOWN_DETAIL_VALUES]
+
+
+def merge_context_into_job_details(job_details, context, key_map):
+    for context_key, detail_key in key_map.items():
+        merge_job_detail_value(job_details, detail_key, context.get(context_key))
+
+    return job_details
+
+
+def merge_job_detail_value(job_details, key, value):
+    if key in JOB_DETAIL_LIST_KEYS:
+        job_details[key] = merge_detail_list(job_details.get(key, []), split_context_values(value))
+        return
+
+    value = normalize_job_detail_value(key, value)
+    if value and not job_details.get(key):
+        job_details[key] = value
+
+
+def merge_detail_list(existing_values, additional_values):
+    values = []
+    seen = set()
+
+    for value in [*split_context_values(existing_values), *split_context_values(additional_values)]:
+        key = value.lower()
+        if key not in seen:
+            values.append(value)
+            seen.add(key)
+
+    return values
 
 
 def merge_csv_values(existing_values, additional_values):
@@ -356,9 +591,24 @@ def get_context_list(context, key):
 
 def split_context_values(value):
     if isinstance(value, list):
-        return [str(item).strip() for item in value if str(item).strip()]
+        values = []
+        for item in value:
+            if item is None or isinstance(item, dict):
+                continue
 
-    if not value:
+            item = str(item).strip()
+            if item and item.lower() not in UNKNOWN_DETAIL_VALUES:
+                values.append(item)
+
+        return values
+
+    if not value or isinstance(value, dict):
         return []
 
-    return [item.strip() for item in str(value).split(",") if item.strip()]
+    value = str(value).strip()
+    if value.lower() in UNKNOWN_DETAIL_VALUES:
+        return []
+
+    return [
+        item.strip() for item in value.split(",") if item.strip() and item.strip().lower() not in UNKNOWN_DETAIL_VALUES
+    ]

@@ -4,185 +4,555 @@
 {% load widget_tweaks %}
 {% load date_utils %}
 {% load url_utils %}
-
 {% block meta %}
-<title>{{ object.company.name }} is hiring - {{ object.created | date:"F Y" }}</title>
-{% if is_old %}
-<meta name="robots" content="noindex" />
-{% endif %}
-<meta name="description" content="{{ object.description }}" />
-<link rel="canonical" href="{{ SITE_URL }}/jobs/{{ object.id }}" />
-<meta name="twitter:card" content="summary" />
-<meta name="twitter:creator" content="@rasulkireev" />
-<meta name="twitter:title" content="{{ object.company.name }} is hiring - {{ object.created | date:"F Y" }}" />
-<meta name="twitter:description" content="{{ object.description }}" />
-<meta name="twitter:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
-<meta property="og:title" content="{{ object.company.name }} is hiring - {{ object.created | date:"F Y" }}" />
-<meta property="og:url" content="{{ SITE_URL }}/jobs/{{ object.id }}" />
-<meta property="og:description" content="{{ object.description }}" />
-<meta property="og:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
+    <title>{{ object.company.name }} is hiring - {{ object.created | date:"F Y" }}</title>
+    {% if is_old %}<meta name="robots" content="noindex" />{% endif %}
+    <meta name="description" content="{{ object.description }}" />
+    <link rel="canonical" href="{{ SITE_URL }}/jobs/{{ object.id }}" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:creator" content="@rasulkireev" />
+    <meta name="twitter:title"
+          content="{{ object.company.name }} is hiring - {{ object.created | date:"F Y" }}" />
+    <meta name="twitter:description" content="{{ object.description }}" />
+    <meta name="twitter:image"
+          content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
+    <meta property="og:title"
+          content="{{ object.company.name }} is hiring - {{ object.created | date:"F Y" }}" />
+    <meta property="og:url" content="{{ SITE_URL }}/jobs/{{ object.id }}" />
+    <meta property="og:description" content="{{ object.description }}" />
+    <meta property="og:image"
+          content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
 {% endblock meta %}
-
 {% block content %}
-{% with titles=object.titles.all technologies=object.technologies.all %}
-{% with title_count=titles|length technology_count=technologies|length %}
-<div class="app-page-header">
-  <div class="app-container py-8">
-    <a href="{% url 'posts' %}" class="btn-quiet -ml-3 mb-4">
-      <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-      </svg>
-      Back to jobs
-    </a>
-
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-      <div class="min-w-0">
-        <p class="tabular text-sm text-zinc-500">Posted {{ object.submitted_datetime|timesince }} ago</p>
-        <h1 class="mt-2 text-2xl font-semibold tracking-tight text-zinc-950 sm:text-3xl">
-          {% if object.company.name %}{{ object.company.name }}{% else %}Stealth company{% endif %}
-        </h1>
-        {% if title_count >= 1 and titles.0.name %}
-        <p class="mt-2 text-base font-medium text-zinc-700">{{ titles.0.name }}</p>
-        {% endif %}
-      </div>
-
-      <div class="flex flex-wrap gap-2">
-        {% if object.company_job_application_link %}
-        <a href="{{ object.split_application_links.0 }}?utm_source=gettjalerts.com" target="_blank" class="btn-primary">Apply</a>
-        {% endif %}
-        {% if object.source == "Hacker News" %}
-        <a href="https://news.ycombinator.com/item?id={{ object.who_is_hiring_comment_id }}&utm_source=gettjalerts.com" target="_blank" class="btn-secondary gap-2">
-          <img src="{% static 'vendors/images/source-hacker-news.svg' %}" alt="" class="h-4 w-4 shrink-0 rounded-sm" aria-hidden="true" />
-          View on Hacker News
-        </a>
-        {% elif object.source == "Remote OK" and object.source_url %}
-        <a href="{{ object.source_url }}" target="_blank" class="btn-secondary gap-2">
-          <img src="{% static 'vendors/images/source-remote-ok.png' %}" alt="" class="h-4 w-4 shrink-0 rounded-sm" aria-hidden="true" />
-          View on Remote OK
-        </a>
-        {% elif object.source_url %}
-        <a href="{{ object.source_url }}" target="_blank" class="btn-secondary gap-2">
-          View on {{ object.source }}
-        </a>
-        {% endif %}
-        {% if object.company.company_homepage_link %}
-        <a href="{{ object.company.fixed_company_homepage_link }}" target="_blank" class="btn-secondary">Company site</a>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="app-container py-8">
-  <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-    <article class="space-y-4">
-      {% if title_count == 1 and titles.0.name == "" %}
-      {% elif title_count >= 1 %}
-      <section class="app-panel">
-        <h2 class="text-sm font-semibold text-zinc-950">Roles</h2>
-        <div class="mt-2">
-          {% for title in titles %}
-            {% include "components/title-link.html" with title=title %}
-          {% endfor %}
-        </div>
-      </section>
-      {% endif %}
-
-      {% if object.compensation_summary %}
-      <section class="app-panel">
-        <h2 class="text-sm font-semibold text-zinc-950">Compensation</h2>
-        <p class="mt-2 text-sm leading-6 text-zinc-700">{{ object.compensation_summary }}</p>
-      </section>
-      {% endif %}
-
-      {% if technology_count == 1 and technologies.0.name == "" %}
-      {% elif technology_count > 0 %}
-      <section class="app-panel">
-        <h2 class="text-sm font-semibold text-zinc-950">Tech stack</h2>
-        <div class="mt-2">
-          {% for technology in technologies %}
-            {% include "components/technology-link.html" with technology=technology %}
-          {% endfor %}
-        </div>
-      </section>
-      {% endif %}
-
-      {% if object.locations %}
-      <section class="app-panel">
-        <h2 class="text-sm font-semibold text-zinc-950">Location</h2>
-        <p class="mt-2 text-sm leading-6 text-zinc-700">{{ object.locations }}</p>
-      </section>
-      {% endif %}
-
-      {% if object.names_of_the_contact_person or object.emails %}
-      <section class="app-panel">
-        <h2 class="text-sm font-semibold text-zinc-950">Contact</h2>
-        {% if object.names_of_the_contact_person %}
-        <p class="mt-2 text-sm leading-6 text-zinc-700">{{ object.names_of_the_contact_person }}</p>
-        {% endif %}
-        {% if object.emails %}
-        <p class="mt-1 text-sm leading-6 text-zinc-700">{{ object.emails }}</p>
-        {% endif %}
-      </section>
-      {% endif %}
-
-      <section class="app-panel">
-        <h2 class="text-sm font-semibold text-zinc-950">Description</h2>
-        <div class="prose prose-zinc mt-3 max-w-none">
-          <p>{{ object.description }}</p>
-        </div>
-      </section>
-
-      <section data-controller="similar-posts" data-similar-posts-post-id-value="{{ object.id }}">
-        <div class="mb-3 flex items-center justify-between">
-          <h2 class="text-lg font-semibold text-zinc-950">Similar jobs</h2>
-        </div>
-        <ul data-similar-posts-target="container" role="list" class="space-y-3">
-          <li class="app-panel">
-            <p class="text-sm text-zinc-600">Loading similar jobs...</p>
-          </li>
-        </ul>
-      </section>
-    </article>
-
-    <aside class="space-y-4 lg:sticky lg:top-24 lg:self-start">
-      <div class="app-panel">
-        <h2 class="text-base font-semibold text-zinc-950">Get matching jobs by email</h2>
-        <p class="mt-1 text-sm leading-6 text-zinc-600">Create a simple alert for one technology, or use the jobs page for a more specific saved search.</p>
-        <div class="mt-4">
-          {% include "components/simple-alert-form.html" with create_alert_form=create_alert_form %}
-        </div>
-      </div>
-
-      <div class="app-muted-panel">
-        <h2 class="text-sm font-semibold text-zinc-950">Source</h2>
-        <dl class="mt-3 space-y-3 text-sm">
-          <div class="flex justify-between gap-4">
-            <dt class="text-zinc-500">Posted</dt>
-            <dd class="tabular text-right font-medium text-zinc-900">{{ object.submitted_datetime|date:"M j, Y" }}</dd>
-          </div>
-          <div class="flex justify-between gap-4">
-            <dt class="text-zinc-500">Source</dt>
-            <dd class="text-right font-medium text-zinc-900">
-              {% if object.source != "Hacker News" and object.source_url %}
-              <a href="{{ object.source_url }}" target="_blank" class="hover:text-zinc-700">{{ object.source }}</a>
-              {% else %}
-              {{ object.source }}
-              {% endif %}
-            </dd>
-          </div>
-        </dl>
-      </div>
-    </aside>
-  </div>
-</div>
-{% endwith %}
-{% endwith %}
+    {% with titles=object.titles.all technologies=object.technologies.all details=object.job_details %}
+        {% with title_count=titles|length technology_count=technologies|length %}
+            <div class="app-page-header">
+                <div class="app-container py-8">
+                    <a href="{% url 'posts' %}" class="btn-quiet -ml-3 mb-4">
+                        <svg class="mr-2 h-4 w-4"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke-width="1.8"
+                             stroke="currentColor"
+                             aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                        </svg>
+                        Back to jobs
+                    </a>
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div class="min-w-0">
+                            <p class="tabular text-sm text-zinc-500">Posted {{ object.submitted_datetime|timesince }} ago</p>
+                            <h1 class="mt-2 text-2xl font-semibold tracking-tight text-zinc-950 sm:text-3xl">
+                                {% if object.company.name %}
+                                    {{ object.company.name }}
+                                {% else %}
+                                    Stealth company
+                                {% endif %}
+                            </h1>
+                            {% if title_count >= 1 and titles.0.name %}
+                                <p class="mt-2 text-base font-medium text-zinc-700">{{ titles.0.name }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            {% if object.company_job_application_link %}
+                                <a href="{{ object.split_application_links.0 }}?utm_source=gettjalerts.com"
+                                   target="_blank"
+                                   class="btn-primary">Apply</a>
+                            {% endif %}
+                            {% if object.source == "Hacker News" %}
+                                <a href="https://news.ycombinator.com/item?id={{ object.who_is_hiring_comment_id }}&utm_source=gettjalerts.com"
+                                   target="_blank"
+                                   class="btn-secondary gap-2">
+                                    <img src="{% static 'vendors/images/source-hacker-news.svg' %}"
+                                         alt=""
+                                         class="h-4 w-4 shrink-0 rounded-sm"
+                                         aria-hidden="true" />
+                                    View on Hacker News
+                                </a>
+                            {% elif object.source == "Remote OK" and object.source_url %}
+                                <a href="{{ object.source_url }}"
+                                   target="_blank"
+                                   class="btn-secondary gap-2">
+                                    <img src="{% static 'vendors/images/source-remote-ok.png' %}"
+                                         alt=""
+                                         class="h-4 w-4 shrink-0 rounded-sm"
+                                         aria-hidden="true" />
+                                    View on Remote OK
+                                </a>
+                            {% elif object.source_url %}
+                                <a href="{{ object.source_url }}"
+                                   target="_blank"
+                                   class="btn-secondary gap-2">View on {{ object.source }}</a>
+                            {% endif %}
+                            {% if object.company.company_homepage_link %}
+                                <a href="{{ object.company.fixed_company_homepage_link }}"
+                                   target="_blank"
+                                   class="btn-secondary">Company site</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="app-container py-8">
+                <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+                    <article class="space-y-4">
+                        {% if title_count == 1 and titles.0.name == "" %}
+                        {% elif title_count >= 1 %}
+                            <section class="app-panel">
+                                <h2 class="text-sm font-semibold text-zinc-950">Roles</h2>
+                                <div class="mt-2">
+                                    {% for title in titles %}
+                                        {% include "components/title-link.html" with title=title %}
+                                    {% endfor %}
+                                </div>
+                            </section>
+                        {% endif %}
+                        {% if object.compensation_summary or details.compensation_notes or details.equity or details.bonus or details.salary_period or details.salary_location_basis or details.benefits %}
+                            <section class="app-panel">
+                                <h2 class="text-sm font-semibold text-zinc-950">Compensation</h2>
+                                {% if object.min_salary or object.max_salary %}
+                                    <p class="mt-2 text-sm font-semibold leading-6 text-zinc-900">
+                                        {% if object.currency %}{{ object.currency }}{% endif %}
+                                        {% if object.min_salary %}{{ object.min_salary }}{% endif %}
+                                        {% if object.min_salary and object.max_salary and object.min_salary != object.max_salary %}
+                                            - {{ object.max_salary }}
+                                        {% elif object.max_salary and not object.min_salary %}
+                                            {{ object.max_salary }}
+                                        {% endif %}
+                                    </p>
+                                {% endif %}
+                                {% if object.compensation_summary %}
+                                    <p class="mt-2 text-sm leading-6 text-zinc-700">{{ object.compensation_summary }}</p>
+                                {% elif details.compensation_notes %}
+                                    <p class="mt-2 text-sm leading-6 text-zinc-700">{{ details.compensation_notes }}</p>
+                                {% endif %}
+                                <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                                    {% if details.salary_period %}
+                                        <div>
+                                            <dt class="job-section-label">Salary period</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.salary_period }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.salary_location_basis %}
+                                        <div>
+                                            <dt class="job-section-label">Location basis</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.salary_location_basis }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.equity %}
+                                        <div>
+                                            <dt class="job-section-label">Equity</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.equity }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.bonus %}
+                                        <div>
+                                            <dt class="job-section-label">Bonus</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.bonus }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                </dl>
+                                {% if details.benefits %}
+                                    <div class="mt-4">
+                                        <h3 class="job-section-label">Benefits</h3>
+                                        <ul class="mt-2 grid gap-2 text-sm leading-6 text-zinc-700 sm:grid-cols-2">
+                                            {% for benefit in details.benefits %}<li class="rounded-md bg-zinc-50 px-3 py-2">{{ benefit }}</li>{% endfor %}
+                                        </ul>
+                                    </div>
+                                {% endif %}
+                            </section>
+                        {% endif %}
+                        {% if technology_count == 1 and technologies.0.name == "" and not details.required_technologies and not details.nice_to_have_technologies %}
+                        {% elif technology_count > 0 or details.required_technologies or details.nice_to_have_technologies %}
+                            <section class="app-panel">
+                                <h2 class="text-sm font-semibold text-zinc-950">Tech stack</h2>
+                                {% if technology_count == 1 and technologies.0.name == "" %}
+                                {% elif technology_count > 0 %}
+                                    <div class="mt-2">
+                                        {% for technology in technologies %}
+                                            {% include "components/technology-link.html" with technology=technology %}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                {% if details.required_technologies or details.nice_to_have_technologies %}
+                                    <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                                        {% if details.required_technologies %}
+                                            <div>
+                                                <h3 class="job-section-label">Required</h3>
+                                                <div class="mt-2">
+                                                    {% for technology in details.required_technologies %}<span class="tag-neutral">{{ technology }}</span>{% endfor %}
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                        {% if details.nice_to_have_technologies %}
+                                            <div>
+                                                <h3 class="job-section-label">Nice to have</h3>
+                                                <div class="mt-2">
+                                                    {% for technology in details.nice_to_have_technologies %}<span class="tag-neutral">{{ technology }}</span>{% endfor %}
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            </section>
+                        {% endif %}
+                        {% if object.locations %}
+                            <section class="app-panel">
+                                <h2 class="text-sm font-semibold text-zinc-950">Location</h2>
+                                <p class="mt-2 text-sm leading-6 text-zinc-700">{{ object.locations }}</p>
+                            </section>
+                        {% endif %}
+                        {% if details.employment_type or object.capacity or details.remote_policy or details.remote_scope or details.timezone_requirements or details.travel_requirements or details.relocation_support or details.visa_sponsorship or details.work_authorization or details.security_clearance or object.levels_of_experience or object.years_of_experience %}
+                            <section class="app-panel">
+                                <h2 class="text-sm font-semibold text-zinc-950">Work setup</h2>
+                                <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                                    {% if details.employment_type or object.capacity %}
+                                        <div>
+                                            <dt class="job-section-label">Employment</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.employment_type|default:object.capacity }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if object.levels_of_experience %}
+                                        <div>
+                                            <dt class="job-section-label">Level</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ object.levels_of_experience }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if object.years_of_experience %}
+                                        <div>
+                                            <dt class="job-section-label">Experience</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ object.years_of_experience }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.remote_policy %}
+                                        <div>
+                                            <dt class="job-section-label">Remote policy</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.remote_policy }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.remote_scope %}
+                                        <div>
+                                            <dt class="job-section-label">Remote scope</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.remote_scope }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.timezone_requirements %}
+                                        <div>
+                                            <dt class="job-section-label">Timezones</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.timezone_requirements|join:", " }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.travel_requirements %}
+                                        <div>
+                                            <dt class="job-section-label">Travel</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.travel_requirements }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.relocation_support %}
+                                        <div>
+                                            <dt class="job-section-label">Relocation</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.relocation_support }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.visa_sponsorship %}
+                                        <div>
+                                            <dt class="job-section-label">Visa</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.visa_sponsorship }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.work_authorization %}
+                                        <div>
+                                            <dt class="job-section-label">Authorization</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.work_authorization }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.security_clearance %}
+                                        <div>
+                                            <dt class="job-section-label">Clearance</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.security_clearance }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                </dl>
+                            </section>
+                        {% endif %}
+                        {% if details.responsibilities or details.requirements %}
+                            <section class="app-panel">
+                                <h2 class="text-sm font-semibold text-zinc-950">Role details</h2>
+                                <div class="mt-3 grid gap-6 md:grid-cols-2">
+                                    {% if details.responsibilities %}
+                                        <div>
+                                            <h3 class="job-section-label">Responsibilities</h3>
+                                            <ul class="mt-2 space-y-2 text-sm leading-6 text-zinc-700">
+                                                {% for responsibility in details.responsibilities %}<li>{{ responsibility }}</li>{% endfor %}
+                                            </ul>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.requirements %}
+                                        <div>
+                                            <h3 class="job-section-label">Requirements</h3>
+                                            <ul class="mt-2 space-y-2 text-sm leading-6 text-zinc-700">
+                                                {% for requirement in details.requirements %}<li>{{ requirement }}</li>{% endfor %}
+                                            </ul>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </section>
+                        {% endif %}
+                        {% if details.application_instructions or details.application_email_subject or details.portfolio_required or details.github_required or details.cover_letter_required or details.application_deadline or details.direct_apply or details.canonical_job_url %}
+                            <section class="app-panel">
+                                <h2 class="text-sm font-semibold text-zinc-950">Application</h2>
+                                {% if details.application_instructions %}
+                                    <p class="mt-2 text-sm leading-6 text-zinc-700">{{ details.application_instructions }}</p>
+                                {% endif %}
+                                <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                                    {% if details.application_email_subject %}
+                                        <div>
+                                            <dt class="job-section-label">Email subject</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.application_email_subject }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.application_deadline %}
+                                        <div>
+                                            <dt class="job-section-label">Deadline</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.application_deadline }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.portfolio_required %}
+                                        <div>
+                                            <dt class="job-section-label">Portfolio</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.portfolio_required }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.github_required %}
+                                        <div>
+                                            <dt class="job-section-label">GitHub</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.github_required }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.cover_letter_required %}
+                                        <div>
+                                            <dt class="job-section-label">Cover letter</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.cover_letter_required }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.direct_apply %}
+                                        <div>
+                                            <dt class="job-section-label">Apply flow</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.direct_apply }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.canonical_job_url %}
+                                        <div>
+                                            <dt class="job-section-label">Canonical URL</dt>
+                                            <dd class="mt-1 break-words leading-6 text-zinc-700">
+                                                <a href="{{ details.canonical_job_url }}"
+                                                   target="_blank"
+                                                   class="hover:text-zinc-950">{{ details.canonical_job_url }}</a>
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                </dl>
+                            </section>
+                        {% endif %}
+                        {% if details.industry or details.product_or_service or details.company_hq or details.company_size or details.company_stage or details.company_funding or details.open_source or details.company_mission %}
+                            <section class="app-panel">
+                                <h2 class="text-sm font-semibold text-zinc-950">Company context</h2>
+                                {% if details.company_mission %}
+                                    <p class="mt-2 text-sm leading-6 text-zinc-700">{{ details.company_mission }}</p>
+                                {% endif %}
+                                <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                                    {% if details.product_or_service %}
+                                        <div>
+                                            <dt class="job-section-label">Product</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.product_or_service }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.industry %}
+                                        <div>
+                                            <dt class="job-section-label">Industry</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.industry }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.company_hq %}
+                                        <div>
+                                            <dt class="job-section-label">HQ</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.company_hq }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.company_size %}
+                                        <div>
+                                            <dt class="job-section-label">Size</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.company_size }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.company_stage %}
+                                        <div>
+                                            <dt class="job-section-label">Stage</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.company_stage }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.company_funding %}
+                                        <div>
+                                            <dt class="job-section-label">Funding</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.company_funding }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                    {% if details.open_source %}
+                                        <div>
+                                            <dt class="job-section-label">Open source</dt>
+                                            <dd class="mt-1 leading-6 text-zinc-700">
+                                                {{ details.open_source }}
+                                            </dd>
+                                        </div>
+                                    {% endif %}
+                                </dl>
+                            </section>
+                        {% endif %}
+                        {% if object.names_of_the_contact_person or object.emails %}
+                            <section class="app-panel">
+                                <h2 class="text-sm font-semibold text-zinc-950">Contact</h2>
+                                {% if object.names_of_the_contact_person %}
+                                    <p class="mt-2 text-sm leading-6 text-zinc-700">{{ object.names_of_the_contact_person }}</p>
+                                {% endif %}
+                                {% if object.emails %}<p class="mt-1 text-sm leading-6 text-zinc-700">{{ object.emails }}</p>{% endif %}
+                            </section>
+                        {% endif %}
+                        <section class="app-panel">
+                            <h2 class="text-sm font-semibold text-zinc-950">Description</h2>
+                            <div class="prose prose-zinc mt-3 max-w-none">
+                                <p>{{ object.description }}</p>
+                            </div>
+                        </section>
+                        <section data-controller="similar-posts"
+                                 data-similar-posts-post-id-value="{{ object.id }}">
+                            <div class="mb-3 flex items-center justify-between">
+                                <h2 class="text-lg font-semibold text-zinc-950">Similar jobs</h2>
+                            </div>
+                            <ul data-similar-posts-target="container" role="list" class="space-y-3">
+                                <li class="app-panel">
+                                    <p class="text-sm text-zinc-600">Loading similar jobs...</p>
+                                </li>
+                            </ul>
+                        </section>
+                    </article>
+                    <aside class="space-y-4 lg:sticky lg:top-24 lg:self-start">
+                        <div class="app-panel">
+                            <h2 class="text-base font-semibold text-zinc-950">Get matching jobs by email</h2>
+                            <p class="mt-1 text-sm leading-6 text-zinc-600">
+                                Create a simple alert for one technology, or use the jobs page for a more specific saved search.
+                            </p>
+                            <div class="mt-4">{% include "components/simple-alert-form.html" with create_alert_form=create_alert_form %}</div>
+                        </div>
+                        <div class="app-muted-panel">
+                            <h2 class="text-sm font-semibold text-zinc-950">Source</h2>
+                            <dl class="mt-3 space-y-3 text-sm">
+                                <div class="flex justify-between gap-4">
+                                    <dt class="text-zinc-500">Posted</dt>
+                                    <dd class="tabular text-right font-medium text-zinc-900">
+                                        {{ object.submitted_datetime|date:"M j, Y" }}
+                                    </dd>
+                                </div>
+                                <div class="flex justify-between gap-4">
+                                    <dt class="text-zinc-500">Source</dt>
+                                    <dd class="text-right font-medium text-zinc-900">
+                                        {% if object.source != "Hacker News" and object.source_url %}
+                                            <a href="{{ object.source_url }}"
+                                               target="_blank"
+                                               class="hover:text-zinc-700">{{ object.source }}</a>
+                                        {% else %}
+                                            {{ object.source }}
+                                        {% endif %}
+                                    </dd>
+                                </div>
+                                {% if details.job_status %}
+                                    <div class="flex justify-between gap-4">
+                                        <dt class="text-zinc-500">Status</dt>
+                                        <dd class="text-right font-medium text-zinc-900">
+                                            {{ details.job_status }}
+                                        </dd>
+                                    </div>
+                                {% endif %}
+                                {% if details.extraction_confidence %}
+                                    <div class="flex justify-between gap-4">
+                                        <dt class="text-zinc-500">Detail confidence</dt>
+                                        <dd class="text-right font-medium text-zinc-900">
+                                            {{ details.extraction_confidence }}
+                                        </dd>
+                                    </div>
+                                {% endif %}
+                            </dl>
+                            {% if details.duplicate_signals %}
+                                <div class="mt-4 border-t border-zinc-200 pt-4">
+                                    <h3 class="job-section-label">Also appears</h3>
+                                    <ul class="mt-2 space-y-2 text-sm leading-6 text-zinc-700">
+                                        {% for signal in details.duplicate_signals %}<li class="break-words">{{ signal }}</li>{% endfor %}
+                                    </ul>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </aside>
+                </div>
+            </div>
+        {% endwith %}
+    {% endwith %}
 {% endblock content %}
-
 {% block schema %}
-  {% with titles=object.titles.all %}
-  <script type="application/ld+json">
+    {% with titles=object.titles.all %}
+        <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "JobPosting",
@@ -204,6 +574,6 @@
         "sameAs": "{{ object.company.fixed_company_homepage_link }}"{% endif %}
       }
     }
-  </script>
-  {% endwith %}
+        </script>
+    {% endwith %}
 {% endblock schema %}

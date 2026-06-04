@@ -1,4 +1,6 @@
 from datetime import datetime
+from typing import Any
+from typing import Dict
 from typing import List
 from typing import Optional
 
@@ -86,6 +88,7 @@ class JobSchema(Schema):
     company_name: str
     company_url: str
     description: str
+    job_details: Dict[str, Any]
     compensation_summary: Optional[str]
     min_salary: Optional[int]
     max_salary: Optional[int]
