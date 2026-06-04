@@ -76,6 +76,10 @@
             {% render_field filter.form.emails__isempty id="emails__isempty" name="emails__isempty" class="app-select mt-1" %}
           </div>
           <div>
+            <label for="remove_duplicate_employers" class="app-label">Employers</label>
+            {% render_field filter.form.remove_duplicate_employers id="remove_duplicate_employers" name="remove_duplicate_employers" class="app-select mt-1" %}
+          </div>
+          <div>
             <label for="is_remote" class="app-label">Remote</label>
             {% render_field filter.form.is_remote id="is_remote" name="is_remote" class="app-select mt-1" %}
           </div>
