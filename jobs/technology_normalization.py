@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import connection, transaction
 
 from jobs.models import Technology, TechnologyAlias, TechnologyMapping
 from jobs.technology_names import (
@@ -90,7 +90,10 @@ def get_alias_technology(value):
     return None
 
 
+@transaction.atomic
 def get_or_create_technology_by_name(name):
+    lock_technology_name_creation(name)
+
     technology = Technology.objects.filter(name=name).order_by("created").first()
     if technology:
         return technology
@@ -98,10 +101,19 @@ def get_or_create_technology_by_name(name):
     technology = Technology.objects.filter(name__iexact=name).order_by("created").first()
     if technology:
         technology.name = name
-        technology.save()
+        technology.save(update_fields=["name", "modified"])
         return technology
 
     return Technology.objects.create(name=name)
+
+
+def lock_technology_name_creation(name):
+    if connection.vendor != "postgresql":
+        return
+
+    lock_key = normalize_technology_key(name)
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [lock_key])
 
 
 def upsert_technology_alias(technology, alias, source="manual", notes=""):

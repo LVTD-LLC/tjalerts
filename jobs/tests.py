@@ -43,7 +43,11 @@ from jobs.tasks import (
     parse_we_work_remotely_title,
 )
 from jobs.technology_names import extract_technology_names, normalize_technology_key
-from jobs.technology_normalization import get_or_create_canonical_technologies, get_related_technology_ids
+from jobs.technology_normalization import (
+    get_or_create_canonical_technologies,
+    get_or_create_technology_by_name,
+    get_related_technology_ids,
+)
 from jobs.utils import (
     build_intent_alert_suggestions,
     canonical_filter_key,
@@ -321,6 +325,11 @@ class TechnologyNameNormalizationTests(SimpleTestCase):
     def test_extract_technology_names_ignores_generic_descriptors(self):
         assert extract_technology_names("REST API, backend, full-stack") == []
 
+    def test_aspnet_aliases_normalize_to_aspnet_key(self):
+        assert normalize_technology_key("asp.net") == "aspnet"
+        assert normalize_technology_key("aspnet") == "aspnet"
+        assert extract_technology_names("aspnet, asp.net, asp net") == ["ASP.NET"]
+
 
 class TechnologyCanonicalizationTests(TestCase):
     def test_get_or_create_canonical_technologies_deduplicates_aliases(self):
@@ -339,6 +348,16 @@ class TechnologyCanonicalizationTests(TestCase):
         technologies = get_or_create_canonical_technologies("DRF")
 
         assert technologies == [canonical_technology]
+
+    def test_get_or_create_technology_by_name_scopes_case_correction_update(self):
+        technology = Technology.objects.create(name="django")
+
+        with patch.object(Technology, "save", autospec=True) as save_mock:
+            result = get_or_create_technology_by_name("Django")
+
+        assert result.id == technology.id
+        assert result.name == "Django"
+        save_mock.assert_called_once_with(result, update_fields=["name", "modified"])
 
     def test_alias_table_can_map_custom_names_to_canonical_technology(self):
         technology = Technology.objects.create(name="Django REST Framework")

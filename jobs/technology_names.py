@@ -65,6 +65,7 @@ DEFAULT_TECHNOLOGY_ALIASES = (
     (".net", ".NET"),
     ("dotnet", ".NET"),
     ("asp.net", "ASP.NET"),
+    ("aspnet", "ASP.NET"),
     ("asp net", "ASP.NET"),
     ("objective c", "Objective-C"),
     ("objective-c", "Objective-C"),
@@ -215,13 +216,13 @@ VERSIONABLE_TECHNOLOGY_KEYS = {
 SPECIAL_KEY_REPLACEMENTS = (
     ("c++", "cplusplus"),
     ("c#", "csharp"),
+    ("asp.net", "aspnet"),
     (".net", "dotnet"),
     ("node.js", "nodejs"),
     ("react.js", "reactjs"),
     ("next.js", "nextjs"),
     ("vue.js", "vuejs"),
     ("nuxt.js", "nuxtjs"),
-    ("asp.net", "aspnet"),
 )
 
 
