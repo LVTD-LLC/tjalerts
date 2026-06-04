@@ -6,6 +6,7 @@ from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db import IntegrityError
+from django.http import QueryDict
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -43,9 +44,12 @@ from jobs.utils import (
     build_intent_alert_suggestions,
     canonical_filter_key,
     clean_job_json_object,
+    generate_job_search_keywords,
+    generate_job_search_title,
     is_probably_non_hiring_hn_comment,
     normalize_hn_comment_text,
 )
+from jobs.views import active_filter_summary, build_serializable_filter_params
 
 
 class PopularQueryTests(TestCase):
@@ -138,6 +142,44 @@ class IntentAlertSuggestionTests(TestCase):
         second_key = canonical_filter_key({"titles": ["3"], "technologies": ["1", "2"]})
 
         assert first_key == second_key
+
+
+class FilterSummaryTests(SimpleTestCase):
+    def test_salary_floor_zero_is_not_serialized_or_shown_as_active(self):
+        query_params = QueryDict("salary_floor=0")
+
+        assert build_serializable_filter_params(query_params) == {}
+        assert active_filter_summary(query_params) == []
+
+    def test_salary_floor_zero_is_not_used_for_metadata(self):
+        query_params = QueryDict("salary_floor=0")
+        now = timezone.now()
+
+        assert generate_job_search_title(query_params, now) == f"Available Jobs - {now.strftime('%B %Y')}"
+        assert generate_job_search_keywords(query_params) == []
+
+    def test_missing_compensation_and_contact_are_metadata_keywords(self):
+        query_params = QueryDict("has_compensation=no&has_contact=no")
+
+        assert generate_job_search_keywords(query_params) == [
+            "Missing Compensation Information",
+            "Missing Contact Information",
+        ]
+
+    def test_remove_duplicate_employers_is_shown_as_active_and_used_for_metadata(self):
+        query_params = QueryDict("remove_duplicate_employers=true")
+        now = timezone.now()
+
+        assert active_filter_summary(query_params) == [
+            {
+                "label": "Employers",
+                "param": "remove_duplicate_employers",
+                "value": "true",
+                "display": "Unique only",
+            }
+        ]
+        assert generate_job_search_title(query_params, now) == f"Unique Employer Jobs - {now.strftime('%B %Y')}"
+        assert generate_job_search_keywords(query_params) == ["Unique employers"]
 
 
 class CreateIntentAlertsViewTests(TestCase):
@@ -241,7 +283,7 @@ class CompanyEmailMergeTests(SimpleTestCase):
         assert len(merge_company_emails("", long_email_blob)) == MAX_COMPANY_EMAILS_LENGTH
 
 
-class PostFilterTests(TestCase):
+class EmployerDedupeFilterTests(TestCase):
     def test_remove_duplicate_employers_keeps_latest_post_per_employer(self):
         now = timezone.now()
         acme = Company.objects.create(name="Acme")
@@ -595,6 +637,120 @@ class WeWorkRemotelyParsingTests(SimpleTestCase):
         assert data["description"] == "Build APIs."
         assert data["is_remote"] is True
         assert data["company_job_application_link"] == "https://weworkremotely.com/remote-jobs/acme-python-engineer"
+
+
+class PostFilterTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        now = timezone.now()
+        cls.python = Technology.objects.create(name="Python")
+        cls.react = Technology.objects.create(name="React")
+        cls.backend = Title.objects.create(name="Backend Engineer")
+        cls.frontend = Title.objects.create(name="Frontend Engineer")
+
+        acme = Company.objects.create(name="Acme", company_homepage_link="https://example.com")
+        beta = Company.objects.create(name="Beta", company_homepage_link="https://example.org")
+        gamma = Company.objects.create(name="Gamma", company_homepage_link="https://example.net")
+
+        cls.remote_post = Post.objects.create(
+            submitted_datetime=now,
+            company=acme,
+            description="Build Django APIs for data teams.",
+            original_text="Python and Django role",
+            compensation_summary="$150k - $180k",
+            min_salary=150000,
+            max_salary=180000,
+            locations="Remote US",
+            is_remote=True,
+            is_onsite=False,
+            emails="lead@example.com",
+            source=PostSource.HACKER_NEWS,
+        )
+        cls.remote_post.technologies.add(cls.python)
+        cls.remote_post.titles.add(cls.backend)
+
+        cls.onsite_post = Post.objects.create(
+            submitted_datetime=now - timezone.timedelta(days=2),
+            company=beta,
+            description="React product work in Berlin.",
+            original_text="Frontend role",
+            compensation_summary="",
+            min_salary=90000,
+            max_salary=130000,
+            locations="Berlin, Germany",
+            is_remote=False,
+            is_onsite=True,
+            emails="",
+            source=PostSource.REMOTE_OK,
+        )
+        cls.onsite_post.technologies.add(cls.react)
+        cls.onsite_post.titles.add(cls.frontend)
+
+        cls.hybrid_post = Post.objects.create(
+            submitted_datetime=now - timezone.timedelta(days=90),
+            company=gamma,
+            description="Machine learning platform role.",
+            original_text="Hybrid ML role",
+            compensation_summary="$170k",
+            min_salary=160000,
+            max_salary=170000,
+            locations="New York or remote",
+            is_remote=True,
+            is_onsite=True,
+            emails="",
+            source=PostSource.WE_WORK_REMOTELY,
+        )
+
+    def filtered_ids(self, params):
+        return set(PostFilter(params, queryset=Post.objects.all()).qs.values_list("id", flat=True))
+
+    def test_keyword_search_matches_joined_job_fields(self):
+        assert self.filtered_ids({"q": "django"}) == {self.remote_post.id}
+        assert self.filtered_ids({"q": "react"}) == {self.onsite_post.id}
+
+    def test_keyword_search_ignores_raw_original_text(self):
+        self.onsite_post.original_text = "raw-only-zebra"
+        self.onsite_post.save(update_fields=["original_text"])
+
+        assert self.filtered_ids({"q": "raw-only-zebra"}) == set()
+
+    def test_keyword_search_caps_number_of_terms(self):
+        assert self.filtered_ids({"q": "Acme Build Django APIs data unmatched"}) == {self.remote_post.id}
+
+    def test_work_mode_remote_only_excludes_hybrid_roles(self):
+        assert self.filtered_ids({"work_mode": "remote_only"}) == {self.remote_post.id}
+        assert self.filtered_ids({"work_mode": "remote"}) == {self.remote_post.id, self.hybrid_post.id}
+
+    def test_salary_floor_uses_max_salary_range(self):
+        assert self.filtered_ids({"salary_floor": "150000"}) == {self.remote_post.id, self.hybrid_post.id}
+
+    def test_salary_floor_zero_is_noop(self):
+        assert self.filtered_ids({"salary_floor": "0"}) == {
+            self.remote_post.id,
+            self.onsite_post.id,
+            self.hybrid_post.id,
+        }
+
+    def test_has_compensation_and_contact_filters(self):
+        assert self.filtered_ids({"has_compensation": "no"}) == {self.onsite_post.id}
+        assert self.filtered_ids({"has_contact": "yes"}) == {self.remote_post.id}
+
+    def test_posted_within_filters_by_submitted_datetime(self):
+        assert self.filtered_ids({"posted_within": "30"}) == {self.remote_post.id, self.onsite_post.id}
+
+    def test_source_filter_limits_by_job_source(self):
+        assert self.filtered_ids({"source": PostSource.REMOTE_OK}) == {self.onsite_post.id}
+
+
+class PostListViewTests(TestCase):
+    def test_filter_context_exposes_source_choices(self):
+        company = Company.objects.create(name="Acme")
+        Post.objects.create(company=company, submitted_datetime=timezone.now(), description="Build software.")
+
+        response = self.client.get(reverse("posts"))
+
+        assert response.status_code == 200
+        assert list(response.context["source_choices"]) == list(PostSource.choices)
 
 
 class RemoteOkImportTests(TestCase):
