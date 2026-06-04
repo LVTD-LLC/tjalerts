@@ -1,9 +1,11 @@
 import time
+from datetime import timedelta
 
 from django import forms
 from django.core.validators import EMPTY_VALUES
-from django.db.models import F, Window
+from django.db.models import F, Q, Window
 from django.db.models.functions import RowNumber
+from django.utils import timezone
 from django_filters import (
     BooleanFilter,
     CharFilter,
@@ -11,12 +13,14 @@ from django_filters import (
     Filter,
     FilterSet,
     ModelMultipleChoiceFilter,
+    NumberFilter,
     OrderingFilter,
 )
 from pgvector.django import L2Distance
 
 from hn_jobs.utils import get_tjalerts_logger
 
+from .choices import PostSource
 from .models import Post, TechnologyMapping
 from .queries import get_most_popular_technologies, get_most_popular_titles
 from .utils import get_embedding
@@ -29,7 +33,11 @@ class VectorEmbeddingFilter(Filter):
         if not value:
             return qs
 
-        return qs.annotate(distance=L2Distance("vector", get_embedding(value))).filter(distance__lt=1.25)
+        return (
+            qs.annotate(distance=L2Distance("vector", get_embedding(value)))
+            .filter(distance__lt=1.25)
+            .order_by("distance")
+        )
 
 
 class EmptyStringFilter(BooleanFilter):
@@ -54,7 +62,30 @@ class PostOrderingFilter(OrderingFilter):
         return super().get_ordering_value(param)
 
 
+HAS_FIELD_CHOICES = (
+    ("yes", "Yes"),
+    ("no", "No"),
+)
+
+MAX_KEYWORD_SEARCH_TERMS = 5
+
+POSTED_WITHIN_CHOICES = (
+    ("7", "Last 7 days"),
+    ("30", "Last 30 days"),
+    ("60", "Last 60 days"),
+)
+
+WORK_MODE_CHOICES = (
+    ("remote", "Remote roles"),
+    ("remote_only", "Remote only"),
+    ("onsite", "Onsite or hybrid"),
+    ("onsite_only", "Onsite only"),
+    ("hybrid", "Hybrid"),
+)
+
+
 class PostFilter(FilterSet):
+    q = CharFilter(method="filter_keyword_search")
     vector = VectorEmbeddingFilter(field_name="vector")
     locations = CharFilter(lookup_expr="icontains")
     remove_duplicate_employers = ChoiceFilter(
@@ -76,13 +107,90 @@ class PostFilter(FilterSet):
     )
     compensation_summary__isempty = EmptyStringFilter(field_name="compensation_summary")
     emails__isempty = EmptyStringFilter(field_name="emails")
+    has_compensation = ChoiceFilter(choices=HAS_FIELD_CHOICES, method="filter_has_compensation")
+    has_contact = ChoiceFilter(choices=HAS_FIELD_CHOICES, method="filter_has_contact")
+    posted_within = ChoiceFilter(choices=POSTED_WITHIN_CHOICES, method="filter_posted_within")
+    salary_floor = NumberFilter(method="filter_salary_floor")
+    source = ChoiceFilter(choices=PostSource.choices)
+    work_mode = ChoiceFilter(choices=WORK_MODE_CHOICES, method="filter_work_mode")
 
     o = PostOrderingFilter(
         choices=(
-            ("-submitted_datetime", "Date"),
-            ("-max_salary", "Max Salary"),
+            ("-submitted_datetime", "Newest first"),
+            ("-max_salary", "Highest salary"),
+            ("company__name", "Company A-Z"),
         )
     )
+
+    def filter_keyword_search(self, queryset, name, value):
+        if not value:
+            return queryset
+
+        search_terms = [term.strip() for term in value.split() if term.strip()][:MAX_KEYWORD_SEARCH_TERMS]
+
+        for term in search_terms:
+            queryset = queryset.filter(
+                Q(company__name__icontains=term)
+                | Q(description__icontains=term)
+                | Q(titles__name__icontains=term)
+                | Q(technologies__name__icontains=term)
+                | Q(locations__icontains=term)
+                | Q(cities__icontains=term)
+                | Q(countries__icontains=term)
+                | Q(remote_timezones__icontains=term)
+                | Q(compensation_summary__icontains=term)
+            )
+
+        return queryset.distinct()
+
+    def filter_has_compensation(self, queryset, name, value):
+        missing_compensation = Q(compensation_summary__isnull=True) | Q(compensation_summary__exact="")
+
+        if value == "yes":
+            return queryset.exclude(missing_compensation)
+        if value == "no":
+            return queryset.filter(missing_compensation)
+
+        return queryset
+
+    def filter_has_contact(self, queryset, name, value):
+        if value == "yes":
+            return queryset.exclude(emails="")
+        if value == "no":
+            return queryset.filter(emails="")
+
+        return queryset
+
+    def filter_posted_within(self, queryset, name, value):
+        if not value:
+            return queryset
+
+        try:
+            days = int(value)
+        except (TypeError, ValueError):
+            return queryset
+
+        return queryset.filter(submitted_datetime__gte=timezone.now() - timedelta(days=days))
+
+    def filter_salary_floor(self, queryset, name, value):
+        if value in EMPTY_VALUES or value <= 0:
+            return queryset
+
+        return queryset.filter(max_salary__gte=value).exclude(max_salary=0)
+
+    def filter_work_mode(self, queryset, name, value):
+        if value == "remote":
+            return queryset.filter(is_remote=True)
+        if value == "remote_only":
+            return queryset.filter(is_remote=True, is_onsite=False)
+        if value == "onsite":
+            return queryset.filter(is_onsite=True)
+        if value == "onsite_only":
+            return queryset.filter(is_remote=False, is_onsite=True)
+        if value == "hybrid":
+            return queryset.filter(is_remote=True, is_onsite=True)
+
+        return queryset
 
     def extend_technology_search(self, queryset, name, selected_technologies):
         start_time = time.time()
@@ -171,8 +279,9 @@ class PostFilter(FilterSet):
         if self.data.get("vector"):
             self.filters["o"] = PostOrderingFilter(
                 choices=(
-                    ("-submitted_datetime", "Date"),
-                    ("-max_salary", "Max Salary"),
-                    ("-distance", "Relevance"),
+                    ("-submitted_datetime", "Newest first"),
+                    ("-max_salary", "Highest salary"),
+                    ("company__name", "Company A-Z"),
+                    ("distance", "Intent match"),
                 ),
             )

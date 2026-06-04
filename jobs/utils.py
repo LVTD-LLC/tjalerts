@@ -439,22 +439,65 @@ def is_email_confirmed(user):
 
 def generate_job_search_title(query_params, first_item_datetime):
     date = first_item_datetime.strftime("%B %Y")
-    if len(query_params) > 1 or len(query_params) == 0:
+    meaningful_keys = [
+        key
+        for key in query_params.keys()
+        if key not in {"o", "page"} and any(value not in ["", "unknown"] for value in query_params.getlist(key))
+    ]
+
+    if len(meaningful_keys) > 1 or len(meaningful_keys) == 0:
         return f"Available Jobs - {date}"
 
-    query_param = list(query_params.keys())[0]
+    query_param = meaningful_keys[0]
+
+    if query_param == "q":
+        return f"Jobs matching {query_params['q']} - {date}"
+
+    if query_param == "source":
+        return f"{query_params['source']} Jobs - {date}"
+
+    if query_param == "posted_within":
+        return f"Jobs from the last {query_params['posted_within']} days - {date}"
+
+    if query_param == "salary_floor":
+        return f"Jobs paying at least {query_params['salary_floor']} - {date}"
+
+    if query_param == "work_mode":
+        work_mode_titles = {
+            "remote": "Remote Jobs",
+            "remote_only": "Remote-only Jobs",
+            "onsite": "Onsite and Hybrid Jobs",
+            "onsite_only": "Onsite Jobs",
+            "hybrid": "Hybrid Jobs",
+        }
+        return f"{work_mode_titles.get(query_params['work_mode'], 'Available Jobs')} - {date}"
+
+    if query_param == "has_compensation":
+        compensation_title = (
+            "Compensation Info" if query_params["has_compensation"] == "yes" else "No Compensation Info"
+        )
+        return f"Jobs with {compensation_title} - {date}"
+
+    if query_param == "has_contact":
+        return f"Jobs with {'Contact Info' if query_params['has_contact'] == 'yes' else 'No Contact Info'} - {date}"
 
     if query_param == "technologies":
         technologies_list = query_params.getlist("technologies")
         if len(technologies_list) == 1:
-            tech_name = Technology.objects.get(id=query_params.getlist("technologies")[0]).name
-            return f"{tech_name} Jobs - {date}"
+            try:
+                tech_name = Technology.objects.get(id=query_params.getlist("technologies")[0]).name
+                return f"{tech_name} Jobs - {date}"
+            except (Technology.DoesNotExist, ValueError):
+                return f"Available Jobs - {date}"
 
     if query_param == "titles":
         titles_list = query_params.getlist("titles")
         if len(titles_list) == 1:
-            title_name = Title.objects.get(id=query_params.getlist("titles")[0]).name
-            return f"{title_name} Jobs - {date}"
+            try:
+                title_name = Title.objects.get(id=query_params.getlist("titles")[0]).name
+                return f"{title_name} Jobs - {date}"
+            except (Title.DoesNotExist, ValueError):
+                return f"Available Jobs - {date}"
 
     if query_param == "locations":
         return f"Jobs in {query_params['locations']} - {date}"
@@ -482,15 +525,49 @@ def generate_job_search_keywords(query_params):
     keywords = []
 
     for key in query_params.keys():
+        if key == "q":
+            keywords.append(query_params["q"])
+
+        if key == "source":
+            keywords.append(query_params["source"])
+
+        if key == "posted_within":
+            keywords.append(f"Last {query_params['posted_within']} days")
+
+        if key == "salary_floor":
+            keywords.append(f"Salary at least {query_params['salary_floor']}")
+
+        if key == "work_mode":
+            work_mode_keywords = {
+                "remote": "Remote",
+                "remote_only": "Remote only",
+                "onsite": "Onsite or hybrid",
+                "onsite_only": "Onsite only",
+                "hybrid": "Hybrid",
+            }
+            keywords.append(work_mode_keywords.get(query_params["work_mode"], query_params["work_mode"]))
+
+        if key == "has_compensation" and query_params["has_compensation"] == "yes":
+            keywords.append("Compensation Information")
+
+        if key == "has_contact" and query_params["has_contact"] == "yes":
+            keywords.append("Contact Information")
+
         if key == "technologies":
             technologies_list = query_params.getlist("technologies")
             for tech_id in technologies_list:
-                keywords.append(Technology.objects.get(id=tech_id).name)
+                try:
+                    keywords.append(Technology.objects.get(id=tech_id).name)
+                except (Technology.DoesNotExist, ValueError):
+                    continue
 
         if key == "titles":
             titles_list = query_params.getlist("titles")
             for title_id in titles_list:
-                keywords.append(Title.objects.get(id=title_id).name)
+                try:
+                    keywords.append(Title.objects.get(id=title_id).name)
+                except (Title.DoesNotExist, ValueError):
+                    continue
 
         if key == "locations":
             keywords.append(query_params["locations"])

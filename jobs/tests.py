@@ -597,6 +597,93 @@ class WeWorkRemotelyParsingTests(SimpleTestCase):
         assert data["company_job_application_link"] == "https://weworkremotely.com/remote-jobs/acme-python-engineer"
 
 
+class PostFilterTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        now = timezone.now()
+        cls.python = Technology.objects.create(name="Python")
+        cls.react = Technology.objects.create(name="React")
+        cls.backend = Title.objects.create(name="Backend Engineer")
+        cls.frontend = Title.objects.create(name="Frontend Engineer")
+
+        acme = Company.objects.create(name="Acme", company_homepage_link="https://example.com")
+        beta = Company.objects.create(name="Beta", company_homepage_link="https://example.org")
+        gamma = Company.objects.create(name="Gamma", company_homepage_link="https://example.net")
+
+        cls.remote_post = Post.objects.create(
+            submitted_datetime=now,
+            company=acme,
+            description="Build Django APIs for data teams.",
+            original_text="Python and Django role",
+            compensation_summary="$150k - $180k",
+            min_salary=150000,
+            max_salary=180000,
+            locations="Remote US",
+            is_remote=True,
+            is_onsite=False,
+            emails="lead@example.com",
+            source=PostSource.HACKER_NEWS,
+        )
+        cls.remote_post.technologies.add(cls.python)
+        cls.remote_post.titles.add(cls.backend)
+
+        cls.onsite_post = Post.objects.create(
+            submitted_datetime=now - timezone.timedelta(days=2),
+            company=beta,
+            description="React product work in Berlin.",
+            original_text="Frontend role",
+            compensation_summary="",
+            min_salary=90000,
+            max_salary=130000,
+            locations="Berlin, Germany",
+            is_remote=False,
+            is_onsite=True,
+            emails="",
+            source=PostSource.REMOTE_OK,
+        )
+        cls.onsite_post.technologies.add(cls.react)
+        cls.onsite_post.titles.add(cls.frontend)
+
+        cls.hybrid_post = Post.objects.create(
+            submitted_datetime=now - timezone.timedelta(days=90),
+            company=gamma,
+            description="Machine learning platform role.",
+            original_text="Hybrid ML role",
+            compensation_summary="$170k",
+            min_salary=160000,
+            max_salary=170000,
+            locations="New York or remote",
+            is_remote=True,
+            is_onsite=True,
+            emails="",
+            source=PostSource.WE_WORK_REMOTELY,
+        )
+
+    def filtered_ids(self, params):
+        return set(PostFilter(params, queryset=Post.objects.all()).qs.values_list("id", flat=True))
+
+    def test_keyword_search_matches_joined_job_fields(self):
+        assert self.filtered_ids({"q": "django"}) == {self.remote_post.id}
+        assert self.filtered_ids({"q": "react"}) == {self.onsite_post.id}
+
+    def test_work_mode_remote_only_excludes_hybrid_roles(self):
+        assert self.filtered_ids({"work_mode": "remote_only"}) == {self.remote_post.id}
+        assert self.filtered_ids({"work_mode": "remote"}) == {self.remote_post.id, self.hybrid_post.id}
+
+    def test_salary_floor_uses_max_salary_range(self):
+        assert self.filtered_ids({"salary_floor": "150000"}) == {self.remote_post.id, self.hybrid_post.id}
+
+    def test_has_compensation_and_contact_filters(self):
+        assert self.filtered_ids({"has_compensation": "no"}) == {self.onsite_post.id}
+        assert self.filtered_ids({"has_contact": "yes"}) == {self.remote_post.id}
+
+    def test_posted_within_filters_by_submitted_datetime(self):
+        assert self.filtered_ids({"posted_within": "30"}) == {self.remote_post.id, self.onsite_post.id}
+
+    def test_source_filter_limits_by_job_source(self):
+        assert self.filtered_ids({"source": PostSource.REMOTE_OK}) == {self.onsite_post.id}
+
+
 class RemoteOkImportTests(TestCase):
     @patch("jobs.tasks.get_embedding", return_value=[0.0] * 1536)
     @patch("jobs.tasks.extract_job_data_from_text")

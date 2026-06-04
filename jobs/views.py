@@ -1,4 +1,6 @@
+import json
 from datetime import timedelta
+from uuid import UUID
 
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
@@ -19,8 +21,9 @@ from django_q.tasks import async_task
 
 from hn_jobs.posthog_events import capture_event, capture_request_event, distinct_id_for_email
 from hn_jobs.utils import add_users_context, build_absolute_site_url, get_tjalerts_logger, validate_technology_selected
+from jobs.choices import PostSource
 from jobs.constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
-from jobs.filters import PostFilter
+from jobs.filters import HAS_FIELD_CHOICES, POSTED_WITHIN_CHOICES, WORK_MODE_CHOICES, PostFilter
 from jobs.forms import ConfirmAlertForm, CreateAlertForm, CreateCustomAlertForm, CreateIntentAlertForm
 from jobs.models import Alert, AlertEmailSend, Company, Post, Technology, TechnologyMapping, Title
 from jobs.tasks import (
@@ -46,6 +49,121 @@ logger = get_tjalerts_logger(__name__)
 
 excluded_tech = Technology.objects.filter(name__in=EXCLUDED_TECHNOLOGIES)
 excluded_titles = Title.objects.filter(name__in=EXCLUDED_TITLES)
+
+YES_NO_LABELS = {"true": "Yes", "false": "No"}
+HAS_FIELD_LABELS = {**dict(HAS_FIELD_CHOICES), "yes": "Listed", "no": "Missing"}
+POSTED_WITHIN_LABELS = dict(POSTED_WITHIN_CHOICES)
+SOURCE_LABELS = dict(PostSource.choices)
+WORK_MODE_LABELS = dict(WORK_MODE_CHOICES)
+
+
+def valid_uuid_values(values):
+    valid_values = []
+
+    for value in values:
+        try:
+            UUID(str(value))
+        except (TypeError, ValueError):
+            continue
+        valid_values.append(value)
+
+    return valid_values
+
+
+def build_serializable_filter_params(query_params):
+    params = {}
+
+    for key in query_params.keys():
+        if key in {"o", "page"}:
+            continue
+
+        values = [value for value in query_params.getlist(key) if value not in ["", "unknown"]]
+        if not values:
+            continue
+
+        params[key] = values if len(values) > 1 or key in {"technologies", "titles"} else values[0]
+
+    return params
+
+
+def salary_label(value):
+    try:
+        return f"${int(value):,}+"
+    except (TypeError, ValueError):
+        return value
+
+
+def active_filter_summary(query_params):
+    filters = []
+
+    simple_filters = {
+        "q": ("Search", None),
+        "vector": ("Intent", None),
+        "locations": ("Location", None),
+        "source": ("Source", SOURCE_LABELS),
+        "posted_within": ("Posted", POSTED_WITHIN_LABELS),
+        "work_mode": ("Work", WORK_MODE_LABELS),
+        "has_compensation": ("Comp", HAS_FIELD_LABELS),
+        "has_contact": ("Contact", HAS_FIELD_LABELS),
+        "is_remote": ("Remote", YES_NO_LABELS),
+        "is_onsite": ("Onsite", YES_NO_LABELS),
+        "compensation_summary__isempty": ("Comp", {"true": "Listed", "false": "Missing"}),
+        "emails__isempty": ("Contact", {"true": "Listed", "false": "Missing"}),
+    }
+
+    for param, (label, value_labels) in simple_filters.items():
+        value = query_params.get(param)
+        if not value or value == "unknown":
+            continue
+        filters.append(
+            {
+                "label": label,
+                "param": param,
+                "value": value,
+                "display": value_labels.get(value, value) if value_labels else value,
+            }
+        )
+
+    salary_floor = query_params.get("salary_floor")
+    if salary_floor:
+        filters.append(
+            {
+                "label": "Salary",
+                "param": "salary_floor",
+                "value": salary_floor,
+                "display": salary_label(salary_floor),
+            }
+        )
+
+    technology_ids = valid_uuid_values(query_params.getlist("technologies"))
+    if technology_ids:
+        technologies_by_id = {
+            str(technology.id): technology.name for technology in Technology.objects.filter(id__in=technology_ids)
+        }
+        for technology_id in technology_ids:
+            filters.append(
+                {
+                    "label": "Tech",
+                    "param": "technologies",
+                    "value": technology_id,
+                    "display": technologies_by_id.get(str(technology_id), technology_id),
+                }
+            )
+
+    title_ids = valid_uuid_values(query_params.getlist("titles"))
+    if title_ids:
+        titles_by_id = {str(title.id): title.name for title in Title.objects.filter(id__in=title_ids)}
+        for title_id in title_ids:
+            filters.append(
+                {
+                    "label": "Role",
+                    "param": "titles",
+                    "value": title_id,
+                    "display": titles_by_id.get(str(title_id), title_id),
+                }
+            )
+
+    return filters
 
 
 class PostListView(FilterView):
@@ -92,6 +210,15 @@ class PostListView(FilterView):
         if user.is_authenticated:
             add_users_context(context, user, self)
 
+        params = build_serializable_filter_params(self.request.GET)
+        active_filters = active_filter_summary(self.request.GET)
+
+        context["CustomAlertForm"] = CreateCustomAlertForm
+        context["custom_alert_filters"] = json.dumps(params)
+        context["has_custom_alert_filters"] = bool(params)
+        context["active_filters"] = active_filters
+        context["active_filter_count"] = len(active_filters)
+        context["result_count"] = page.paginator.count
         context["title"] = title
         context["date"] = date
         context["keywords"] = ", ".join(map(str, keywords))

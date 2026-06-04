@@ -33,7 +33,7 @@
     <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <h1 class="app-title">{{ title }}</h1>
-        <p class="app-subtitle">Filter Hacker News hiring posts by stack, title, location, remote work, compensation, and contact info.</p>
+        <p class="app-subtitle">Search by company, role, stack, location, salary signal, source, and work setup.</p>
       </div>
       <div class="flex flex-wrap gap-2">
         <a href="{% url 'posts' %}" class="btn-secondary">Reset filters</a>
@@ -43,146 +43,271 @@
 </div>
 
 <div class="app-container py-6 sm:py-8">
-  <div class="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-    <aside class="lg:sticky lg:top-24 lg:self-start">
-      <form method="get" class="app-panel space-y-5">
-        <div>
-          <h2 class="text-base font-semibold text-zinc-950">Filters</h2>
-          <p class="mt-1 text-sm leading-6 text-zinc-600">Refine the open database by stack, title, location, remote status, compensation, and contact info.</p>
-        </div>
+  <form id="job-filter-form" method="get" class="filter-panel">
+    <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+      <div>
+        <h2 class="text-base font-semibold text-zinc-950">Filter jobs</h2>
+        <p class="mt-1 max-w-3xl text-sm leading-6 text-zinc-600">Start with search, then tighten by role, stack, work setup, salary, source, and recency.</p>
+      </div>
+      {% if active_filter_count %}
+        <span class="filter-count">{{ active_filter_count }} active</span>
+      {% endif %}
+    </div>
 
-        <div>
-          <label for="order" class="app-label">Sort by</label>
-          {% render_field filter.form.o id="order" name="order" class="app-select mt-1" %}
-        </div>
-
-        <div>
-          <label for="vector" class="app-label">Search</label>
-          {% render_field filter.form.vector id="vector" placeholder="e.g. green tech" name="vector" class="app-input mt-1" %}
-        </div>
-
-        <div>
-          <label for="locations" class="app-label">Location</label>
-          {% render_field filter.form.locations id="locations" placeholder="e.g. New York" name="locations" class="app-input mt-1" %}
-        </div>
-
-        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-          <div>
-            <label for="compensation_summary__isempty" class="app-label">Compensation</label>
-            {% render_field filter.form.compensation_summary__isempty id="compensation_summary__isempty" name="compensation_summary__isempty" class="app-select mt-1" %}
-          </div>
-          <div>
-            <label for="emails__isempty" class="app-label">Contact info</label>
-            {% render_field filter.form.emails__isempty id="emails__isempty" name="emails__isempty" class="app-select mt-1" %}
-          </div>
-          <div>
-            <label for="remove_duplicate_employers" class="app-label">Employers</label>
-            {% render_field filter.form.remove_duplicate_employers id="remove_duplicate_employers" name="remove_duplicate_employers" class="app-select mt-1" %}
-          </div>
-          <div>
-            <label for="is_remote" class="app-label">Remote</label>
-            {% render_field filter.form.is_remote id="is_remote" name="is_remote" class="app-select mt-1" %}
-          </div>
-          <div>
-            <label for="is_onsite" class="app-label">Onsite</label>
-            {% render_field filter.form.is_onsite id="is_onsite" name="is_onsite" class="app-select mt-1" %}
-          </div>
-        </div>
-
-        <div
-          data-controller="reveal search-and-select"
-          data-search-and-select-search-url-value="/api/technologies/search"
-          data-search-and-select-detail-url-value="/api/technology"
-          data-search-and-select-type-value="technologies"
-          class="border-t border-zinc-200 pt-5"
-        >
-          <button type="button" class="flex w-full items-center justify-between rounded-md p-2 text-left hover:bg-zinc-100" data-action="click->reveal#toggle">
-            <span class="app-label">Tech stack</span>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-4 w-4 text-zinc-500">
-              <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-            </svg>
-          </button>
-          <div data-reveal-target="item" class="mt-2">
-            <input
-              type="text"
-              data-search-and-select-target="search"
-              data-action="input->search-and-select#search"
-              placeholder="Search technologies"
-              class="app-input"
-            />
-            <div data-search-and-select-target="selectedResults" class="my-2"></div>
-            <div data-search-and-select-target="searchResults" class="max-h-64 overflow-auto rounded-md"></div>
-          </div>
-        </div>
-
-        <div
-          data-controller="reveal search-and-select"
-          data-search-and-select-search-url-value="/api/title/search"
-          data-search-and-select-detail-url-value="/api/title"
-          data-search-and-select-type-value="titles"
-          class="border-t border-zinc-200 pt-5"
-        >
-          <button type="button" class="flex w-full items-center justify-between rounded-md p-2 text-left hover:bg-zinc-100" data-action="click->reveal#toggle">
-            <span class="app-label">Title</span>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-4 w-4 text-zinc-500">
-              <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-            </svg>
-          </button>
-          <div data-reveal-target="item" class="mt-2">
-            <input
-              type="text"
-              data-search-and-select-target="search"
-              data-action="input->search-and-select#search"
-              placeholder="Search titles"
-              class="app-input"
-            />
-            <div data-search-and-select-target="selectedResults" class="my-2"></div>
-            <div data-search-and-select-target="searchResults" class="max-h-64 overflow-auto rounded-md"></div>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2 border-t border-zinc-200 pt-5">
-          <a href="{% url 'posts' %}" class="btn-secondary">Reset</a>
-          <button type="submit" class="btn-primary">Filter</button>
-        </div>
-      </form>
-    </aside>
-
-    <section aria-label="Job results">
-      <div class="mb-4 flex items-center justify-between gap-4">
-        <p class="text-sm text-zinc-600">
-          Page <span class="tabular font-medium text-zinc-950">{{ page_obj.number }}</span> of
-          <span class="tabular font-medium text-zinc-950">{{ page_obj.paginator.num_pages }}</span>
-        </p>
+    <div class="grid gap-4 lg:grid-cols-2">
+      <div>
+        <label for="q" class="app-label">Keyword search</label>
+        <input
+          type="search"
+          id="q"
+          name="q"
+          value="{{ request.GET.q }}"
+          placeholder="company, skill, title, or keyword"
+          class="app-input mt-2"
+        />
+        <p class="app-help mt-2">Matches company, description, role, stack, location, and compensation text.</p>
       </div>
 
-      <ul role="list" class="space-y-3">
-        {% for object in page_obj %}
-          {% include "components/job-posting.html" with object=object show_name=True %}
-        {% empty %}
-        <li class="empty-state">
-          <h2 class="text-lg font-semibold text-zinc-950">No jobs match these filters</h2>
-          <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-600">Try removing one filter or broadening the search terms.</p>
-          <a href="{% url 'posts' %}" class="btn-secondary mt-5">Clear filters</a>
-        </li>
-      {% endfor %}
-      </ul>
+      <div>
+        <label for="vector" class="app-label">Intent match</label>
+        {% render_field filter.form.vector id="vector" placeholder="e.g. climate fintech backend" name="vector" class="app-input mt-2" %}
+        <p class="app-help mt-2">Semantic search for fuzzy concepts. Use keywords for exact matches.</p>
+      </div>
+    </div>
 
-      <nav class="mt-6 flex items-center justify-between" aria-label="Pagination">
-        <div>
-          {% if page_obj.has_previous %}
-          <a href="?{% url_replace request 'page' page_obj.previous_page_number %}" class="btn-secondary">Previous</a>
-          {% endif %}
+    <div class="filter-section grid gap-4 lg:grid-cols-2">
+      <div
+        data-controller="search-and-select"
+        data-search-and-select-search-url-value="/api/technologies/search"
+        data-search-and-select-detail-url-value="/api/technology"
+        data-search-and-select-type-value="technologies"
+      >
+        <label for="technology-search" class="app-label">Tech stack</label>
+        <p class="app-help mt-1">Pick one or more technologies. Parent stacks include related child tools.</p>
+        <div class="mt-3">
+          <input
+            id="technology-search"
+            type="text"
+            data-search-and-select-target="search"
+            data-action="input->search-and-select#search"
+            placeholder="Search technologies"
+            class="app-input"
+          />
+          <div data-search-and-select-target="selectedResults" class="selected-filter-list"></div>
+          <div data-search-and-select-target="searchResults" class="filter-search-results"></div>
         </div>
+      </div>
 
-        <div>
-          {% if page_obj.has_next %}
-          <a href="?{% url_replace request 'page' page_obj.next_page_number %}" class="btn-primary">Next</a>
-          {% endif %}
+      <div
+        data-controller="search-and-select"
+        data-search-and-select-search-url-value="/api/title/search"
+        data-search-and-select-detail-url-value="/api/title"
+        data-search-and-select-type-value="titles"
+      >
+        <label for="title-search" class="app-label">Role</label>
+        <p class="app-help mt-1">Use role tags when keywords are too loose.</p>
+        <div class="mt-3">
+          <input
+            id="title-search"
+            type="text"
+            data-search-and-select-target="search"
+            data-action="input->search-and-select#search"
+            placeholder="Search roles"
+            class="app-input"
+          />
+          <div data-search-and-select-target="selectedResults" class="selected-filter-list"></div>
+          <div data-search-and-select-target="searchResults" class="filter-search-results"></div>
         </div>
-      </nav>
-    </section>
+      </div>
+    </div>
+
+    <fieldset class="filter-section">
+      <legend class="app-label">Work setup</legend>
+      <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <label class="filter-choice">
+          <input type="radio" name="work_mode" value="" {% if not request.GET.work_mode and request.GET.is_remote != "true" and request.GET.is_onsite != "true" %}checked{% endif %} />
+          <span>Any</span>
+        </label>
+        <label class="filter-choice">
+          <input type="radio" name="work_mode" value="remote" {% if request.GET.work_mode == "remote" or request.GET.is_remote == "true" %}checked{% endif %} />
+          <span>Remote roles</span>
+        </label>
+        <label class="filter-choice">
+          <input type="radio" name="work_mode" value="remote_only" {% if request.GET.work_mode == "remote_only" %}checked{% endif %} />
+          <span>Remote only</span>
+        </label>
+        <label class="filter-choice">
+          <input type="radio" name="work_mode" value="hybrid" {% if request.GET.work_mode == "hybrid" %}checked{% endif %} />
+          <span>Hybrid</span>
+        </label>
+        <label class="filter-choice">
+          <input type="radio" name="work_mode" value="onsite" {% if request.GET.work_mode == "onsite" or request.GET.is_onsite == "true" %}checked{% endif %} />
+          <span>Onsite roles</span>
+        </label>
+        <label class="filter-choice">
+          <input type="radio" name="work_mode" value="onsite_only" {% if request.GET.work_mode == "onsite_only" %}checked{% endif %} />
+          <span>Onsite only</span>
+        </label>
+      </div>
+    </fieldset>
+
+    <div class="filter-section grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <label for="locations" class="app-label">Location</label>
+        {% render_field filter.form.locations id="locations" placeholder="city, country, region, timezone" name="locations" class="app-input mt-2" %}
+      </div>
+      <div>
+        <label for="salary_floor" class="app-label">Salary floor</label>
+        <input
+          type="number"
+          id="salary_floor"
+          name="salary_floor"
+          min="0"
+          step="10000"
+          inputmode="numeric"
+          value="{{ request.GET.salary_floor }}"
+          placeholder="150000"
+          class="app-input mt-2"
+        />
+      </div>
+      <div>
+        <label for="has_compensation" class="app-label">Compensation</label>
+        <select id="has_compensation" name="has_compensation" class="app-select mt-2">
+          <option value="">Any</option>
+          <option value="yes" {% if request.GET.has_compensation == "yes" or request.GET.compensation_summary__isempty == "true" %}selected{% endif %}>Listed only</option>
+          <option value="no" {% if request.GET.has_compensation == "no" or request.GET.compensation_summary__isempty == "false" %}selected{% endif %}>Missing only</option>
+        </select>
+      </div>
+      <div>
+        <label for="has_contact" class="app-label">Contact info</label>
+        <select id="has_contact" name="has_contact" class="app-select mt-2">
+          <option value="">Any</option>
+          <option value="yes" {% if request.GET.has_contact == "yes" or request.GET.emails__isempty == "true" %}selected{% endif %}>Listed only</option>
+          <option value="no" {% if request.GET.has_contact == "no" or request.GET.emails__isempty == "false" %}selected{% endif %}>Missing only</option>
+        </select>
+      </div>
+      <div>
+        <label for="source" class="app-label">Source</label>
+        <select id="source" name="source" class="app-select mt-2">
+          <option value="">All sources</option>
+          {% for value, label in source_choices %}
+            <option value="{{ value }}" {% if request.GET.source == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="remove_duplicate_employers" class="app-label">Employers</label>
+        {% render_field filter.form.remove_duplicate_employers id="remove_duplicate_employers" name="remove_duplicate_employers" class="app-select mt-2" %}
+      </div>
+      <div>
+        <label for="posted_within" class="app-label">Posted</label>
+        <select id="posted_within" name="posted_within" class="app-select mt-2">
+          <option value="">Any time</option>
+          <option value="7" {% if request.GET.posted_within == "7" %}selected{% endif %}>Last 7 days</option>
+          <option value="30" {% if request.GET.posted_within == "30" %}selected{% endif %}>Last 30 days</option>
+          <option value="60" {% if request.GET.posted_within == "60" %}selected{% endif %}>Last 60 days</option>
+        </select>
+      </div>
+      <div>
+        <label for="o" class="app-label">Sort by</label>
+        {% render_field filter.form.o id="o" class="app-select mt-2" %}
+      </div>
+      <div class="grid grid-cols-2 gap-2 sm:self-end">
+        <a href="{% url 'posts' %}" class="btn-secondary">Reset</a>
+        <button type="submit" class="btn-primary">Filter</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-stretch">
+    <div class="space-y-3">
+      <div class="result-toolbar">
+        <div class="flex flex-col gap-1">
+          <p class="text-sm font-medium text-zinc-950">
+            <span class="tabular">{{ result_count }}</span> matching job{{ result_count|pluralize }}
+          </p>
+          <p class="text-sm text-zinc-600">
+            Page <span class="tabular font-medium text-zinc-950">{{ page_obj.number }}</span> of
+            <span class="tabular font-medium text-zinc-950">{{ page_obj.paginator.num_pages }}</span>
+          </p>
+        </div>
+        {% if active_filter_count %}
+          <a href="{% url 'posts' %}" class="btn-secondary">Clear all</a>
+        {% endif %}
+      </div>
+
+      {% if active_filters %}
+        <div class="active-filter-list" aria-label="Active filters">
+          {% for active in active_filters %}
+            {% url_remove request active.param active.value as remove_query %}
+            <a href="{% url 'posts' %}{% if remove_query %}?{{ remove_query }}{% endif %}" class="active-filter-chip">
+              <span class="font-medium text-zinc-500">{{ active.label }}</span>
+              <span>{{ active.display }}</span>
+              <span aria-hidden="true">x</span>
+              <span class="sr-only">Remove {{ active.label }} filter</span>
+            </a>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <div data-controller="textarea" class="app-muted-panel">
+      <h2 class="text-base font-semibold text-zinc-950">Save this search</h2>
+      <p class="mt-1 text-sm leading-6 text-zinc-600">Turn the current filters into an email alert.</p>
+      <div class="mt-4">
+        {% if request.user.is_authenticated %}
+          {% if not has_custom_alert_filters %}
+            <p class="app-help">Apply at least one filter before saving an alert.</p>
+          {% else %}
+            <form action="{% url 'create-custom-alert' %}" method="post" enctype="multipart/form-data" class="space-y-3">
+            {% csrf_token %}
+              <div>
+                <label for="name" class="app-label">Alert name</label>
+                {% render_field CustomAlertForm.name id="name" name="name" type="text" required="True" class="app-input mt-1" %}
+              </div>
+              {% render_field CustomAlertForm.email id="email" name="email" type="email" value=request.user.email autocomplete="email" readonly="True" required="True" class="hidden" %}
+              {% render_field CustomAlertForm.filter value=custom_alert_filters required="True" class="hidden" %}
+              <button type="submit" class="btn-primary w-full">Save alert</button>
+            </form>
+          {% endif %}
+        {% else %}
+          <p class="app-help">Log in to save filtered searches as alerts.</p>
+          <div class="mt-4 grid gap-2">
+            <a href="{% url 'account_login' %}" class="btn-primary">Log in</a>
+            <a href="{% url 'account_signup' %}" class="btn-secondary">Create account</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
   </div>
+
+  <section aria-label="Job results" class="mt-4">
+    <ul role="list" class="space-y-3">
+      {% for object in page_obj %}
+        {% include "components/job-posting.html" with object=object show_name=True %}
+      {% empty %}
+      <li class="empty-state">
+        <h2 class="text-lg font-semibold text-zinc-950">No jobs match these filters</h2>
+        <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-600">Try removing one filter or broadening the search terms. Saved alerts work best with a few high-signal filters.</p>
+        <a href="{% url 'posts' %}" class="btn-secondary mt-5">Clear filters</a>
+      </li>
+    {% endfor %}
+    </ul>
+
+    <nav class="mt-6 flex items-center justify-between" aria-label="Pagination">
+      <div>
+        {% if page_obj.has_previous %}
+        <a href="?{% url_replace request 'page' page_obj.previous_page_number %}" class="btn-secondary">Previous</a>
+        {% endif %}
+      </div>
+
+      <div>
+        {% if page_obj.has_next %}
+        <a href="?{% url_replace request 'page' page_obj.next_page_number %}" class="btn-primary">Next</a>
+        {% endif %}
+      </div>
+    </nav>
+  </section>
 </div>
 {% endblock content %}
 
