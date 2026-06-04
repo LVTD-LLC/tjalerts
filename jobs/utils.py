@@ -448,13 +448,16 @@ def is_positive_salary_floor(value):
     return salary_floor > 0
 
 
+MAX_ADDED_WITHIN_DAYS = 3650
+
+
 def parse_positive_day_count(value):
     try:
         day_count = Decimal(str(value))
     except (InvalidOperation, TypeError, ValueError):
         return None
 
-    if day_count <= 0 or day_count != day_count.to_integral_value():
+    if day_count <= 0 or day_count > MAX_ADDED_WITHIN_DAYS or day_count != day_count.to_integral_value():
         return None
 
     return int(day_count)

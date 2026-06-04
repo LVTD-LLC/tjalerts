@@ -201,13 +201,15 @@ class FilterSummaryTests(SimpleTestCase):
         assert generate_job_search_keywords(query_params) == ["Added in last 14 days"]
 
     def test_invalid_added_within_days_is_not_meaningful(self):
-        query_params = QueryDict("added_within_days=0")
         now = timezone.now()
 
-        assert build_serializable_filter_params(query_params) == {}
-        assert active_filter_summary(query_params) == []
-        assert generate_job_search_title(query_params, now) == f"Available Jobs - {now.strftime('%B %Y')}"
-        assert generate_job_search_keywords(query_params) == []
+        for value in ("0", "1000000000"):
+            query_params = QueryDict(f"added_within_days={value}")
+
+            assert build_serializable_filter_params(query_params) == {}
+            assert active_filter_summary(query_params) == []
+            assert generate_job_search_title(query_params, now) == f"Available Jobs - {now.strftime('%B %Y')}"
+            assert generate_job_search_keywords(query_params) == []
 
 
 class CreateIntentAlertsViewTests(TestCase):
@@ -784,7 +786,7 @@ class PostFilterTests(TestCase):
 
 class PostListViewTests(TestCase):
     def test_invalid_added_within_days_redirects_to_clean_url(self):
-        response = self.client.get(f"{reverse('posts')}?added_within_days=0&q=python")
+        response = self.client.get(f"{reverse('posts')}?added_within_days=1000000000&q=python")
 
         assert response.status_code == 302
         assert response["Location"] == f"{reverse('posts')}?q=python"

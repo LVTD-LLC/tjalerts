@@ -38,6 +38,7 @@ from jobs.tasks import (
     send_confirmation_email,
 )
 from jobs.utils import (
+    MAX_ADDED_WITHIN_DAYS,
     build_intent_alert_suggestions,
     day_count_label,
     default_alert_name,
@@ -260,6 +261,7 @@ class PostListView(FilterView):
         context["active_filter_count"] = len(active_filters)
         context["result_count"] = page.paginator.count
         context["source_choices"] = PostSource.choices
+        context["max_added_within_days"] = MAX_ADDED_WITHIN_DAYS
         context["title"] = title
         context["date"] = date
         context["keywords"] = ", ".join(map(str, keywords))
