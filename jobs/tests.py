@@ -167,6 +167,28 @@ class WeWorkRemotelyParsingTests(SimpleTestCase):
         assert jobs[0]["description_text"] == "Build APIs & backend systems."
         assert jobs[0]["feed_url"] == "https://weworkremotely.com/categories/remote-programming-jobs.rss"
 
+    def test_parse_we_work_remotely_feed_supports_namespaced_region_and_category(self):
+        feed_xml = """
+        <rss version="2.0" xmlns:wwr="https://weworkremotely.com">
+          <channel>
+            <item>
+              <title>Acme: Senior Python Engineer</title>
+              <wwr:region>Anywhere in the World</wwr:region>
+              <wwr:category>Full-Stack Programming</wwr:category>
+              <description>&lt;p&gt;Build APIs.&lt;/p&gt;</description>
+              <pubDate>Tue, 02 Jun 2026 20:15:53 +0000</pubDate>
+              <guid>https://weworkremotely.com/remote-jobs/acme-senior-python-engineer</guid>
+              <link>https://weworkremotely.com/remote-jobs/acme-senior-python-engineer</link>
+            </item>
+          </channel>
+        </rss>
+        """
+
+        jobs = parse_we_work_remotely_feed(feed_xml)
+
+        assert jobs[0]["region"] == "Anywhere in the World"
+        assert jobs[0]["category"] == "Full-Stack Programming"
+
     @patch("jobs.tasks.httpx.get")
     def test_fetch_we_work_remotely_jobs_keeps_successful_feed_when_another_feed_fails(self, mock_get):
         feed_xml = """
@@ -203,6 +225,39 @@ class WeWorkRemotelyParsingTests(SimpleTestCase):
             feed_urls=[
                 "https://example.com/programming.rss",
                 "https://example.com/devops.rss",
+            ]
+        )
+
+        assert len(jobs) == 1
+        assert jobs[0]["company"] == "Acme"
+        assert jobs[0]["feed_url"] == "https://example.com/programming.rss"
+
+    @patch("jobs.tasks.httpx.get")
+    def test_fetch_we_work_remotely_jobs_keeps_successful_feed_when_another_feed_is_malformed(self, mock_get):
+        successful_response = Mock(
+            text="""
+            <rss version="2.0">
+              <channel>
+                <item>
+                  <title>Acme: Senior Python Engineer</title>
+                  <description>&lt;p&gt;Build APIs.&lt;/p&gt;</description>
+                  <guid>https://weworkremotely.com/remote-jobs/acme-senior-python-engineer</guid>
+                  <link>https://weworkremotely.com/remote-jobs/acme-senior-python-engineer</link>
+                </item>
+              </channel>
+            </rss>
+            """
+        )
+        successful_response.raise_for_status.return_value = None
+
+        malformed_response = Mock(text="<rss>")
+        malformed_response.raise_for_status.return_value = None
+        mock_get.side_effect = [malformed_response, successful_response]
+
+        jobs = fetch_we_work_remotely_jobs(
+            feed_urls=[
+                "https://example.com/devops.rss",
+                "https://example.com/programming.rss",
             ]
         )
 

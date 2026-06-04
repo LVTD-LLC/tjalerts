@@ -1,6 +1,5 @@
 import json
 import re
-import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone as dt_timezone
 from email.utils import parsedate_to_datetime
 from html import unescape
@@ -8,6 +7,7 @@ from html import unescape
 import httpx
 import openai
 import requests
+from defusedxml import ElementTree
 from django.conf import settings
 from django.contrib.sites.models import Site
 from django.core.exceptions import ValidationError
@@ -53,12 +53,11 @@ client = OpenAI()
 
 MAX_COMPANY_EMAILS_LENGTH = 2000
 REMOTE_OK_API_URL = "https://remoteok.com/api"
-REMOTE_OK_USER_AGENT = "gettjalerts.com jobs importer (https://gettjalerts.com)"
+JOBS_IMPORTER_USER_AGENT = "gettjalerts.com jobs importer (https://gettjalerts.com)"
 WE_WORK_REMOTELY_FEED_URLS = (
     "https://weworkremotely.com/categories/remote-programming-jobs.rss",
     "https://weworkremotely.com/categories/remote-devops-sysadmin-jobs.rss",
 )
-WE_WORK_REMOTELY_USER_AGENT = "gettjalerts.com jobs importer (https://gettjalerts.com)"
 MOJIBAKE_MARKERS = ("\u00c3", "\u00c2", "\u00e2", "\u00d8", "\u00d9")
 
 
@@ -519,7 +518,7 @@ def clean_remote_ok_description(value):
 def fetch_remote_ok_jobs():
     response = httpx.get(
         REMOTE_OK_API_URL,
-        headers={"User-Agent": REMOTE_OK_USER_AGENT},
+        headers={"User-Agent": JOBS_IMPORTER_USER_AGENT},
         timeout=30,
     )
     response.raise_for_status()
@@ -687,8 +686,24 @@ def import_remote_ok_jobs(limit=None):
     return f"Imported {imported_count} Remote OK jobs. Skipped {skipped_count}. Failed {failed_count}."
 
 
-def get_xml_text(element, tag_name):
+def local_xml_tag_name(tag):
+    return str(tag).rsplit("}", 1)[-1]
+
+
+def find_xml_child(element, tag_name):
     child = element.find(tag_name)
+    if child is not None:
+        return child
+
+    for candidate in element:
+        if local_xml_tag_name(candidate.tag) == tag_name:
+            return candidate
+
+    return None
+
+
+def get_xml_text(element, tag_name):
+    child = find_xml_child(element, tag_name)
     if child is None or child.text is None:
         return ""
 
@@ -709,7 +724,7 @@ def clean_we_work_remotely_description(value):
 
 
 def parse_we_work_remotely_feed(feed_xml, feed_url=""):
-    root = ET.fromstring(feed_xml)
+    root = ElementTree.fromstring(feed_xml)
     jobs = []
 
     for item in root.findall(".//item"):
@@ -749,12 +764,12 @@ def fetch_we_work_remotely_jobs(feed_urls=None):
         try:
             response = httpx.get(
                 feed_url,
-                headers={"User-Agent": WE_WORK_REMOTELY_USER_AGENT},
+                headers={"User-Agent": JOBS_IMPORTER_USER_AGENT},
                 timeout=30,
             )
             response.raise_for_status()
             jobs.extend(parse_we_work_remotely_feed(response.text, feed_url=feed_url))
-        except (httpx.HTTPError, ET.ParseError) as e:
+        except (httpx.HTTPError, ElementTree.ParseError) as e:
             logger.error("We Work Remotely feed fetch failed", feed_url=feed_url, error=e)
 
     deduped_jobs = []
