@@ -11,6 +11,7 @@ from ninja.errors import HttpError
 from blog.models import BlogPost
 from hn_jobs.posthog_events import capture_request_event
 from hn_jobs.utils import get_tjalerts_logger
+from jobs.choices import PostSource
 from jobs.models import Company, Email, Post, Technology, TechnologyMapping, Title
 from jobs.queries import get_similar_posts_from_db
 from jobs.tasks import create_valid_emails
@@ -80,6 +81,7 @@ def get_emails(
 def get_jobs(
     request,
     technologies=Query(None),
+    source: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
@@ -96,6 +98,12 @@ def get_jobs(
             # Filter posts that have ALL the requested technologies
             for tech in tech_objects:
                 posts = posts.filter(technologies=tech)
+
+    if source:
+        if source not in PostSource.values:
+            raise HttpError(400, "Invalid job source")
+
+        posts = posts.filter(source=source)
 
     # Sort by most recent submissions first
     posts = posts.order_by("-submitted_datetime")
