@@ -42,7 +42,8 @@ from jobs.enrichment import (
     normalize_job_details,
 )
 from jobs.filters import PostFilter
-from jobs.models import Alert, AlertEmailSend, Company, Email, Post, Technology, Title
+from jobs.models import Alert, AlertEmailSend, Company, Email, Post, Title
+from jobs.technology_normalization import get_or_create_canonical_technologies
 from jobs.utils import (
     clean_job_json_object,
     fix_email,
@@ -82,7 +83,7 @@ def build_job_extraction_request(text):
         - is_onsite - (boolean)
         - capacity - (string of comma separated values, options are 'Part-time Contractor', 'Full-time Contractor', 'Part-time Employee' and 'Full-time Employee', can't be empty)
         - description
-        - technologies_used - (string of comma separated values, list of technologies that I might need to know and will use at this jobs)
+        - technologies_used - (string of comma separated canonical technology names, list of technologies that I might need to know and will use at this jobs)
         - company_homepage_link - (url link)
         - emails - (string of comma separated values)
         - company_job_application_link - (url link)
@@ -128,6 +129,13 @@ def build_job_extraction_request(text):
           - canonical_job_url: string URL
           - duplicate_signals: array of URLs or visible signals that suggest this posting appears elsewhere
           - extraction_confidence: string, one of high, medium, or low
+
+        Technology extraction rules:
+        - Extract individual languages, frameworks, databases, cloud platforms, developer tools, and major libraries.
+        - Return canonical names, not user phrasing. Examples: DRF -> Django REST Framework, django-rest-framework -> Django REST Framework, postgres -> PostgreSQL, js -> JavaScript, ts -> TypeScript, node -> Node.js, k8s -> Kubernetes.
+        - Split combined phrases into separate technologies. Examples: Django/DRF -> Django, Django REST Framework; Python backend (Django) -> Python, Django.
+        - Remove versions unless the version is part of the product name. Examples: Django 3 -> Django, Python 3.11 -> Python, Vue 3 -> Vue.js.
+        - Do not return generic descriptors like backend, frontend, full-stack, API, REST, web, mobile, database, or cloud unless they are part of a specific product name.
 
         Don't add any text and only respond with a JSON Object.
 
@@ -232,11 +240,7 @@ def create_post_from_cleaned_data(
     job_posting_reader_content="",
 ):
     job_details = normalize_job_details(cleaned_data.get("job_details", {}))
-    technology_names = split_comma_separated_values(cleaned_data["technologies_used"])
-    technologies = []
-    for name in technology_names:
-        obj, _ = Technology.objects.get_or_create(name=name)
-        technologies.append(obj)
+    technologies = get_or_create_canonical_technologies(cleaned_data["technologies_used"])
 
     job_title_names = split_comma_separated_values(cleaned_data["job_titles"])
     job_titles = []

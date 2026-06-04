@@ -12,9 +12,10 @@ from blog.models import BlogPost
 from hn_jobs.posthog_events import capture_request_event
 from hn_jobs.utils import get_tjalerts_logger
 from jobs.choices import PostSource
-from jobs.models import Company, Email, Post, Technology, TechnologyMapping, Title
+from jobs.models import Company, Email, Post, Technology, TechnologyAlias, TechnologyMapping, Title
 from jobs.queries import get_similar_posts_from_db
 from jobs.tasks import create_valid_emails
+from jobs.technology_names import DEFAULT_TECHNOLOGY_ALIAS_MAP, normalize_technology_key
 from users.models import CustomUser
 
 from .schemas import (
@@ -167,13 +168,28 @@ def get_jobs(
 @api.get("/technologies/search", response=List[TechnologySchema])
 def search_technologies(request, query: Optional[str] = Query(None, min_length=2)):
     if query:
+        normalized_query = normalize_technology_key(query)
+        builtin_canonical_name = DEFAULT_TECHNOLOGY_ALIAS_MAP.get(normalized_query)
+        alias_technology_ids = TechnologyAlias.objects.filter(
+            Q(alias__icontains=query) | Q(normalized_alias__icontains=normalized_query)
+        ).values("technology_id")
+        builtin_alias_query = Q()
+        if builtin_canonical_name:
+            builtin_alias_query = Q(name__iexact=builtin_canonical_name)
+
         technologies = (
-            Technology.objects.filter(Q(name__icontains=query) | Q(slug__icontains=query))
+            Technology.objects.filter(
+                Q(name__icontains=query)
+                | Q(slug__icontains=query)
+                | Q(id__in=alias_technology_ids)
+                | builtin_alias_query
+            )
             .annotate(
                 post_count=Count("posttechnology"),
                 is_child=Exists(TechnologyMapping.objects.filter(child=OuterRef("pk"))),
             )
             .filter(is_child=False)
+            .distinct()
             .order_by("-post_count")[:10]
         )
     else:

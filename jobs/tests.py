@@ -21,7 +21,7 @@ from jobs.enrichment import (
     read_url_with_jina,
 )
 from jobs.filters import PostFilter
-from jobs.models import Alert, Company, Post, Technology, Title
+from jobs.models import Alert, Company, Post, Technology, TechnologyAlias, TechnologyMapping, Title
 from jobs.queries import get_most_popular_technologies, get_most_popular_titles
 from jobs.tasks import (
     MAX_COMPANY_EMAILS_LENGTH,
@@ -31,6 +31,7 @@ from jobs.tasks import (
     build_remote_ok_extraction_text,
     build_we_work_remotely_extraction_text,
     clean_remote_ok_string,
+    create_post_from_cleaned_data,
     create_remote_ok_post,
     create_we_work_remotely_post,
     fetch_we_work_remotely_jobs,
@@ -41,6 +42,8 @@ from jobs.tasks import (
     parse_we_work_remotely_feed,
     parse_we_work_remotely_title,
 )
+from jobs.technology_names import extract_technology_names, normalize_technology_key
+from jobs.technology_normalization import get_or_create_canonical_technologies, get_related_technology_ids
 from jobs.utils import (
     build_intent_alert_suggestions,
     canonical_filter_key,
@@ -301,6 +304,96 @@ class CreateIntentAlertsViewTests(TestCase):
         assert response["Location"] == reverse("settings")
         assert Alert.objects.filter(email=self.user.email).count() == 0
         mock_async_task.assert_not_called()
+
+
+class TechnologyNameNormalizationTests(SimpleTestCase):
+    def test_normalize_technology_key_collapses_case_punctuation_and_versions(self):
+        assert normalize_technology_key("Django REST framework") == "django rest framework"
+        assert normalize_technology_key("django-rest-framework") == "django rest framework"
+        assert normalize_technology_key("Django 3") == "django"
+        assert normalize_technology_key("Python 3.11") == "python"
+
+    def test_extract_technology_names_splits_composites_and_aliases(self):
+        names = extract_technology_names("Python backend (Django), Django/DRF, django-rest-framework")
+
+        assert names == ["Python", "Django", "Django REST Framework"]
+
+    def test_extract_technology_names_ignores_generic_descriptors(self):
+        assert extract_technology_names("REST API, backend, full-stack") == []
+
+
+class TechnologyCanonicalizationTests(TestCase):
+    def test_get_or_create_canonical_technologies_deduplicates_aliases(self):
+        technologies = get_or_create_canonical_technologies("DRF, django-rest-framework, Django REST framework")
+
+        assert [technology.name for technology in technologies] == ["Django REST Framework"]
+        assert Technology.objects.filter(name="Django REST Framework").count() == 1
+        assert (
+            Technology.objects.filter(name__in=["DRF", "django-rest-framework", "Django REST framework"]).count() == 0
+        )
+
+    def test_get_or_create_canonical_technologies_prefers_exact_canonical_name(self):
+        Technology.objects.create(name="Django REST framework")
+        canonical_technology = Technology.objects.create(name="Django REST Framework")
+
+        technologies = get_or_create_canonical_technologies("DRF")
+
+        assert technologies == [canonical_technology]
+
+    def test_alias_table_can_map_custom_names_to_canonical_technology(self):
+        technology = Technology.objects.create(name="Django REST Framework")
+        TechnologyAlias.objects.create(technology=technology, alias="Django APIs")
+
+        technologies = get_or_create_canonical_technologies("Django APIs")
+
+        assert technologies == [technology]
+
+    def test_related_technology_ids_include_parent_and_children(self):
+        parent = Technology.objects.create(name="Django")
+        child = Technology.objects.create(name="Python backend (Django)")
+        TechnologyMapping.objects.create(parent=parent, child=child)
+
+        assert get_related_technology_ids(child) == [parent.id, child.id]
+
+    def test_create_post_from_cleaned_data_uses_canonical_technologies(self):
+        cleaned_data = {
+            "company_name": "Acme",
+            "job_titles": "Backend Engineer",
+            "locations": "",
+            "cities": "",
+            "countries": "",
+            "compensation_summary": "",
+            "min_salary": 0,
+            "max_salary": 0,
+            "currency": "",
+            "is_remote": True,
+            "remote_timezones": "",
+            "is_onsite": False,
+            "capacity": "Full-time Employee",
+            "description": "Build APIs.",
+            "technologies_used": "Python backend (Django), Django/DRF, django-rest-framework",
+            "company_homepage_link": "",
+            "emails": "",
+            "company_job_application_link": "",
+            "names_of_the_contact_person": "",
+            "years_of_experience": "",
+            "levels_of_experience": "Senior",
+            "original_text": "We are hiring for Python backend work with Django and DRF.",
+        }
+
+        post = create_post_from_cleaned_data(
+            cleaned_data,
+            source=PostSource.HACKER_NEWS,
+            submitted_datetime=timezone.now(),
+            vector=None,
+        )
+
+        assert set(post.technologies.values_list("name", flat=True)) == {
+            "Python",
+            "Django",
+            "Django REST Framework",
+        }
+        assert not Technology.objects.filter(name="django-rest-framework").exists()
 
 
 class CompanyEmailMergeTests(SimpleTestCase):

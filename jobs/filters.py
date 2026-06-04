@@ -21,8 +21,9 @@ from pgvector.django import L2Distance
 from hn_jobs.utils import get_tjalerts_logger
 
 from .choices import PostSource
-from .models import Post, TechnologyMapping
+from .models import Post
 from .queries import get_most_popular_technologies, get_most_popular_titles
+from .technology_normalization import get_related_technology_ids
 from .utils import get_embedding, parse_positive_day_count
 
 logger = get_tjalerts_logger(__name__)
@@ -204,13 +205,9 @@ class PostFilter(FilterSet):
         start_time = time.time()
 
         if selected_technologies:
-            selected_technology_ids = [tech.id for tech in selected_technologies]
-            child_technology_ids = list(
-                TechnologyMapping.objects.filter(parent_id__in=selected_technology_ids).values_list(
-                    "child_id", flat=True
-                )
-            )
-            selected_technology_ids.extend(child_technology_ids)
+            selected_technology_ids = []
+            for technology in selected_technologies:
+                selected_technology_ids.extend(get_related_technology_ids(technology))
 
             logger.info(
                 "Filtering by all techologies",

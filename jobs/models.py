@@ -114,6 +114,34 @@ class Technology(TimeStampedModel):
         ]
 
 
+class TechnologyAlias(BaseModel):
+    technology = models.ForeignKey(Technology, on_delete=models.CASCADE, related_name="aliases")
+    alias = models.CharField(max_length=256)
+    normalized_alias = models.CharField(max_length=256, unique=True)
+    source = models.CharField(max_length=50, default="manual")
+    notes = models.TextField(blank=True)
+
+    def save(self, *args, **kwargs):
+        from jobs.technology_names import normalize_technology_key
+
+        self.normalized_alias = normalize_technology_key(self.alias)
+        if (
+            kwargs.get("update_fields")
+            and "alias" in kwargs["update_fields"]
+            and "normalized_alias" not in kwargs["update_fields"]
+        ):
+            kwargs["update_fields"] = [*kwargs["update_fields"], "normalized_alias"]
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.alias} -> {self.technology.name}"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["technology"], name="index_t_alias_technology"),
+        ]
+
+
 class Title(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=256)
