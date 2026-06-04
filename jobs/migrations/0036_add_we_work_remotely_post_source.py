@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("jobs", "0034_add_generic_post_source_identity"),
+        ("jobs", "0035_schedule_remote_ok_import"),
     ]
 
     operations = [
