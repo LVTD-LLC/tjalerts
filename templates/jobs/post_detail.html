@@ -24,6 +24,8 @@
 {% endblock meta %}
 
 {% block content %}
+{% with titles=object.titles.all technologies=object.technologies.all %}
+{% with title_count=titles|length technology_count=technologies|length %}
 <div class="app-page-header">
   <div class="app-container py-8">
     <a href="{% url 'posts' %}" class="btn-quiet -ml-3 mb-4">
@@ -39,8 +41,8 @@
         <h1 class="mt-2 text-2xl font-semibold tracking-tight text-zinc-950 sm:text-3xl">
           {% if object.company.name %}{{ object.company.name }}{% else %}Stealth company{% endif %}
         </h1>
-        {% if object.titles.all.count >= 1 and object.titles.all.0.name %}
-        <p class="mt-2 text-base font-medium text-zinc-700">{{ object.titles.all.0.name }}</p>
+        {% if title_count >= 1 and titles.0.name %}
+        <p class="mt-2 text-base font-medium text-zinc-700">{{ titles.0.name }}</p>
         {% endif %}
       </div>
 
@@ -74,12 +76,12 @@
 <div class="app-container py-8">
   <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
     <article class="space-y-4">
-      {% if object.titles.all.count == 1 and object.titles.all.0.name == "" %}
-      {% elif object.titles.all.count >= 1 %}
+      {% if title_count == 1 and titles.0.name == "" %}
+      {% elif title_count >= 1 %}
       <section class="app-panel">
         <h2 class="text-sm font-semibold text-zinc-950">Roles</h2>
         <div class="mt-2">
-          {% for title in object.titles.all %}
+          {% for title in titles %}
             {% include "components/title-link.html" with title=title %}
           {% endfor %}
         </div>
@@ -93,12 +95,12 @@
       </section>
       {% endif %}
 
-      {% if object.technologies.all.count == 1 and object.technologies.all.0.name == "" %}
-      {% elif object.technologies.all.count > 0 %}
+      {% if technology_count == 1 and technologies.0.name == "" %}
+      {% elif technology_count > 0 %}
       <section class="app-panel">
         <h2 class="text-sm font-semibold text-zinc-950">Tech stack</h2>
         <div class="mt-2">
-          {% for technology in object.technologies.all %}
+          {% for technology in technologies %}
             {% include "components/technology-link.html" with technology=technology %}
           {% endfor %}
         </div>
@@ -174,15 +176,18 @@
     </aside>
   </div>
 </div>
+{% endwith %}
+{% endwith %}
 {% endblock content %}
 
 {% block schema %}
+  {% with titles=object.titles.all %}
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "JobPosting",
-      "name": "{{ object.titles.all.0.name|default:'Developer'|replace_quotes }}",
-      "title": "{{ object.titles.all.0.name|default:'Developer'|replace_quotes }}",
+      "name": "{{ titles.0.name|default:'Developer'|replace_quotes }}",
+      "title": "{{ titles.0.name|default:'Developer'|replace_quotes }}",
       "jobLocation": {
         "@type": "Place",
         "address": {% if object.locations %}"{{ object.locations }}"{% else %}"Remote"{% endif %}
@@ -200,4 +205,5 @@
       }
     }
   </script>
+  {% endwith %}
 {% endblock schema %}

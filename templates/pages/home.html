@@ -123,7 +123,8 @@
 
       <ul role="list" class="grid grid-cols-1 gap-3 xl:grid-cols-2">
         {% for object in latest_job_submissions %}
-          {% if object.technologies.all.count > 0 or object.titles.all.count > 0 %}
+          {% with titles=object.titles.all technologies=object.technologies.all %}
+          {% if technologies|length > 0 or titles|length > 0 %}
           <li class="app-card p-4">
             <a class="block" href="{% url 'post' object.id %}">
               <div class="flex items-start justify-between gap-3">
@@ -135,22 +136,22 @@
               <p class="mt-2 line-clamp-2 text-sm leading-6 text-zinc-600">{{ object.description|truncatechars:160 }}</p>
             </a>
 
-            {% if object.titles.all.count > 0 %}
+            {% if titles|length > 0 %}
             <div class="mt-4">
               <h4 class="job-section-label">Roles</h4>
               <div class="mt-1">
-                {% for title in object.titles.all %}
+                {% for title in titles %}
                   {% include "components/title-link.html" with title=title %}
                 {% endfor %}
               </div>
             </div>
             {% endif %}
 
-            {% if object.technologies.all.count > 0 %}
+            {% if technologies|length > 0 %}
             <div class="mt-3">
               <h4 class="job-section-label">Tech stack</h4>
               <div class="mt-1">
-                {% for technology in object.technologies.all %}
+                {% for technology in technologies %}
                   {% include "components/technology-link.html" with technology=technology %}
                 {% endfor %}
               </div>
@@ -158,6 +159,7 @@
             {% endif %}
           </li>
           {% endif %}
+          {% endwith %}
         {% empty %}
           <li class="empty-state xl:col-span-2">
             <h2 class="text-lg font-semibold text-zinc-950">No recent jobs yet</h2>

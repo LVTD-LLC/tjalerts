@@ -1,6 +1,7 @@
 import time
 
-from django.db.models import Count, Exists, OuterRef, Q
+from django.core.cache import cache
+from django.db.models import Case, Count, Exists, IntegerField, OuterRef, Q, When
 from django.utils import timezone
 from pgvector.django import L2Distance
 
@@ -11,11 +12,58 @@ from users.models import Subscriber
 
 logger = get_tjalerts_logger(__name__)
 
+CACHE_TTL_SECONDS = 60 * 5
+LATEST_SUBMISSIONS_CACHE_TTL_SECONDS = 60
+
+
+def _cache_key(name: str, *parts) -> str:
+    normalized_parts = ":".join(str(part) for part in parts)
+    return f"jobs:queries:{name}:{normalized_parts}"
+
+
+def _ordered_queryset_for_ids(model, ids):
+    if not ids:
+        return model.objects.none()
+
+    preserved_order = Case(
+        *[When(pk=pk, then=position) for position, pk in enumerate(ids)],
+        output_field=IntegerField(),
+    )
+    return model.objects.filter(pk__in=ids).order_by(preserved_order)
+
+
+def _post_queryset_for_ids(post_ids):
+    return (
+        _ordered_queryset_for_ids(Post, post_ids).select_related("company").prefetch_related("titles", "technologies")
+    )
+
+
+def _get_cached_ids(cache_key, queryset, *, limit: int):
+    ids = cache.get(cache_key)
+    cache_hit = ids is not None
+    if ids is None:
+        queryset = queryset[:limit]
+        ids = list(queryset.values_list("id", flat=True))
+        cache.set(cache_key, ids, CACHE_TTL_SECONDS)
+    return ids, cache_hit
+
 
 def get_latest_submissions(number_of: int, for_homepage: bool = False):
     start_time = time.time()
+    cache_key = _cache_key("latest_submissions", number_of, for_homepage)
+    should_cache = number_of > 0
+    cached_post_ids = cache.get(cache_key) if should_cache else None
+    if should_cache and cached_post_ids is not None:
+        posts = _post_queryset_for_ids(cached_post_ids)
+        logger.info(
+            "Got latest submissions from cache",
+            count=len(cached_post_ids),
+            cached=True,
+            duration=round(time.time() - start_time, 2),
+        )
+        return posts
 
-    posts = Post.objects.all().order_by("-submitted_datetime")
+    posts = Post.objects.order_by("-submitted_datetime")
 
     if for_homepage:
         excluded_tech = Technology.objects.filter(name__in=EXCLUDED_TECHNOLOGIES)
@@ -31,35 +79,55 @@ def get_latest_submissions(number_of: int, for_homepage: bool = False):
             .filter(num_technologies__gt=0, num_titles__gt=0)
         )
 
-    if number_of > 0:
-        posts = posts[:number_of]
+    if should_cache:
+        post_ids = list(posts.values_list("id", flat=True)[:number_of])
+        cache.set(cache_key, post_ids, LATEST_SUBMISSIONS_CACHE_TTL_SECONDS)
+        posts = _post_queryset_for_ids(post_ids)
+        count = len(post_ids)
+    else:
+        posts = posts.select_related("company").prefetch_related("titles", "technologies")
+        count = None
 
-    logger.info("Got latest submissions", count=len(posts), duration=round(time.time() - start_time, 2))
+    logger.info(
+        "Got latest submissions",
+        count=count,
+        cached=False,
+        duration=round(time.time() - start_time, 2),
+    )
 
     return posts
 
 
 def get_most_popular_titles(number_of: int = 0, min_count: int = 0):
     start_time = time.time()
+    cache_key = _cache_key("popular_titles", number_of, min_count)
+    should_cache = number_of > 0
 
     title_objects = Title.objects.exclude(name__in=EXCLUDED_TITLES)
 
     if number_of > 0 or min_count > 0:
         title_objects = title_objects.annotate(post_count=Count("posttitle")).order_by("-post_count")
 
-    if number_of > 0:
-        title_objects = title_objects[:number_of]
-
     if min_count > 0:
         title_objects = title_objects.filter(post_count__gt=min_count)
 
-    logger.info("Got most popular titles", count=len(title_objects), duration=round(time.time() - start_time, 2))
+    if should_cache:
+        ids, cache_hit = _get_cached_ids(cache_key, title_objects, limit=number_of)
+        title_objects = _ordered_queryset_for_ids(Title, ids)
+        count = len(ids)
+    else:
+        cache_hit = False
+        count = None
+
+    logger.info("Got most popular titles", count=count, cached=cache_hit, duration=round(time.time() - start_time, 2))
 
     return title_objects
 
 
 def get_most_popular_technologies(number_of: int = 0, min_count: int = 0, order_by_post_count: bool = True):
     start_time = time.time()
+    cache_key = _cache_key("popular_technologies", number_of, min_count, order_by_post_count)
+    should_cache = number_of > 0
 
     technology_objects = (
         Technology.objects.exclude(name__in=EXCLUDED_TECHNOLOGIES)
@@ -70,14 +138,22 @@ def get_most_popular_technologies(number_of: int = 0, min_count: int = 0, order_
     if number_of > 0 or min_count > 0 or order_by_post_count:
         technology_objects = technology_objects.annotate(post_count=Count("posttechnology")).order_by("-post_count")
 
-    if number_of > 0:
-        technology_objects = technology_objects[:number_of]
-
     if min_count > 0:
         technology_objects = technology_objects.filter(post_count__gt=min_count)
 
+    if should_cache:
+        ids, cache_hit = _get_cached_ids(cache_key, technology_objects, limit=number_of)
+        technology_objects = _ordered_queryset_for_ids(Technology, ids)
+        count = len(ids)
+    else:
+        cache_hit = False
+        count = None
+
     logger.info(
-        "Got most popular technologies", count=len(technology_objects), duration=round(time.time() - start_time, 2)
+        "Got most popular technologies",
+        count=count,
+        cached=cache_hit,
+        duration=round(time.time() - start_time, 2),
     )
 
     return technology_objects

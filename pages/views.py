@@ -24,7 +24,7 @@ class HomeView(TemplateView):
         user = self.request.user
 
         context["latest_job_submissions"] = get_latest_submissions(9, for_homepage=True)
-        context["popular_technologies"] = get_most_popular_technologies(min_count=2)
+        context["popular_technologies"] = get_most_popular_technologies(number_of=12, min_count=2)
         context["create_intent_alert_form"] = CreateIntentAlertForm
 
         if user.is_authenticated:
@@ -101,7 +101,7 @@ class ProductHuntView(TemplateView):
 
         context["latest_job_submissions"] = get_latest_submissions(9, for_homepage=True)
         context["popular_titles"] = get_most_popular_titles()
-        context["popular_technologies"] = get_most_popular_technologies(min_count=2)
+        context["popular_technologies"] = get_most_popular_technologies(number_of=12, min_count=2)
         context["create_alert_form"] = CreateAlertForm
 
         if user.is_authenticated:

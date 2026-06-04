@@ -190,14 +190,15 @@
   "name": "{{ title }}",
   "description": "Jobs that match these keywords: {{ keywords }}. From {{ date }}.",
   "itemListElement": [{% for job in page_obj %}
+    {% with titles=job.titles.all %}
     {
       "@type": "ListItem",
       "position": {{ forloop.counter }},
       "url": "{{ SITE_URL }}{% url 'post' job.id %}",
       "item": {
         "@type": "JobPosting",
-        "name": "{{ job.titles.all.0.name|default:'Developer'|replace_quotes }}",
-        "title": "{{ job.titles.all.0.name|default:'Developer'|replace_quotes }}",
+        "name": "{{ titles.0.name|default:'Developer'|replace_quotes }}",
+        "title": "{{ titles.0.name|default:'Developer'|replace_quotes }}",
         "jobLocation": {
           "@type": "Place",
           "address": {% if job.locations %}"{{ job.locations }}"{% else %}"Remote"{% endif %}
@@ -215,6 +216,7 @@
         }
       }
     }{% if not forloop.last %},{% endif %}
+    {% endwith %}
     {% endfor %}]
 }
 </script>

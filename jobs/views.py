@@ -6,7 +6,6 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import ValidationError
-from django.core.paginator import Paginator
 from django.db import IntegrityError, models, transaction
 from django.db.models import Count, Exists, Max, OuterRef, Subquery
 from django.http import HttpResponseRedirect, QueryDict
@@ -55,6 +54,9 @@ class PostListView(FilterView):
     filterset_class = PostFilter
     paginate_by = 6
 
+    def get_queryset(self):
+        return super().get_queryset().select_related("company").prefetch_related("titles", "technologies")
+
     def get(self, request, *args, **kwargs):
         query_params = request.GET.copy()
         needs_redirect = False
@@ -73,16 +75,14 @@ class PostListView(FilterView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        filtered_qs = self.filterset.qs
         date = timezone.now().strftime("%B %Y")
-
-        paginator = Paginator(filtered_qs, self.paginate_by)
-        page_number = self.request.GET.get("page", 1)
-        page = paginator.get_page(page_number)
+        page = context["page_obj"]
+        page_items = list(page.object_list)
+        page.object_list = page_items
 
         first_item_datetime = timezone.now()
-        if page.object_list:
-            first_item = page.object_list[0]
+        if page_items:
+            first_item = page_items[0]
             first_item_datetime = first_item.submitted_datetime
 
         title = generate_job_search_title(self.request.GET, first_item_datetime)
@@ -103,6 +103,9 @@ class PostListView(FilterView):
 class PostDetailView(DetailView):
     model = Post
     template_name = "jobs/post_detail.html"
+
+    def get_queryset(self):
+        return super().get_queryset().select_related("company").prefetch_related("titles", "technologies")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -155,7 +158,7 @@ class HighestPaidJobsView(ListView):
         return context
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().select_related("company").prefetch_related("titles", "technologies")
 
         tech_id = (
             Technology.objects.filter(slug__icontains=self.kwargs.get("slug"))
@@ -633,7 +636,7 @@ class CompanyJobsView(ListView):
     model = Post
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().select_related("company").prefetch_related("titles", "technologies")
         two_months_ago = timezone.now() - timezone.timedelta(days=60)
 
         return queryset.filter(company__slug=self.kwargs.get("slug"), submitted_datetime__gte=two_months_ago)
@@ -654,7 +657,7 @@ class TechnologyJobsView(ListView):
     model = Post
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().select_related("company").prefetch_related("titles", "technologies")
         two_months_ago = timezone.now() - timezone.timedelta(days=60)
 
         return queryset.filter(technologies__slug=self.kwargs.get("slug"), submitted_datetime__gte=two_months_ago)
@@ -766,7 +769,7 @@ class TitleJobsView(ListView):
     model = Post
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().select_related("company").prefetch_related("titles", "technologies")
         two_months_ago = timezone.now() - timezone.timedelta(days=60)
 
         queryset = queryset.filter(titles__slug=self.kwargs.get("slug"), submitted_datetime__gte=two_months_ago)

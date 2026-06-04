@@ -3,6 +3,7 @@ from unittest.mock import Mock, patch
 import httpx
 from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.db import IntegrityError
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
@@ -17,6 +18,7 @@ from jobs.enrichment import (
     read_url_with_jina,
 )
 from jobs.models import Alert, Company, Post, Technology, Title
+from jobs.queries import get_most_popular_technologies, get_most_popular_titles
 from jobs.tasks import (
     MAX_COMPANY_EMAILS_LENGTH,
     apply_remote_ok_structured_defaults,
@@ -42,6 +44,53 @@ from jobs.utils import (
     is_probably_non_hiring_hn_comment,
     normalize_hn_comment_text,
 )
+
+
+class PopularQueryTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.company = Company.objects.create(name="Acme")
+
+    def create_post(self):
+        return Post.objects.create(company=self.company, submitted_datetime=timezone.now())
+
+    def test_titles_filter_min_count_before_slicing(self):
+        common_title = Title.objects.create(name="Backend Engineer")
+        rare_title = Title.objects.create(name="Designer")
+
+        for title in (common_title, common_title, rare_title):
+            post = self.create_post()
+            post.titles.add(title)
+
+        titles = list(get_most_popular_titles(number_of=1, min_count=1))
+
+        assert titles == [common_title]
+
+    def test_technologies_filter_min_count_before_slicing(self):
+        common_technology = Technology.objects.create(name="Python")
+        rare_technology = Technology.objects.create(name="Figma")
+
+        for technology in (common_technology, common_technology, rare_technology):
+            post = self.create_post()
+            post.technologies.add(technology)
+
+        technologies = list(get_most_popular_technologies(number_of=1, min_count=1))
+
+        assert technologies == [common_technology]
+
+    @patch("jobs.queries.cache.set")
+    def test_popular_queries_only_cache_bounded_lists(self, mock_cache_set):
+        Title.objects.create(name="Backend Engineer")
+        Technology.objects.create(name="Python")
+
+        list(get_most_popular_titles())
+        list(get_most_popular_technologies())
+
+        mock_cache_set.assert_not_called()
+
+        list(get_most_popular_titles(number_of=1))
+
+        mock_cache_set.assert_called_once()
 
 
 class IntentAlertSuggestionTests(TestCase):
