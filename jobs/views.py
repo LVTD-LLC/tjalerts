@@ -79,7 +79,6 @@ class PostListView(FilterView):
         page = context["page_obj"]
         page_items = list(page.object_list)
         page.object_list = page_items
-        context["object_list"] = page_items
 
         first_item_datetime = timezone.now()
         if page_items:
