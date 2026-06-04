@@ -58,6 +58,10 @@
           <img src="{% static 'vendors/images/source-remote-ok.png' %}" alt="" class="h-4 w-4 shrink-0 rounded-sm" aria-hidden="true" />
           View on Remote OK
         </a>
+        {% elif object.source_url %}
+        <a href="{{ object.source_url }}" target="_blank" class="btn-secondary gap-2">
+          View on {{ object.source }}
+        </a>
         {% endif %}
         {% if object.company.company_homepage_link %}
         <a href="{{ object.company.fixed_company_homepage_link }}" target="_blank" class="btn-secondary">Company site</a>
@@ -158,8 +162,8 @@
           <div class="flex justify-between gap-4">
             <dt class="text-zinc-500">Source</dt>
             <dd class="text-right font-medium text-zinc-900">
-              {% if object.source == "Remote OK" and object.source_url %}
-              <a href="{{ object.source_url }}" target="_blank" class="hover:text-zinc-700">Remote OK</a>
+              {% if object.source_url %}
+              <a href="{{ object.source_url }}" target="_blank" class="hover:text-zinc-700">{{ object.source }}</a>
               {% else %}
               {{ object.source }}
               {% endif %}

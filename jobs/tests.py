@@ -16,13 +16,19 @@ from jobs.models import Company, Post
 from jobs.tasks import (
     MAX_COMPANY_EMAILS_LENGTH,
     apply_remote_ok_structured_defaults,
+    apply_we_work_remotely_structured_defaults,
     backfill_vector_data,
     build_remote_ok_extraction_text,
+    build_we_work_remotely_extraction_text,
     clean_remote_ok_string,
     create_remote_ok_post,
+    create_we_work_remotely_post,
     get_remote_ok_submitted_datetime,
     import_remote_ok_jobs,
+    import_we_work_remotely_jobs,
     merge_company_emails,
+    parse_we_work_remotely_feed,
+    parse_we_work_remotely_title,
 )
 from jobs.utils import clean_job_json_object, is_probably_non_hiring_hn_comment, normalize_hn_comment_text
 
@@ -121,6 +127,80 @@ class RemoteOkParsingTests(SimpleTestCase):
         assert data["is_onsite"] is False
 
 
+class WeWorkRemotelyParsingTests(SimpleTestCase):
+    def test_parse_we_work_remotely_title_splits_company_and_position(self):
+        company, position = parse_we_work_remotely_title("Acme: Senior Python Engineer")
+
+        assert company == "Acme"
+        assert position == "Senior Python Engineer"
+
+    def test_parse_we_work_remotely_feed_extracts_items_and_strips_description_html(self):
+        feed_xml = """
+        <rss version="2.0">
+          <channel>
+            <item>
+              <title>Acme: Senior Python Engineer</title>
+              <region>Anywhere in the World</region>
+              <category>Full-Stack Programming</category>
+              <description>&lt;p&gt;Build APIs &amp;amp; backend systems.&lt;/p&gt;</description>
+              <pubDate>Tue, 02 Jun 2026 20:15:53 +0000</pubDate>
+              <guid>https://weworkremotely.com/remote-jobs/acme-senior-python-engineer</guid>
+              <link>https://weworkremotely.com/remote-jobs/acme-senior-python-engineer</link>
+            </item>
+          </channel>
+        </rss>
+        """
+
+        jobs = parse_we_work_remotely_feed(
+            feed_xml,
+            feed_url="https://weworkremotely.com/categories/remote-programming-jobs.rss",
+        )
+
+        assert len(jobs) == 1
+        assert jobs[0]["id"] == "https://weworkremotely.com/remote-jobs/acme-senior-python-engineer"
+        assert jobs[0]["company"] == "Acme"
+        assert jobs[0]["position"] == "Senior Python Engineer"
+        assert jobs[0]["region"] == "Anywhere in the World"
+        assert jobs[0]["category"] == "Full-Stack Programming"
+        assert jobs[0]["description_text"] == "Build APIs & backend systems."
+        assert jobs[0]["feed_url"] == "https://weworkremotely.com/categories/remote-programming-jobs.rss"
+
+    def test_build_we_work_remotely_extraction_text_strips_html_and_preserves_source(self):
+        job = {
+            "company": "Acme",
+            "position": "Senior Python Engineer",
+            "region": "Anywhere in the World",
+            "category": "Full-Stack Programming",
+            "description": "<p>Build APIs &amp; backend systems.</p>",
+        }
+
+        text = build_we_work_remotely_extraction_text(job)
+
+        assert "Source: We Work Remotely" in text
+        assert "Job title: Senior Python Engineer" in text
+        assert "Work arrangement: Remote" in text
+        assert "Build APIs & backend systems." in text
+        assert "<p>" not in text
+
+    def test_apply_we_work_remotely_defaults_keeps_structured_identity_fields(self):
+        job = {
+            "company": "Acme",
+            "position": "Python Engineer",
+            "region": "Anywhere in the World",
+            "description_text": "Build APIs.",
+            "url": "https://weworkremotely.com/remote-jobs/acme-python-engineer",
+        }
+
+        data = apply_we_work_remotely_structured_defaults(job, {})
+
+        assert data["company_name"] == "Acme"
+        assert data["job_titles"] == "Python Engineer"
+        assert data["locations"] == "Anywhere in the World"
+        assert data["description"] == "Build APIs."
+        assert data["is_remote"] is True
+        assert data["company_job_application_link"] == "https://weworkremotely.com/remote-jobs/acme-python-engineer"
+
+
 class RemoteOkImportTests(TestCase):
     @patch("jobs.tasks.get_embedding", return_value=[0.0] * 1536)
     @patch("jobs.tasks.extract_job_data_from_text")
@@ -205,6 +285,88 @@ class RemoteOkImportTests(TestCase):
 
         assert result == f"Job {post.id} has no text to embed, skipping."
         mock_get_embedding.assert_not_called()
+
+
+class WeWorkRemotelyImportTests(TestCase):
+    @patch("jobs.tasks.get_embedding", return_value=[0.0] * 1536)
+    @patch("jobs.tasks.extract_job_data_from_text")
+    def test_create_we_work_remotely_post_persists_source_identity_and_attribution(
+        self,
+        mock_extract,
+        _mock_embedding,
+    ):
+        mock_extract.return_value = {
+            "company_name": "",
+            "job_titles": "",
+            "locations": "",
+            "cities": "",
+            "countries": "",
+            "compensation_summary": "",
+            "min_salary": 0,
+            "max_salary": 0,
+            "currency": "",
+            "is_remote": True,
+            "remote_timezones": "",
+            "is_onsite": False,
+            "capacity": "Full-time Employee",
+            "description": "",
+            "technologies_used": "Python, Django",
+            "company_homepage_link": "",
+            "emails": "",
+            "company_job_application_link": "",
+            "names_of_the_contact_person": "",
+            "years_of_experience": "",
+            "levels_of_experience": "Senior",
+        }
+        we_work_remotely_job = {
+            "id": "https://weworkremotely.com/remote-jobs/acme-senior-python-engineer",
+            "company": "Acme",
+            "position": "Senior Python Engineer",
+            "region": "Anywhere in the World",
+            "category": "Full-Stack Programming",
+            "description_text": "Build production Django APIs.",
+            "pub_date": "Tue, 02 Jun 2026 20:15:53 +0000",
+            "url": "https://weworkremotely.com/remote-jobs/acme-senior-python-engineer",
+            "feed_url": "https://weworkremotely.com/categories/remote-programming-jobs.rss",
+        }
+
+        post = create_we_work_remotely_post(we_work_remotely_job)
+
+        assert post.source == PostSource.WE_WORK_REMOTELY
+        assert post.source_external_id == "https://weworkremotely.com/remote-jobs/acme-senior-python-engineer"
+        assert post.source_url == "https://weworkremotely.com/remote-jobs/acme-senior-python-engineer"
+        assert post.who_is_hiring_comment_id is None
+        assert post.company.name == "Acme"
+        assert post.company_job_application_link == "https://weworkremotely.com/remote-jobs/acme-senior-python-engineer"
+        assert post.description == "Build production Django APIs."
+        assert post.submitted_datetime.isoformat() == "2026-06-02T20:15:53+00:00"
+        assert list(post.titles.values_list("name", flat=True)) == ["Senior Python Engineer"]
+        assert set(post.technologies.values_list("name", flat=True)) == {"Python", "Django"}
+        assert Post.objects.filter(
+            source=PostSource.WE_WORK_REMOTELY,
+            source_external_id="https://weworkremotely.com/remote-jobs/acme-senior-python-engineer",
+        ).exists()
+
+        same_post = create_we_work_remotely_post(we_work_remotely_job)
+
+        assert same_post.id == post.id
+        assert (
+            Post.objects.filter(
+                source=PostSource.WE_WORK_REMOTELY,
+                source_external_id="https://weworkremotely.com/remote-jobs/acme-senior-python-engineer",
+            ).count()
+            == 1
+        )
+        assert mock_extract.call_count == 1
+
+    @patch("jobs.tasks.create_we_work_remotely_post", side_effect=IntegrityError)
+    @patch("jobs.tasks.fetch_we_work_remotely_jobs")
+    def test_import_we_work_remotely_jobs_counts_concurrent_integrity_errors_as_skips(self, mock_fetch, _mock_create):
+        mock_fetch.return_value = [{"id": "https://weworkremotely.com/remote-jobs/example"}]
+
+        result = import_we_work_remotely_jobs()
+
+        assert result == "Imported 0 We Work Remotely jobs. Skipped 1. Failed 0."
 
 
 class ReaderContextTests(SimpleTestCase):

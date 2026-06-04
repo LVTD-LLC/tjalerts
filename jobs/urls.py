@@ -17,6 +17,7 @@ from .views import (
     create_backfill_vector_data_jobs_view,
     find_bad_submitted_dates_view,
     import_remote_ok_jobs_view,
+    import_we_work_remotely_jobs_view,
     toggle_subscription_from_authed_alert,
     unauthed_weekly_digest_view,
     unsubscribe_from_unauthed_alert,
@@ -29,6 +30,7 @@ urlpatterns = [
     path("find_bad_submitted_dates/", find_bad_submitted_dates_view, name="find-bad-submitted-dates"),
     path("update_min_and_max_salary/", update_min_and_max_salary_view, name="update_min_and_max_salary"),
     path("import_remote_ok_jobs/", import_remote_ok_jobs_view, name="import_remote_ok_jobs"),
+    path("import_we_work_remotely_jobs/", import_we_work_remotely_jobs_view, name="import_we_work_remotely_jobs"),
     path(
         "create_backfill_vector_data_jobs/<int:rebuild>/",
         create_backfill_vector_data_jobs_view,
