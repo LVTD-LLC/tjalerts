@@ -947,7 +947,7 @@ class ReaderContextTests(SimpleTestCase):
             {
                 "responsibilities": "Build APIs, Review code",
                 "required_technologies": ["Python", "Django"],
-                "benefits": None,
+                "benefits": ["Health insurance", "Unknown", {"text": "bad"}],
                 "portfolio_required": True,
                 "canonical_job_url": "example.com/jobs/backend,",
                 "application_instructions": {"text": "Apply through the site"},
@@ -958,7 +958,7 @@ class ReaderContextTests(SimpleTestCase):
 
         assert details["responsibilities"] == ["Build APIs", "Review code"]
         assert details["required_technologies"] == ["Python", "Django"]
-        assert details["benefits"] == []
+        assert details["benefits"] == ["Health insurance"]
         assert details["portfolio_required"] == "Yes"
         assert details["canonical_job_url"] == "https://example.com/jobs/backend"
         assert details["application_instructions"] == ""
@@ -1051,6 +1051,7 @@ class ReaderContextTests(SimpleTestCase):
                 "timezone_requirements": ["CET overlap"],
                 "employment_type": "Full-time",
                 "application_instructions": "Email your resume.",
+                "confidence": "medium",
             }
         }
         company_homepage_context = {
@@ -1058,6 +1059,7 @@ class ReaderContextTests(SimpleTestCase):
                 "company_name": "Example Homepage",
                 "industry": "Developer tools",
                 "product_or_service": "Internal platform",
+                "confidence": "high",
             }
         }
 
@@ -1084,6 +1086,7 @@ class ReaderContextTests(SimpleTestCase):
         assert enriched_data["job_details"]["industry"] == "Developer tools"
         assert enriched_data["job_details"]["product_or_service"] == "Internal platform"
         assert enriched_data["job_details"]["application_instructions"] == "Email your resume."
+        assert enriched_data["job_details"]["extraction_confidence"] == "medium"
 
     @override_settings(OPENAI_PAGE_CONTEXT_EXTRACTION_MODEL="test-model")
     @patch("jobs.enrichment.client.chat.completions.create")

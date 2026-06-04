@@ -171,7 +171,6 @@ COMPANY_CONTEXT_TO_DETAIL_KEYS = {
     "company_funding": "company_funding",
     "open_source": "open_source",
     "company_mission": "company_mission",
-    "confidence": "extraction_confidence",
 }
 
 
@@ -588,9 +587,24 @@ def get_context_list(context, key):
 
 def split_context_values(value):
     if isinstance(value, list):
-        return [str(item).strip() for item in value if str(item).strip()]
+        values = []
+        for item in value:
+            if item is None or isinstance(item, dict):
+                continue
 
-    if not value:
+            item = str(item).strip()
+            if item and item.lower() not in UNKNOWN_DETAIL_VALUES:
+                values.append(item)
+
+        return values
+
+    if not value or isinstance(value, dict):
         return []
 
-    return [item.strip() for item in str(value).split(",") if item.strip()]
+    value = str(value).strip()
+    if value.lower() in UNKNOWN_DETAIL_VALUES:
+        return []
+
+    return [
+        item.strip() for item in value.split(",") if item.strip() and item.strip().lower() not in UNKNOWN_DETAIL_VALUES
+    ]

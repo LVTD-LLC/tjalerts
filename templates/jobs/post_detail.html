@@ -170,15 +170,18 @@
                                 {% endif %}
                             </section>
                         {% endif %}
-                        {% if technology_count == 1 and technologies.0.name == "" %}
-                        {% elif technology_count > 0 %}
+                        {% if technology_count == 1 and technologies.0.name == "" and not details.required_technologies and not details.nice_to_have_technologies %}
+                        {% elif technology_count > 0 or details.required_technologies or details.nice_to_have_technologies %}
                             <section class="app-panel">
                                 <h2 class="text-sm font-semibold text-zinc-950">Tech stack</h2>
-                                <div class="mt-2">
-                                    {% for technology in technologies %}
-                                        {% include "components/technology-link.html" with technology=technology %}
-                                    {% endfor %}
-                                </div>
+                                {% if technology_count == 1 and technologies.0.name == "" %}
+                                {% elif technology_count > 0 %}
+                                    <div class="mt-2">
+                                        {% for technology in technologies %}
+                                            {% include "components/technology-link.html" with technology=technology %}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                                 {% if details.required_technologies or details.nice_to_have_technologies %}
                                     <div class="mt-4 grid gap-4 sm:grid-cols-2">
                                         {% if details.required_technologies %}
