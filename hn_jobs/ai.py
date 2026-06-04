@@ -6,13 +6,13 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent, Embedder
 from pydantic_ai.embeddings import EmbeddingSettings
 from pydantic_ai.embeddings.openai import OpenAIEmbeddingModel
-from pydantic_ai.exceptions import AgentRunError
+from pydantic_ai.exceptions import AgentRunError, UserError
 from pydantic_ai.models.openrouter import OpenRouterModel, OpenRouterModelSettings
 from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.providers.openrouter import OpenRouterProvider
 
 
-AIRequestError = AgentRunError
+AIRequestError = (AgentRunError, UserError)
 AI_CACHE_SETTINGS = {
     "AI_EMBEDDING_DIMENSIONS",
     "AI_RESULT_RETRIES",
@@ -190,7 +190,7 @@ def normalize_openrouter_model_name(model_name):
     if model_name.startswith(("gpt-", "o1", "o3", "o4", "text-embedding", "chatgpt", "codex")):
         return f"openai/{model_name}"
 
-    raise ValueError(
+    raise UserError(
         f"Model name {model_name!r} has no provider prefix. "
         "Only bare OpenAI model names are auto-prefixed; use provider/name for other OpenRouter models."
     )
