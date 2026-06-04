@@ -1,3 +1,4 @@
+import json
 import re
 from datetime import datetime
 from html import unescape
@@ -313,7 +314,7 @@ def build_intent_alert_suggestions(intent, max_alerts=3):
     seen_filters = set()
 
     def add_specific(name, alert_filter):
-        filter_key = repr(sorted(alert_filter.items()))
+        filter_key = canonical_filter_key(alert_filter)
         if filter_key in seen_filters:
             return
 
@@ -372,12 +373,28 @@ def normalize_alert_intent(intent):
 
 
 def find_named_matches(intent, queryset):
-    matches = []
-    for obj in queryset:
-        if name_appears_in_intent(intent, obj.name):
-            matches.append(obj)
+    candidates = build_intent_candidate_names(intent)
+    if not candidates:
+        return []
 
+    query = Q()
+    for candidate in candidates:
+        query |= Q(name__iexact=candidate)
+
+    matches = [obj for obj in queryset.filter(query) if name_appears_in_intent(intent, obj.name)]
     return sorted(matches, key=lambda match: len(match.name), reverse=True)
+
+
+def build_intent_candidate_names(intent, max_words=5):
+    tokens = re.findall(r"[A-Za-z0-9][A-Za-z0-9#+.:-]*", intent)
+    candidates = set()
+
+    for start_index in range(len(tokens)):
+        max_end_index = min(len(tokens), start_index + max_words)
+        for end_index in range(start_index + 1, max_end_index + 1):
+            candidates.add(" ".join(tokens[start_index:end_index]))
+
+    return candidates
 
 
 def name_appears_in_intent(intent, name):
@@ -395,6 +412,21 @@ def truncate_alert_name(name, max_length=100):
         return clean_name
 
     return f"{clean_name[: max_length - 3].rstrip()}..."
+
+
+def canonical_filter_key(alert_filter):
+    return json.dumps(canonicalize_filter_value(alert_filter), sort_keys=True)
+
+
+def canonicalize_filter_value(value):
+    if isinstance(value, dict):
+        return {key: canonicalize_filter_value(nested_value) for key, nested_value in value.items()}
+
+    if isinstance(value, list):
+        canonical_items = [canonicalize_filter_value(item) for item in value]
+        return sorted(canonical_items, key=lambda item: json.dumps(item, sort_keys=True))
+
+    return value
 
 
 def is_email_confirmed(user):

@@ -7,7 +7,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
-from django.db import IntegrityError, models
+from django.db import IntegrityError, models, transaction
 from django.db.models import Count, Exists, Max, OuterRef, Subquery
 from django.http import HttpResponseRedirect, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
@@ -311,38 +311,47 @@ class CreateIntentAlertsView(LoginRequiredMixin, FormView):
         suggestions = build_intent_alert_suggestions(form.cleaned_data["intent"])
         created_alerts = []
         refreshed_alerts = []
+        reactivated_alerts = []
 
-        for suggestion in suggestions:
-            existing_alert = Alert.objects.filter(email=user.email, filter=suggestion["filter"]).first()
-            if existing_alert:
-                changed = False
-                if existing_alert.user_id != user.id:
-                    existing_alert.user = user
-                    changed = True
-                if not existing_alert.confirmed:
-                    existing_alert.confirmed = True
-                    changed = True
-                if existing_alert.unsubscribed:
-                    existing_alert.unsubscribed = False
-                    changed = True
-                if not existing_alert.name:
-                    existing_alert.name = suggestion["name"]
-                    changed = True
+        with transaction.atomic():
+            user.__class__.objects.select_for_update().get(pk=user.pk)
 
-                if changed:
-                    existing_alert.save()
-                refreshed_alerts.append(existing_alert)
-                continue
-
-            created_alerts.append(
-                Alert.objects.create(
-                    user=user,
-                    email=user.email,
-                    confirmed=True,
-                    name=suggestion["name"],
-                    filter=suggestion["filter"],
+            for suggestion in suggestions:
+                existing_alert = (
+                    Alert.objects.select_for_update().filter(email=user.email, filter=suggestion["filter"]).first()
                 )
-            )
+                if existing_alert:
+                    changed = False
+                    was_inactive = existing_alert.unsubscribed or not existing_alert.confirmed
+                    if existing_alert.user_id != user.id:
+                        existing_alert.user = user
+                        changed = True
+                    if not existing_alert.confirmed:
+                        existing_alert.confirmed = True
+                        changed = True
+                    if existing_alert.unsubscribed:
+                        existing_alert.unsubscribed = False
+                        changed = True
+                    if not existing_alert.name:
+                        existing_alert.name = suggestion["name"]
+                        changed = True
+
+                    if changed:
+                        existing_alert.save()
+                    if was_inactive:
+                        reactivated_alerts.append(existing_alert)
+                    refreshed_alerts.append(existing_alert)
+                    continue
+
+                created_alerts.append(
+                    Alert.objects.create(
+                        user=user,
+                        email=user.email,
+                        confirmed=True,
+                        name=suggestion["name"],
+                        filter=suggestion["filter"],
+                    )
+                )
 
         if created_alerts:
             alert_label = "alert" if len(created_alerts) == 1 else "alerts"
@@ -351,11 +360,13 @@ class CreateIntentAlertsView(LoginRequiredMixin, FormView):
                 messages.SUCCESS,
                 f"Created {len(created_alerts)} {alert_label} from your job brief.",
             )
-            async_task(find_users_to_alert, group="Find Users to Alert")
         elif refreshed_alerts:
             messages.add_message(self.request, messages.SUCCESS, "Your matching alerts are active.")
         else:
             messages.add_message(self.request, messages.WARNING, "We could not create alerts from that brief.")
+
+        if created_alerts or reactivated_alerts:
+            async_task(find_users_to_alert, group="Find Users to Alert")
 
         capture_request_event(
             self.request,
@@ -363,6 +374,7 @@ class CreateIntentAlertsView(LoginRequiredMixin, FormView):
             properties={
                 "created_count": len(created_alerts),
                 "refreshed_count": len(refreshed_alerts),
+                "reactivated_count": len(reactivated_alerts),
                 "suggestion_count": len(suggestions),
                 "authenticated": True,
             },
