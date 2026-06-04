@@ -43,6 +43,51 @@ class JobExtractionResult(BaseModel):
     names_of_the_contact_person: str = ""
     years_of_experience: str = ""
     levels_of_experience: str = ""
+    job_details: "JobDetailsResult" = Field(default_factory=lambda: JobDetailsResult())
+
+
+class JobDetailsResult(BaseModel):
+    responsibilities: list[str] = Field(default_factory=list)
+    requirements: list[str] = Field(default_factory=list)
+    required_technologies: list[str] = Field(default_factory=list)
+    nice_to_have_technologies: list[str] = Field(default_factory=list)
+    timezone_requirements: list[str] = Field(default_factory=list)
+    benefits: list[str] = Field(default_factory=list)
+    duplicate_signals: list[str] = Field(default_factory=list)
+    remote_policy: str = ""
+    remote_scope: str = ""
+    travel_requirements: str = ""
+    relocation_support: str = ""
+    visa_sponsorship: str = ""
+    work_authorization: str = ""
+    security_clearance: str = ""
+    employment_type: str = ""
+    salary_period: str = ""
+    salary_location_basis: str = ""
+    compensation_notes: str = ""
+    equity: str = ""
+    bonus: str = ""
+    application_instructions: str = ""
+    application_email_subject: str = ""
+    portfolio_required: str = ""
+    github_required: str = ""
+    cover_letter_required: str = ""
+    application_deadline: str = ""
+    direct_apply: str = ""
+    industry: str = ""
+    product_or_service: str = ""
+    company_hq: str = ""
+    company_size: str = ""
+    company_stage: str = ""
+    company_funding: str = ""
+    open_source: str = ""
+    company_mission: str = ""
+    job_status: str = ""
+    canonical_job_url: str = ""
+    extraction_confidence: str = ""
+
+
+JobExtractionResult.model_rebuild()
 
 
 class SalaryExtractionResult(BaseModel):
@@ -60,14 +105,42 @@ class PageContextResult(BaseModel):
     job_titles: list[str] = Field(default_factory=list)
     responsibilities: list[str] = Field(default_factory=list)
     requirements: list[str] = Field(default_factory=list)
+    required_technologies: list[str] = Field(default_factory=list)
+    nice_to_have_technologies: list[str] = Field(default_factory=list)
     technologies: list[str] = Field(default_factory=list)
     locations: list[str] = Field(default_factory=list)
     remote_policy: str = ""
+    remote_scope: str = ""
+    timezone_requirements: list[str] = Field(default_factory=list)
+    travel_requirements: str = ""
+    relocation_support: str = ""
+    visa_sponsorship: str = ""
+    work_authorization: str = ""
+    security_clearance: str = ""
     compensation: str = ""
+    salary_period: str = ""
+    salary_location_basis: str = ""
+    equity: str = ""
+    bonus: str = ""
     benefits: list[str] = Field(default_factory=list)
     seniority: str = ""
     employment_type: str = ""
     application_instructions: str = ""
+    application_email_subject: str = ""
+    portfolio_required: str = ""
+    github_required: str = ""
+    cover_letter_required: str = ""
+    application_deadline: str = ""
+    direct_apply: str = ""
+    company_hq: str = ""
+    company_size: str = ""
+    company_stage: str = ""
+    company_funding: str = ""
+    open_source: str = ""
+    company_mission: str = ""
+    job_status: str = ""
+    canonical_job_url: str = ""
+    duplicate_signals: list[str] = Field(default_factory=list)
     notable_links: list[str] = Field(default_factory=list)
     confidence: str = ""
 
@@ -109,7 +182,7 @@ def normalize_openrouter_model_name(model_name):
     if model_name.startswith(("gpt-", "o1", "o3", "o4", "text-embedding", "chatgpt", "codex")):
         return f"openai/{model_name}"
 
-    return model_name
+    raise ValueError(f"OpenRouter model names must include a provider prefix: {model_name}")
 
 
 @lru_cache(maxsize=32)

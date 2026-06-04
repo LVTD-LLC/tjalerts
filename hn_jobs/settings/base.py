@@ -19,6 +19,7 @@ import environ
 import logfire
 import sentry_sdk
 import structlog
+from django.core.exceptions import ImproperlyConfigured
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
@@ -390,6 +391,9 @@ Q_CLUSTER = {
 }
 
 OPENROUTER_API_KEY = env("OPENROUTER_API_KEY", default=env("OPENAI_API_KEY", default=""))
+if not OPENROUTER_API_KEY:
+    raise ImproperlyConfigured("Set OPENROUTER_API_KEY or legacy OPENAI_API_KEY for AI tasks.")
+
 OPENROUTER_BASE_URL = env("OPENROUTER_BASE_URL", default="https://openrouter.ai/api/v1")
 OPENROUTER_APP_URL = env("OPENROUTER_APP_URL", default=SITE_URL)
 OPENROUTER_APP_TITLE = env("OPENROUTER_APP_TITLE", default="TJ Alerts")
