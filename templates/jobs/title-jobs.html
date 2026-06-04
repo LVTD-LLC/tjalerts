@@ -82,13 +82,14 @@
   "name": "'{{ title_name }}' jobs",
   "description": "List of '{{ title_name }}' jobs",
   "itemListElement": [{% for job in object_list %}
+    {% with titles=job.titles.all %}
     {
       "@type": "ListItem",
       "position": {{ forloop.counter }},
       "url": "{{ SITE_URL }}{% url 'post' job.id %}",
       "item": {
         "@type": "JobPosting",
-        "title": "{{ job.titles.all.0.name|default:'Developer'|replace_quotes }}",
+        "title": "{{ titles.0.name|default:'Developer'|replace_quotes }}",
         "description": "{{ job.description|safe }}",
         "datePosted": "{{ job.submitted_datetime|date:'Y-m-d' }}",
         "validThrough": "{{ job.submitted_datetime|plus_days:30|date:'Y-m-d' }}",
@@ -100,6 +101,7 @@
         }
       }
     }{% if not forloop.last %},{% endif %}
+    {% endwith %}
     {% endfor %}]
 }
 </script>
