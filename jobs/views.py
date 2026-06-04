@@ -116,6 +116,7 @@ def active_filter_summary(query_params):
         "source": ("Source", SOURCE_LABELS),
         "posted_within": ("Posted", POSTED_WITHIN_LABELS),
         "work_mode": ("Work", WORK_MODE_LABELS),
+        "remove_duplicate_employers": ("Employers", {"true": "Unique only"}),
         "has_compensation": ("Comp", HAS_FIELD_LABELS),
         "has_contact": ("Contact", HAS_FIELD_LABELS),
         "is_remote": ("Remote", YES_NO_LABELS),

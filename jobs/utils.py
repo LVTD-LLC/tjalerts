@@ -491,6 +491,9 @@ def generate_job_search_title(query_params, first_item_datetime):
         }
         return f"{work_mode_titles.get(query_params['work_mode'], 'Available Jobs')} - {date}"
 
+    if query_param == "remove_duplicate_employers" and query_params["remove_duplicate_employers"] == "true":
+        return f"Unique Employer Jobs - {date}"
+
     if query_param == "has_compensation":
         compensation_title = (
             "Compensation Info" if query_params["has_compensation"] == "yes" else "No Compensation Info"
@@ -565,6 +568,9 @@ def generate_job_search_keywords(query_params):
                 "hybrid": "Hybrid",
             }
             keywords.append(work_mode_keywords.get(query_params["work_mode"], query_params["work_mode"]))
+
+        if key == "remove_duplicate_employers" and query_params["remove_duplicate_employers"] == "true":
+            keywords.append("Unique employers")
 
         if key == "has_compensation":
             if query_params["has_compensation"] == "yes":

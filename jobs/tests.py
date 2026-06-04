@@ -166,6 +166,21 @@ class FilterSummaryTests(SimpleTestCase):
             "Missing Contact Information",
         ]
 
+    def test_remove_duplicate_employers_is_shown_as_active_and_used_for_metadata(self):
+        query_params = QueryDict("remove_duplicate_employers=true")
+        now = timezone.now()
+
+        assert active_filter_summary(query_params) == [
+            {
+                "label": "Employers",
+                "param": "remove_duplicate_employers",
+                "value": "true",
+                "display": "Unique only",
+            }
+        ]
+        assert generate_job_search_title(query_params, now) == f"Unique Employer Jobs - {now.strftime('%B %Y')}"
+        assert generate_job_search_keywords(query_params) == ["Unique employers"]
+
 
 class CreateIntentAlertsViewTests(TestCase):
     def setUp(self):
@@ -268,7 +283,7 @@ class CompanyEmailMergeTests(SimpleTestCase):
         assert len(merge_company_emails("", long_email_blob)) == MAX_COMPANY_EMAILS_LENGTH
 
 
-class PostFilterTests(TestCase):
+class EmployerDedupeFilterTests(TestCase):
     def test_remove_duplicate_employers_keeps_latest_post_per_employer(self):
         now = timezone.now()
         acme = Company.objects.create(name="Acme")
