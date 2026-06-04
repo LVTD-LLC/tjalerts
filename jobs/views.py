@@ -1,5 +1,6 @@
 import json
 from datetime import timedelta
+from decimal import Decimal, InvalidOperation
 from uuid import UUID
 
 from django.contrib import messages
@@ -23,7 +24,7 @@ from hn_jobs.posthog_events import capture_event, capture_request_event, distinc
 from hn_jobs.utils import add_users_context, build_absolute_site_url, get_tjalerts_logger, validate_technology_selected
 from jobs.choices import PostSource
 from jobs.constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
-from jobs.filters import HAS_FIELD_CHOICES, POSTED_WITHIN_CHOICES, WORK_MODE_CHOICES, PostFilter
+from jobs.filters import POSTED_WITHIN_CHOICES, WORK_MODE_CHOICES, PostFilter
 from jobs.forms import ConfirmAlertForm, CreateAlertForm, CreateCustomAlertForm, CreateIntentAlertForm
 from jobs.models import Alert, AlertEmailSend, Company, Post, Technology, TechnologyMapping, Title
 from jobs.tasks import (
@@ -51,7 +52,7 @@ excluded_tech = Technology.objects.filter(name__in=EXCLUDED_TECHNOLOGIES)
 excluded_titles = Title.objects.filter(name__in=EXCLUDED_TITLES)
 
 YES_NO_LABELS = {"true": "Yes", "false": "No"}
-HAS_FIELD_LABELS = {**dict(HAS_FIELD_CHOICES), "yes": "Listed", "no": "Missing"}
+HAS_FIELD_LABELS = {"yes": "Listed", "no": "Missing"}
 POSTED_WITHIN_LABELS = dict(POSTED_WITHIN_CHOICES)
 SOURCE_LABELS = dict(PostSource.choices)
 WORK_MODE_LABELS = dict(WORK_MODE_CHOICES)
@@ -78,6 +79,8 @@ def build_serializable_filter_params(query_params):
             continue
 
         values = [value for value in query_params.getlist(key) if value not in ["", "unknown"]]
+        if key == "salary_floor":
+            values = [value for value in values if parse_positive_salary_floor(value) is not None]
         if not values:
             continue
 
@@ -86,11 +89,21 @@ def build_serializable_filter_params(query_params):
     return params
 
 
-def salary_label(value):
+def parse_positive_salary_floor(value):
     try:
-        return f"${int(value):,}+"
-    except (TypeError, ValueError):
+        salary_floor = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+
+    return salary_floor if salary_floor > 0 else None
+
+
+def salary_label(value):
+    salary_floor = parse_positive_salary_floor(value)
+    if salary_floor is None:
         return value
+
+    return f"${int(salary_floor):,}+"
 
 
 def active_filter_summary(query_params):
@@ -124,13 +137,13 @@ def active_filter_summary(query_params):
             }
         )
 
-    salary_floor = query_params.get("salary_floor")
-    if salary_floor:
+    salary_floor = parse_positive_salary_floor(query_params.get("salary_floor"))
+    if salary_floor is not None:
         filters.append(
             {
                 "label": "Salary",
                 "param": "salary_floor",
-                "value": salary_floor,
+                "value": query_params.get("salary_floor"),
                 "display": salary_label(salary_floor),
             }
         )
@@ -184,6 +197,10 @@ class PostListView(FilterView):
                 del query_params[key]
                 needs_redirect = True
 
+        if "salary_floor" in query_params and parse_positive_salary_floor(query_params.get("salary_floor")) is None:
+            del query_params["salary_floor"]
+            needs_redirect = True
+
         if needs_redirect:
             clean_url = f"{reverse('posts')}?{query_params.urlencode()}"
             return HttpResponseRedirect(clean_url)
@@ -219,6 +236,7 @@ class PostListView(FilterView):
         context["active_filters"] = active_filters
         context["active_filter_count"] = len(active_filters)
         context["result_count"] = page.paginator.count
+        context["source_choices"] = PostSource.choices
         context["title"] = title
         context["date"] = date
         context["keywords"] = ", ".join(map(str, keywords))

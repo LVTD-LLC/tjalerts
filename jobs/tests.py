@@ -6,6 +6,7 @@ from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db import IntegrityError
+from django.http import QueryDict
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -43,9 +44,12 @@ from jobs.utils import (
     build_intent_alert_suggestions,
     canonical_filter_key,
     clean_job_json_object,
+    generate_job_search_keywords,
+    generate_job_search_title,
     is_probably_non_hiring_hn_comment,
     normalize_hn_comment_text,
 )
+from jobs.views import active_filter_summary, build_serializable_filter_params
 
 
 class PopularQueryTests(TestCase):
@@ -138,6 +142,29 @@ class IntentAlertSuggestionTests(TestCase):
         second_key = canonical_filter_key({"titles": ["3"], "technologies": ["1", "2"]})
 
         assert first_key == second_key
+
+
+class FilterSummaryTests(SimpleTestCase):
+    def test_salary_floor_zero_is_not_serialized_or_shown_as_active(self):
+        query_params = QueryDict("salary_floor=0")
+
+        assert build_serializable_filter_params(query_params) == {}
+        assert active_filter_summary(query_params) == []
+
+    def test_salary_floor_zero_is_not_used_for_metadata(self):
+        query_params = QueryDict("salary_floor=0")
+        now = timezone.now()
+
+        assert generate_job_search_title(query_params, now) == f"Available Jobs - {now.strftime('%B %Y')}"
+        assert generate_job_search_keywords(query_params) == []
+
+    def test_missing_compensation_and_contact_are_metadata_keywords(self):
+        query_params = QueryDict("has_compensation=no&has_contact=no")
+
+        assert generate_job_search_keywords(query_params) == [
+            "Missing Compensation Information",
+            "Missing Contact Information",
+        ]
 
 
 class CreateIntentAlertsViewTests(TestCase):
@@ -666,12 +693,28 @@ class PostFilterTests(TestCase):
         assert self.filtered_ids({"q": "django"}) == {self.remote_post.id}
         assert self.filtered_ids({"q": "react"}) == {self.onsite_post.id}
 
+    def test_keyword_search_ignores_raw_original_text(self):
+        self.onsite_post.original_text = "raw-only-zebra"
+        self.onsite_post.save(update_fields=["original_text"])
+
+        assert self.filtered_ids({"q": "raw-only-zebra"}) == set()
+
+    def test_keyword_search_caps_number_of_terms(self):
+        assert self.filtered_ids({"q": "Acme Build Django APIs data unmatched"}) == {self.remote_post.id}
+
     def test_work_mode_remote_only_excludes_hybrid_roles(self):
         assert self.filtered_ids({"work_mode": "remote_only"}) == {self.remote_post.id}
         assert self.filtered_ids({"work_mode": "remote"}) == {self.remote_post.id, self.hybrid_post.id}
 
     def test_salary_floor_uses_max_salary_range(self):
         assert self.filtered_ids({"salary_floor": "150000"}) == {self.remote_post.id, self.hybrid_post.id}
+
+    def test_salary_floor_zero_is_noop(self):
+        assert self.filtered_ids({"salary_floor": "0"}) == {
+            self.remote_post.id,
+            self.onsite_post.id,
+            self.hybrid_post.id,
+        }
 
     def test_has_compensation_and_contact_filters(self):
         assert self.filtered_ids({"has_compensation": "no"}) == {self.onsite_post.id}
@@ -682,6 +725,17 @@ class PostFilterTests(TestCase):
 
     def test_source_filter_limits_by_job_source(self):
         assert self.filtered_ids({"source": PostSource.REMOTE_OK}) == {self.onsite_post.id}
+
+
+class PostListViewTests(TestCase):
+    def test_filter_context_exposes_source_choices(self):
+        company = Company.objects.create(name="Acme")
+        Post.objects.create(company=company, submitted_datetime=timezone.now(), description="Build software.")
+
+        response = self.client.get(reverse("posts"))
+
+        assert response.status_code == 200
+        assert list(response.context["source_choices"]) == list(PostSource.choices)
 
 
 class RemoteOkImportTests(TestCase):
