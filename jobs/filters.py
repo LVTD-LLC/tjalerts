@@ -4,7 +4,15 @@ from django import forms
 from django.core.validators import EMPTY_VALUES
 from django.db.models import F, Window
 from django.db.models.functions import RowNumber
-from django_filters import BooleanFilter, CharFilter, Filter, FilterSet, ModelMultipleChoiceFilter, OrderingFilter
+from django_filters import (
+    BooleanFilter,
+    CharFilter,
+    ChoiceFilter,
+    Filter,
+    FilterSet,
+    ModelMultipleChoiceFilter,
+    OrderingFilter,
+)
 from pgvector.django import L2Distance
 
 from hn_jobs.utils import get_tjalerts_logger
@@ -35,17 +43,26 @@ class EmptyStringFilter(BooleanFilter):
         return method(**{self.field_name: ""})
 
 
+class PostOrderingFilter(OrderingFilter):
+    def get_ordering_value(self, param):
+        if param == "-max_salary":
+            return F("max_salary").desc(nulls_last=True)
+
+        if param == "max_salary":
+            return F("max_salary").asc(nulls_last=True)
+
+        return super().get_ordering_value(param)
+
+
 class PostFilter(FilterSet):
     vector = VectorEmbeddingFilter(field_name="vector")
     locations = CharFilter(lookup_expr="icontains")
-    remove_duplicate_employers = BooleanFilter(
+    remove_duplicate_employers = ChoiceFilter(
         label="Employers",
         method="noop_filter",
-        widget=forms.Select(
-            choices=(
-                ("", "Show all"),
-                ("true", "Remove duplicates"),
-            )
+        choices=(
+            ("", "Show all"),
+            ("true", "Remove duplicates"),
         ),
     )
     technologies = ModelMultipleChoiceFilter(
@@ -60,7 +77,7 @@ class PostFilter(FilterSet):
     compensation_summary__isempty = EmptyStringFilter(field_name="compensation_summary")
     emails__isempty = EmptyStringFilter(field_name="emails")
 
-    o = OrderingFilter(
+    o = PostOrderingFilter(
         choices=(
             ("-submitted_datetime", "Date"),
             ("-max_salary", "Max Salary"),
@@ -122,9 +139,10 @@ class PostFilter(FilterSet):
 
             descending = field_name.startswith("-")
             field_name = field_name[1:] if descending else field_name
-            order_expression = F(field_name).desc(nulls_last=True) if descending else F(field_name).asc(nulls_last=True)
+            order_expression = F(field_name).desc() if descending else F(field_name).asc()
             order_expressions.append(order_expression)
 
+        order_expressions.append(F("submitted_datetime").desc())
         order_expressions.append(F("id").asc())
 
         return order_expressions
@@ -142,7 +160,7 @@ class PostFilter(FilterSet):
     def qs(self):
         queryset = super().qs.exclude(description__exact="")
 
-        if self.form.is_valid() and self.form.cleaned_data.get("remove_duplicate_employers"):
+        if self.form.is_valid() and self.form.cleaned_data.get("remove_duplicate_employers") == "true":
             return self.remove_duplicate_employers_from_queryset(queryset)
 
         return queryset
@@ -151,7 +169,7 @@ class PostFilter(FilterSet):
         super().__init__(*args, **kwargs)
 
         if self.data.get("vector"):
-            self.filters["o"] = OrderingFilter(
+            self.filters["o"] = PostOrderingFilter(
                 choices=(
                     ("-submitted_datetime", "Date"),
                     ("-max_salary", "Max Salary"),

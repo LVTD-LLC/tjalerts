@@ -246,7 +246,7 @@ class PostFilterTests(TestCase):
         now = timezone.now()
         acme = Company.objects.create(name="Acme")
         beta = Company.objects.create(name="Beta")
-        stale_acme_post = Post.objects.create(
+        Post.objects.create(
             submitted_datetime=now - timedelta(days=2),
             company=acme,
             description="Older Acme role",
@@ -263,16 +263,15 @@ class PostFilterTests(TestCase):
         )
 
         filtered_posts = PostFilter(
-            {"remove_duplicate_employers": "true"},
-            queryset=Post.objects.all(),
+            {"remove_duplicate_employers": "true", "o": "-submitted_datetime"},
+            queryset=Post.objects.order_by("-submitted_datetime"),
         ).qs
 
         post_ids = list(filtered_posts.values_list("id", flat=True))
 
         assert post_ids == [latest_acme_post.id, beta_post.id]
-        assert stale_acme_post.id not in post_ids
 
-    def test_remove_duplicate_employers_respects_selected_ordering(self):
+    def test_remove_duplicate_employers_respects_selected_salary_ordering(self):
         now = timezone.now()
         acme = Company.objects.create(name="Acme")
         beta = Company.objects.create(name="Beta")
@@ -281,6 +280,11 @@ class PostFilterTests(TestCase):
             company=acme,
             description="Higher salary Acme role",
             max_salary=200000,
+        )
+        Post.objects.create(
+            submitted_datetime=now - timedelta(days=1),
+            company=acme,
+            description="Acme role without salary",
         )
         Post.objects.create(
             submitted_datetime=now,
@@ -301,6 +305,40 @@ class PostFilterTests(TestCase):
         ).qs
 
         assert list(filtered_posts.values_list("id", flat=True)) == [high_salary_acme_post.id, beta_post.id]
+
+    def test_remove_duplicate_employers_supports_technology_filter(self):
+        now = timezone.now()
+        python = Technology.objects.create(name="Python")
+        acme = Company.objects.create(name="Acme")
+        beta = Company.objects.create(name="Beta")
+        stale_acme_post = Post.objects.create(
+            submitted_datetime=now - timedelta(days=2),
+            company=acme,
+            description="Older Acme Python role",
+        )
+        latest_acme_post = Post.objects.create(
+            submitted_datetime=now,
+            company=acme,
+            description="Latest Acme Python role",
+        )
+        beta_post = Post.objects.create(
+            submitted_datetime=now - timedelta(hours=1),
+            company=beta,
+            description="Beta Python role",
+        )
+        for post in (stale_acme_post, latest_acme_post, beta_post):
+            post.technologies.add(python)
+
+        filtered_posts = PostFilter(
+            {
+                "remove_duplicate_employers": "true",
+                "o": "-submitted_datetime",
+                "technologies": [str(python.id)],
+            },
+            queryset=Post.objects.order_by("-submitted_datetime"),
+        ).qs
+
+        assert list(filtered_posts.values_list("id", flat=True)) == [latest_acme_post.id, beta_post.id]
 
 
 class RemoteOkParsingTests(SimpleTestCase):
