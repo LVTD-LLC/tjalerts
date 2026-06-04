@@ -94,22 +94,27 @@ def get_latest_submissions(number_of: int, for_homepage: bool = False):
 def get_most_popular_titles(number_of: int = 0, min_count: int = 0):
     start_time = time.time()
     cache_key = _cache_key("popular_titles", number_of, min_count)
+    should_cache = number_of > 0
 
     title_objects = Title.objects.exclude(name__in=EXCLUDED_TITLES)
 
     if number_of > 0 or min_count > 0:
         title_objects = title_objects.annotate(post_count=Count("posttitle")).order_by("-post_count")
 
-    if number_of > 0:
-        title_objects = title_objects[:number_of]
-
     if min_count > 0:
         title_objects = title_objects.filter(post_count__gt=min_count)
 
-    ids = _get_cached_ids(cache_key, title_objects)
-    title_objects = _ordered_queryset_for_ids(Title, ids)
+    if should_cache:
+        title_objects = title_objects[:number_of]
+        ids = _get_cached_ids(cache_key, title_objects)
+        title_objects = _ordered_queryset_for_ids(Title, ids)
+        count = len(ids)
+    else:
+        count = None
 
-    logger.info("Got most popular titles", count=len(ids), duration=round(time.time() - start_time, 2))
+    logger.info(
+        "Got most popular titles", count=count, cached=should_cache, duration=round(time.time() - start_time, 2)
+    )
 
     return title_objects
 
@@ -117,6 +122,7 @@ def get_most_popular_titles(number_of: int = 0, min_count: int = 0):
 def get_most_popular_technologies(number_of: int = 0, min_count: int = 0, order_by_post_count: bool = True):
     start_time = time.time()
     cache_key = _cache_key("popular_technologies", number_of, min_count, order_by_post_count)
+    should_cache = number_of > 0
 
     technology_objects = (
         Technology.objects.exclude(name__in=EXCLUDED_TECHNOLOGIES)
@@ -127,16 +133,23 @@ def get_most_popular_technologies(number_of: int = 0, min_count: int = 0, order_
     if number_of > 0 or min_count > 0 or order_by_post_count:
         technology_objects = technology_objects.annotate(post_count=Count("posttechnology")).order_by("-post_count")
 
-    if number_of > 0:
-        technology_objects = technology_objects[:number_of]
-
     if min_count > 0:
         technology_objects = technology_objects.filter(post_count__gt=min_count)
 
-    ids = _get_cached_ids(cache_key, technology_objects)
-    technology_objects = _ordered_queryset_for_ids(Technology, ids)
+    if should_cache:
+        technology_objects = technology_objects[:number_of]
+        ids = _get_cached_ids(cache_key, technology_objects)
+        technology_objects = _ordered_queryset_for_ids(Technology, ids)
+        count = len(ids)
+    else:
+        count = None
 
-    logger.info("Got most popular technologies", count=len(ids), duration=round(time.time() - start_time, 2))
+    logger.info(
+        "Got most popular technologies",
+        count=count,
+        cached=should_cache,
+        duration=round(time.time() - start_time, 2),
+    )
 
     return technology_objects
 
