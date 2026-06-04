@@ -349,15 +349,17 @@ class TechnologyCanonicalizationTests(TestCase):
 
         assert technologies == [canonical_technology]
 
-    def test_get_or_create_technology_by_name_scopes_case_correction_update(self):
+    def test_get_or_create_technology_by_name_preserves_existing_case_variant(self):
         technology = Technology.objects.create(name="django")
+        original_slug = technology.slug
 
         with patch.object(Technology, "save", autospec=True) as save_mock:
             result = get_or_create_technology_by_name("Django")
 
         assert result.id == technology.id
-        assert result.name == "Django"
-        save_mock.assert_called_once_with(result, update_fields=["name", "modified"])
+        assert result.name == "django"
+        assert result.slug == original_slug
+        save_mock.assert_not_called()
 
     def test_alias_table_can_map_custom_names_to_canonical_technology(self):
         technology = Technology.objects.create(name="Django REST Framework")

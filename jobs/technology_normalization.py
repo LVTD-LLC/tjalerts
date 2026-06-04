@@ -100,11 +100,10 @@ def get_or_create_technology_by_name(name):
 
     technology = Technology.objects.filter(name__iexact=name).order_by("created").first()
     if technology:
-        technology.name = name
-        technology.save(update_fields=["name", "modified"])
         return technology
 
-    return Technology.objects.create(name=name)
+    technology, _ = Technology.objects.get_or_create(name=name)
+    return technology
 
 
 def lock_technology_name_creation(name):
@@ -113,6 +112,7 @@ def lock_technology_name_creation(name):
 
     lock_key = normalize_technology_key(name)
     with connection.cursor() as cursor:
+        # Technology.name is not unique, so serialize missing-row creation by normalized key.
         cursor.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [lock_key])
 
 
@@ -135,9 +135,19 @@ def upsert_technology_alias(technology, alias, source="manual", notes=""):
     if not created and technology_alias.technology_id != technology.id:
         technology_alias.technology = technology
         technology_alias.alias = alias
+        technology_alias.normalized_alias = normalized_alias
         technology_alias.source = source
         technology_alias.notes = notes
-        technology_alias.save(update_fields=["technology", "alias", "source", "notes", "modified"])
+        technology_alias.save(
+            update_fields=[
+                "technology",
+                "alias",
+                "normalized_alias",
+                "source",
+                "notes",
+                "modified",
+            ]
+        )
 
     return technology_alias
 

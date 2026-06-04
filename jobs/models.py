@@ -1,6 +1,7 @@
 import uuid
 
 from autoslug import AutoSlugField
+from django.contrib.postgres.indexes import GinIndex
 from django.db import models
 from django.urls import reverse
 from model_utils.models import TimeStampedModel
@@ -138,6 +139,7 @@ class TechnologyAlias(BaseModel):
 
     class Meta:
         indexes = [
+            GinIndex(fields=["alias"], name="index_t_alias_alias_trgm", opclasses=["gin_trgm_ops"]),
             models.Index(fields=["technology"], name="index_t_alias_technology"),
         ]
 

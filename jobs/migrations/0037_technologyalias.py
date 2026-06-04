@@ -5,6 +5,8 @@ import uuid
 import django.db.models.deletion
 import django.utils.timezone
 import model_utils.fields
+from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.operations import TrigramExtension
 from django.db import migrations, models
 
 
@@ -15,6 +17,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        TrigramExtension(),
         migrations.CreateModel(
             name="TechnologyAlias",
             fields=[
@@ -48,6 +51,10 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
+        ),
+        migrations.AddIndex(
+            model_name="technologyalias",
+            index=GinIndex(fields=["alias"], name="index_t_alias_alias_trgm", opclasses=["gin_trgm_ops"]),
         ),
         migrations.AddIndex(
             model_name="technologyalias",
