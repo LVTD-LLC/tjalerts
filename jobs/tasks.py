@@ -35,7 +35,12 @@ from hn_jobs.utils import get_tjalerts_logger
 from users.models import CustomUser
 
 from jobs.choices import PostSource
-from jobs.enrichment import augment_cleaned_job_data_with_context, build_reader_context, extract_first_url
+from jobs.enrichment import (
+    augment_cleaned_job_data_with_context,
+    build_reader_context,
+    extract_first_url,
+    normalize_job_details,
+)
 from jobs.filters import PostFilter
 from jobs.models import Alert, AlertEmailSend, Company, Email, Post, Technology, Title
 from jobs.utils import (
@@ -84,6 +89,45 @@ def build_job_extraction_request(text):
         - names_of_the_contact_person - (string of comma separated values)
         - years_of_experience - (string of comma separated values, years of experience required to apply)
         - levels_of_experience - (choose from these options: Junior, Mid-level, Senior, Principal, C-Level. figure out from description, can't be empty)
+        - job_details - (object with the exact keys below. Use empty strings or empty arrays when the post does not contain the field. Do not infer facts that are not present.)
+          - responsibilities: array of primary responsibilities
+          - requirements: array of candidate requirements
+          - required_technologies: array of required technologies, tools, languages, frameworks, platforms, or systems
+          - nice_to_have_technologies: array of optional or preferred technologies
+          - remote_policy: string with remote, hybrid, onsite, timezone, relocation, or office details
+          - remote_scope: string, one of worldwide, country-limited, region-limited, timezone-limited, hybrid, onsite, or unclear
+          - timezone_requirements: array of timezones or required overlap windows
+          - travel_requirements: string
+          - relocation_support: string
+          - visa_sponsorship: string
+          - work_authorization: string
+          - security_clearance: string
+          - employment_type: string, such as full-time, part-time, contractor, internship, freelance, or unclear
+          - salary_period: string, such as yearly, monthly, hourly, contract, or unclear
+          - salary_location_basis: string
+          - compensation_notes: string for compensation details that do not fit salary min/max/currency
+          - equity: string
+          - bonus: string
+          - benefits: array of benefits or perks
+          - application_instructions: string
+          - application_email_subject: string
+          - portfolio_required: string, such as required, preferred, not required, or unclear
+          - github_required: string, such as required, preferred, not required, or unclear
+          - cover_letter_required: string, such as required, preferred, not required, or unclear
+          - application_deadline: string
+          - direct_apply: string, such as direct, ats, email, external, or unclear
+          - industry: string
+          - product_or_service: string
+          - company_hq: string
+          - company_size: string
+          - company_stage: string
+          - company_funding: string
+          - open_source: string
+          - company_mission: string
+          - job_status: string, such as open, closed, expired, unclear, or another visible status
+          - canonical_job_url: string URL
+          - duplicate_signals: array of URLs or visible signals that suggest this posting appears elsewhere
+          - extraction_confidence: string, one of high, medium, or low
 
         Don't add any text and only respond with a JSON Object.
 
@@ -187,6 +231,7 @@ def create_post_from_cleaned_data(
     job_posting_context=None,
     job_posting_reader_content="",
 ):
+    job_details = normalize_job_details(cleaned_data.get("job_details", {}))
     technology_names = split_comma_separated_values(cleaned_data["technologies_used"])
     technologies = []
     for name in technology_names:
@@ -218,6 +263,7 @@ def create_post_from_cleaned_data(
         original_text=cleaned_data["original_text"],
         hn_username=hn_username,
         description=cleaned_data["description"],
+        job_details=job_details,
         company_homepage_context=company_homepage_context or {},
         company_homepage_reader_content=company_homepage_reader_content,
         job_posting_context=job_posting_context or {},
@@ -259,6 +305,7 @@ def create_post_from_cleaned_data(
             "has_email": bool(cleaned_data["emails"]),
             "has_application_link": bool(cleaned_data["company_job_application_link"]),
             "has_salary": bool(post.min_salary or post.max_salary),
+            "has_job_details": any(bool(value) for value in job_details.values()),
             "is_remote": post.is_remote,
         },
         groups=company_group(company_obj),
@@ -543,6 +590,8 @@ def build_remote_ok_extraction_text(remote_ok_job):
         f"Tags: {tags}" if tags else "",
         f"Salary min: {remote_ok_job.get('salary_min')}" if remote_ok_job.get("salary_min") else "",
         f"Salary max: {remote_ok_job.get('salary_max')}" if remote_ok_job.get("salary_max") else "",
+        f"Application URL: {remote_ok_job.get('apply_url')}" if remote_ok_job.get("apply_url") else "",
+        f"Canonical URL: {remote_ok_job.get('url')}" if remote_ok_job.get("url") else "",
         f"Description: {description}" if description else "",
     ]
 
@@ -596,6 +645,7 @@ def apply_remote_ok_structured_defaults(remote_ok_job, extracted_data):
     compensation_summary = build_remote_ok_compensation_summary(remote_ok_job)
     salary_min = coerce_salary(remote_ok_job.get("salary_min"))
     salary_max = coerce_salary(remote_ok_job.get("salary_max"))
+    job_details = normalize_job_details(extracted_data.get("job_details", {}))
 
     extracted_data["company_name"] = extracted_data.get("company_name") or company
     extracted_data["job_titles"] = extracted_data.get("job_titles") or position
@@ -609,6 +659,14 @@ def apply_remote_ok_structured_defaults(remote_ok_job, extracted_data):
         extracted_data["compensation_summary"] = compensation_summary
         extracted_data["min_salary"] = salary_min
         extracted_data["max_salary"] = salary_max
+        job_details["compensation_notes"] = job_details["compensation_notes"] or compensation_summary
+        job_details["salary_period"] = job_details["salary_period"] or "yearly"
+
+    job_details["canonical_job_url"] = job_details["canonical_job_url"] or application_link
+    job_details["remote_policy"] = job_details["remote_policy"] or location or "Remote"
+    job_details["remote_scope"] = job_details["remote_scope"] or "unclear"
+    job_details["direct_apply"] = job_details["direct_apply"] or "external"
+    extracted_data["job_details"] = job_details
 
     return extracted_data
 
@@ -801,6 +859,7 @@ def build_we_work_remotely_extraction_text(we_work_remotely_job):
         "Work arrangement: Remote",
         f"Location: {region}" if region else "",
         f"Category: {category}" if category else "",
+        f"Canonical URL: {we_work_remotely_job.get('url')}" if we_work_remotely_job.get("url") else "",
         f"Description: {description}" if description else "",
     ]
 
@@ -832,6 +891,7 @@ def apply_we_work_remotely_structured_defaults(we_work_remotely_job, extracted_d
     description = we_work_remotely_job.get("description_text") or clean_we_work_remotely_description(
         we_work_remotely_job.get("description")
     )
+    job_details = normalize_job_details(extracted_data.get("job_details", {}))
 
     extracted_data["company_name"] = extracted_data.get("company_name") or company
     extracted_data["job_titles"] = extracted_data.get("job_titles") or position
@@ -839,6 +899,13 @@ def apply_we_work_remotely_structured_defaults(we_work_remotely_job, extracted_d
     extracted_data["is_remote"] = True
     extracted_data["description"] = extracted_data.get("description") or description
     extracted_data["company_job_application_link"] = extracted_data.get("company_job_application_link") or source_url
+    job_details["canonical_job_url"] = job_details["canonical_job_url"] or source_url
+    job_details["remote_policy"] = job_details["remote_policy"] or region or "Remote"
+    job_details["remote_scope"] = job_details["remote_scope"] or (
+        "worldwide" if region == "Anywhere in the World" else "unclear"
+    )
+    job_details["direct_apply"] = job_details["direct_apply"] or "external"
+    extracted_data["job_details"] = job_details
 
     return extracted_data
 
@@ -1054,7 +1121,6 @@ def create_update_min_and_max_salary_jobs():
 
     count = 0
     for job in jobs:
-
         if job.compensation_summary == "" or not has_number(job.compensation_summary):
             job.min_salary = 0
             job.max_salary = 0

@@ -32,6 +32,7 @@ class Post(TimeStampedModel):
     original_text = models.TextField(blank=True)
     titles = models.ManyToManyField("Title", related_name="post", blank=True, through="PostTitle")
     description = models.TextField(blank=True)
+    job_details = models.JSONField(default=dict, blank=True)
     company_homepage_context = models.JSONField(default=dict, blank=True)
     company_homepage_reader_content = models.TextField(blank=True, default="")
     job_posting_context = models.JSONField(default=dict, blank=True)

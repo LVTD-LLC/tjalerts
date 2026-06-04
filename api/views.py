@@ -125,6 +125,7 @@ def get_jobs(
             "company_name": post.company.name,
             "company_url": post.company.company_homepage_link,
             "description": post.description,
+            "job_details": post.job_details,
             "compensation_summary": post.compensation_summary,
             "min_salary": post.min_salary,
             "max_salary": post.max_salary,
@@ -264,7 +265,6 @@ def create_blog_post(request: HttpRequest, payload: BlogPostCreateSchema):
         raise HttpError(404, "Author user 'rasulkireev' not found.")
 
     try:
-
         # Check for existing slug
         if BlogPost.objects.filter(slug=payload.slug).exists():
             raise HttpError(400, "Blog post with this slug already exists")
