@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.db import migrations
 from django.utils import timezone
 
@@ -16,7 +18,7 @@ def create_remote_ok_import_schedule(apps, schema_editor):
             "hook": "jobs.hooks.print_result",
             "schedule_type": "H",
             "repeats": -1,
-            "next_run": timezone.now(),
+            "next_run": timezone.now() + timedelta(hours=1),
         },
     )
 

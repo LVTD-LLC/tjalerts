@@ -385,7 +385,6 @@ Q_CLUSTER = {
     "retry": 4800,  # 80 minutes
     "workers": 4,
     "max_attempts": 2,
-    "catch_up": False,  # Avoid replaying every missed periodic import after worker downtime.
     "redis": env("REDIS_URL"),
     "error_reporter": {},
 }
