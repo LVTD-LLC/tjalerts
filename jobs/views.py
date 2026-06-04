@@ -39,10 +39,12 @@ from jobs.tasks import (
 )
 from jobs.utils import (
     build_intent_alert_suggestions,
+    day_count_label,
     default_alert_name,
     generate_job_search_keywords,
     generate_job_search_title,
     is_email_confirmed,
+    parse_positive_day_count,
 )
 from utils.constants import HIRABLE_TECH_LIST_SLUGS
 
@@ -81,6 +83,8 @@ def build_serializable_filter_params(query_params):
         values = [value for value in query_params.getlist(key) if value not in ["", "unknown"]]
         if key == "salary_floor":
             values = [value for value in values if parse_positive_salary_floor(value) is not None]
+        if key == "added_within_days":
+            values = [value for value in values if parse_positive_day_count(value) is not None]
         if not values:
             continue
 
@@ -149,6 +153,17 @@ def active_filter_summary(query_params):
             }
         )
 
+    added_within_days = parse_positive_day_count(query_params.get("added_within_days"))
+    if added_within_days is not None:
+        filters.append(
+            {
+                "label": "Added",
+                "param": "added_within_days",
+                "value": query_params.get("added_within_days"),
+                "display": f"Last {day_count_label(added_within_days)}",
+            }
+        )
+
     technology_ids = valid_uuid_values(query_params.getlist("technologies"))
     if technology_ids:
         technologies_by_id = {
@@ -200,6 +215,13 @@ class PostListView(FilterView):
 
         if "salary_floor" in query_params and parse_positive_salary_floor(query_params.get("salary_floor")) is None:
             del query_params["salary_floor"]
+            needs_redirect = True
+
+        if (
+            "added_within_days" in query_params
+            and parse_positive_day_count(query_params.get("added_within_days")) is None
+        ):
+            del query_params["added_within_days"]
             needs_redirect = True
 
         if needs_redirect:

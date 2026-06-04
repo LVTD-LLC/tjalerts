@@ -23,7 +23,7 @@ from hn_jobs.utils import get_tjalerts_logger
 from .choices import PostSource
 from .models import Post, TechnologyMapping
 from .queries import get_most_popular_technologies, get_most_popular_titles
-from .utils import get_embedding
+from .utils import get_embedding, parse_positive_day_count
 
 logger = get_tjalerts_logger(__name__)
 
@@ -110,6 +110,7 @@ class PostFilter(FilterSet):
     has_compensation = ChoiceFilter(choices=HAS_FIELD_CHOICES, method="filter_has_compensation")
     has_contact = ChoiceFilter(choices=HAS_FIELD_CHOICES, method="filter_has_contact")
     posted_within = ChoiceFilter(choices=POSTED_WITHIN_CHOICES, method="filter_posted_within")
+    added_within_days = NumberFilter(method="filter_added_within_days")
     salary_floor = NumberFilter(method="filter_salary_floor")
     source = ChoiceFilter(choices=PostSource.choices)
     work_mode = ChoiceFilter(choices=WORK_MODE_CHOICES, method="filter_work_mode")
@@ -171,6 +172,13 @@ class PostFilter(FilterSet):
             return queryset
 
         return queryset.filter(submitted_datetime__gte=timezone.now() - timedelta(days=days))
+
+    def filter_added_within_days(self, queryset, name, value):
+        days = parse_positive_day_count(value)
+        if days is None:
+            return queryset
+
+        return queryset.filter(created__gte=timezone.now() - timedelta(days=days))
 
     def filter_salary_floor(self, queryset, name, value):
         if value in EMPTY_VALUES or value <= 0:

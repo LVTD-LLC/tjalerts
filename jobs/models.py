@@ -87,6 +87,7 @@ class Post(TimeStampedModel):
             models.Index(fields=["who_is_hiring_comment_id"], name="index_who_is_hiring_comment_id"),
             models.Index(fields=["source", "source_external_id"], name="index_post_source_ext_id"),
             models.Index(fields=["submitted_datetime"], name="index_post_submitted_datetime"),
+            models.Index(fields=["created"], name="index_post_created"),
         ]
         constraints = [
             models.UniqueConstraint(
