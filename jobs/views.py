@@ -31,6 +31,7 @@ from jobs.tasks import (
     find_bad_submitted_dates,
     find_users_to_alert,
     import_remote_ok_jobs,
+    import_we_work_remotely_jobs,
     send_confirmation_email,
 )
 from jobs.utils import (
@@ -230,6 +231,15 @@ def create_backfill_vector_data_jobs_view(request, rebuild=False):
 def import_remote_ok_jobs_view(request):
     async_task(import_remote_ok_jobs, hook="jobs.hooks.print_result", group="Import Remote OK Jobs")
     capture_request_event(request, "admin task queued", properties={"task": "import_remote_ok_jobs"})
+
+    return redirect("admin-panel")
+
+
+@staff_member_required(login_url="account_login")
+@require_POST
+def import_we_work_remotely_jobs_view(request):
+    async_task(import_we_work_remotely_jobs, hook="jobs.hooks.print_result", group="Import We Work Remotely Jobs")
+    capture_request_event(request, "admin task queued", properties={"task": "import_we_work_remotely_jobs"})
 
     return redirect("admin-panel")
 
