@@ -1,6 +1,7 @@
 from functools import lru_cache
 
 from django.conf import settings
+from django.test.signals import setting_changed
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, Embedder
 from pydantic_ai.embeddings import EmbeddingSettings
@@ -12,6 +13,14 @@ from pydantic_ai.providers.openrouter import OpenRouterProvider
 
 
 AIRequestError = AgentRunError
+AI_CACHE_SETTINGS = {
+    "AI_EMBEDDING_DIMENSIONS",
+    "AI_RESULT_RETRIES",
+    "OPENROUTER_API_KEY",
+    "OPENROUTER_APP_TITLE",
+    "OPENROUTER_APP_URL",
+    "OPENROUTER_BASE_URL",
+}
 
 
 class AIResult(BaseModel):
@@ -146,16 +155,14 @@ class PageContextResult(BaseModel):
 
 
 def run_structured_ai_task(model_name, system_prompt, user_prompt, output_type):
-    agent = Agent(
-        get_openrouter_model(
-            normalize_openrouter_model_name(model_name),
-            settings.OPENROUTER_API_KEY,
-            settings.OPENROUTER_APP_URL,
-            settings.OPENROUTER_APP_TITLE,
-        ),
-        instructions=system_prompt,
-        output_type=output_type,
-        retries=settings.AI_RESULT_RETRIES,
+    agent = get_structured_agent(
+        normalize_openrouter_model_name(model_name),
+        system_prompt,
+        output_type,
+        settings.AI_RESULT_RETRIES,
+        settings.OPENROUTER_API_KEY,
+        settings.OPENROUTER_APP_URL,
+        settings.OPENROUTER_APP_TITLE,
     )
     result = agent.run_sync(user_prompt)
     return AIResult(output=result.output, usage=result.usage)
@@ -176,13 +183,27 @@ def embed_query(text, model_name=None):
 
 
 def normalize_openrouter_model_name(model_name):
+    """Add an OpenRouter provider prefix when a bare OpenAI model name is configured."""
     if not model_name or "/" in model_name or model_name.startswith("~"):
         return model_name
 
     if model_name.startswith(("gpt-", "o1", "o3", "o4", "text-embedding", "chatgpt", "codex")):
         return f"openai/{model_name}"
 
-    raise ValueError(f"OpenRouter model names must include a provider prefix: {model_name}")
+    raise ValueError(
+        f"Model name {model_name!r} has no provider prefix. "
+        "Only bare OpenAI model names are auto-prefixed; use provider/name for other OpenRouter models."
+    )
+
+
+@lru_cache(maxsize=64)
+def get_structured_agent(model_name, system_prompt, output_type, retries, api_key, app_url, app_title):
+    return Agent(
+        get_openrouter_model(model_name, api_key, app_url, app_title),
+        instructions=system_prompt,
+        output_type=output_type,
+        retries=retries,
+    )
 
 
 @lru_cache(maxsize=32)
@@ -238,3 +259,13 @@ def ai_usage_properties(usage):
         "completion_tokens": completion_tokens,
         "total_tokens": total_tokens,
     }
+
+
+def clear_ai_caches(*, setting=None, **kwargs):
+    if setting in AI_CACHE_SETTINGS:
+        get_structured_agent.cache_clear()
+        get_openrouter_model.cache_clear()
+        get_openrouter_embedder.cache_clear()
+
+
+setting_changed.connect(clear_ai_caches)
