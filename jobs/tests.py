@@ -950,6 +950,8 @@ class ReaderContextTests(SimpleTestCase):
                 "benefits": None,
                 "portfolio_required": True,
                 "canonical_job_url": "example.com/jobs/backend,",
+                "application_instructions": {"text": "Apply through the site"},
+                "work_authorization": "N/A",
                 "unknown_key": "ignored",
             }
         )
@@ -959,6 +961,8 @@ class ReaderContextTests(SimpleTestCase):
         assert details["benefits"] == []
         assert details["portfolio_required"] == "Yes"
         assert details["canonical_job_url"] == "https://example.com/jobs/backend"
+        assert details["application_instructions"] == ""
+        assert details["work_authorization"] == ""
         assert "unknown_key" not in details
 
     @override_settings(

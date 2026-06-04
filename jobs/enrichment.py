@@ -18,7 +18,7 @@ client = OpenAI()
 
 URL_PATTERN = re.compile(r"""(?:https?://|www\.)[^\s<>"']+""", re.IGNORECASE)
 TRAILING_URL_PUNCTUATION = ".,;:!?)\\]}'\""
-UNKNOWN_DETAIL_VALUES = {"Unknown", "unknown", "empty", "not specified", "N/A", "null", "None", None}
+UNKNOWN_DETAIL_VALUES = {"unknown", "empty", "not specified", "n/a", "null", "none"}
 
 JOB_DETAIL_LIST_KEYS = {
     "responsibilities",
@@ -520,10 +520,14 @@ def normalize_job_detail_value(key, value):
     if isinstance(value, bool):
         return "Yes" if value else "No"
 
-    if value in UNKNOWN_DETAIL_VALUES:
+    if value is None or isinstance(value, dict):
         return ""
 
-    return str(value or "").strip()
+    value = str(value or "").strip()
+    if value.lower() in UNKNOWN_DETAIL_VALUES:
+        return ""
+
+    return value
 
 
 def merge_context_into_job_details(job_details, context, key_map):
