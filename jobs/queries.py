@@ -13,6 +13,7 @@ from users.models import Subscriber
 logger = get_tjalerts_logger(__name__)
 
 CACHE_TTL_SECONDS = 60 * 5
+LATEST_SUBMISSIONS_CACHE_TTL_SECONDS = 60
 
 
 def _cache_key(name: str, *parts) -> str:
@@ -57,11 +58,7 @@ def get_latest_submissions(number_of: int, for_homepage: bool = False):
         )
         return posts
 
-    posts = (
-        Post.objects.select_related("company")
-        .prefetch_related("titles", "technologies")
-        .order_by("-submitted_datetime")
-    )
+    posts = Post.objects.order_by("-submitted_datetime")
 
     if for_homepage:
         excluded_tech = Technology.objects.filter(name__in=EXCLUDED_TECHNOLOGIES)
@@ -79,14 +76,23 @@ def get_latest_submissions(number_of: int, for_homepage: bool = False):
 
     if should_cache:
         post_ids = list(posts.values_list("id", flat=True)[:number_of])
-        cache.set(cache_key, post_ids, CACHE_TTL_SECONDS)
+        cache.set(cache_key, post_ids, LATEST_SUBMISSIONS_CACHE_TTL_SECONDS)
         posts = (
             _ordered_queryset_for_ids(Post, post_ids)
             .select_related("company")
             .prefetch_related("titles", "technologies")
         )
+        count = len(post_ids)
+    else:
+        posts = posts.select_related("company").prefetch_related("titles", "technologies")
+        count = None
 
-    logger.info("Got latest submissions", count=len(posts), duration=round(time.time() - start_time, 2))
+    logger.info(
+        "Got latest submissions",
+        count=count,
+        cached=False,
+        duration=round(time.time() - start_time, 2),
+    )
 
     return posts
 
