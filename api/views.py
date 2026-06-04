@@ -32,6 +32,8 @@ logger = get_tjalerts_logger(__name__)
 
 api = NinjaAPI()
 
+SOURCE_QUERY_DESCRIPTION = "Filter jobs by source. Valid values: Hacker News, Remote OK, We Work Remotely."
+
 
 @api.get("/companies", response=List[ReadCompany])
 def companies(request):
@@ -81,7 +83,7 @@ def get_emails(
 def get_jobs(
     request,
     technologies=Query(None),
-    source: Optional[str] = Query(None),
+    source: Optional[str] = Query(None, description=SOURCE_QUERY_DESCRIPTION),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
