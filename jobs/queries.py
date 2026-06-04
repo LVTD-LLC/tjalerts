@@ -40,11 +40,12 @@ def _post_queryset_for_ids(post_ids):
 
 def _get_cached_ids(cache_key, queryset, *, limit: int):
     ids = cache.get(cache_key)
+    cache_hit = ids is not None
     if ids is None:
         queryset = queryset[:limit]
         ids = list(queryset.values_list("id", flat=True))
         cache.set(cache_key, ids, CACHE_TTL_SECONDS)
-    return ids
+    return ids, cache_hit
 
 
 def get_latest_submissions(number_of: int, for_homepage: bool = False):
@@ -111,15 +112,14 @@ def get_most_popular_titles(number_of: int = 0, min_count: int = 0):
         title_objects = title_objects.filter(post_count__gt=min_count)
 
     if should_cache:
-        ids = _get_cached_ids(cache_key, title_objects, limit=number_of)
+        ids, cache_hit = _get_cached_ids(cache_key, title_objects, limit=number_of)
         title_objects = _ordered_queryset_for_ids(Title, ids)
         count = len(ids)
     else:
+        cache_hit = False
         count = None
 
-    logger.info(
-        "Got most popular titles", count=count, cached=should_cache, duration=round(time.time() - start_time, 2)
-    )
+    logger.info("Got most popular titles", count=count, cached=cache_hit, duration=round(time.time() - start_time, 2))
 
     return title_objects
 
@@ -142,16 +142,17 @@ def get_most_popular_technologies(number_of: int = 0, min_count: int = 0, order_
         technology_objects = technology_objects.filter(post_count__gt=min_count)
 
     if should_cache:
-        ids = _get_cached_ids(cache_key, technology_objects, limit=number_of)
+        ids, cache_hit = _get_cached_ids(cache_key, technology_objects, limit=number_of)
         technology_objects = _ordered_queryset_for_ids(Technology, ids)
         count = len(ids)
     else:
+        cache_hit = False
         count = None
 
     logger.info(
         "Got most popular technologies",
         count=count,
-        cached=should_cache,
+        cached=cache_hit,
         duration=round(time.time() - start_time, 2),
     )
 
