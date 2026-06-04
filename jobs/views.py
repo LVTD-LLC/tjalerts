@@ -1,9 +1,9 @@
-import json
 from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
@@ -14,7 +14,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.views.decorators.http import require_POST
-from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
+from django.views.generic import CreateView, DetailView, FormView, ListView, TemplateView, UpdateView
 from django_filters.views import FilterView
 from django_q.tasks import async_task
 
@@ -22,7 +22,7 @@ from hn_jobs.posthog_events import capture_event, capture_request_event, distinc
 from hn_jobs.utils import add_users_context, build_absolute_site_url, get_tjalerts_logger, validate_technology_selected
 from jobs.constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
 from jobs.filters import PostFilter
-from jobs.forms import ConfirmAlertForm, CreateAlertForm, CreateCustomAlertForm
+from jobs.forms import ConfirmAlertForm, CreateAlertForm, CreateCustomAlertForm, CreateIntentAlertForm
 from jobs.models import Alert, AlertEmailSend, Company, Post, Technology, TechnologyMapping, Title
 from jobs.tasks import (
     add_email_to_buttondown,
@@ -34,11 +34,11 @@ from jobs.tasks import (
     send_confirmation_email,
 )
 from jobs.utils import (
+    build_intent_alert_suggestions,
     default_alert_name,
     generate_job_search_keywords,
     generate_job_search_title,
     is_email_confirmed,
-    remove_params_for_filters,
 )
 from utils.constants import HIRABLE_TECH_LIST_SLUGS
 
@@ -91,11 +91,6 @@ class PostListView(FilterView):
         if user.is_authenticated:
             add_users_context(context, user, self)
 
-        params = remove_params_for_filters(self.request.GET.copy().dict())
-        params["technologies"] = self.request.GET.getlist("technologies")
-
-        context["CustomAlertForm"] = CreateCustomAlertForm
-        context["custom_alert_filters"] = json.dumps(params)
         context["title"] = title
         context["date"] = date
         context["keywords"] = ", ".join(map(str, keywords))
@@ -284,6 +279,96 @@ class CreateCustomAlertView(SuccessMessageMixin, CreateView):
         )
 
         return response
+
+
+class CreateIntentAlertsView(LoginRequiredMixin, FormView):
+    form_class = CreateIntentAlertForm
+    login_url = "account_login"
+    success_url = reverse_lazy("settings")
+
+    def get(self, request, *args, **kwargs):
+        return redirect("home")
+
+    def form_invalid(self, form):
+        messages.add_message(
+            self.request,
+            messages.WARNING,
+            "Describe the kind of role you want in a little more detail.",
+        )
+        return redirect("home")
+
+    def form_valid(self, form):
+        user = self.request.user
+        if not is_email_confirmed(user):
+            messages.add_message(self.request, messages.WARNING, "Confirm your email before creating alerts.")
+            capture_request_event(
+                self.request,
+                "intent alerts creation blocked",
+                properties={"reason": "email_unverified", "authenticated": True},
+            )
+            return redirect("settings")
+
+        suggestions = build_intent_alert_suggestions(form.cleaned_data["intent"])
+        created_alerts = []
+        refreshed_alerts = []
+
+        for suggestion in suggestions:
+            existing_alert = Alert.objects.filter(email=user.email, filter=suggestion["filter"]).first()
+            if existing_alert:
+                changed = False
+                if existing_alert.user_id != user.id:
+                    existing_alert.user = user
+                    changed = True
+                if not existing_alert.confirmed:
+                    existing_alert.confirmed = True
+                    changed = True
+                if existing_alert.unsubscribed:
+                    existing_alert.unsubscribed = False
+                    changed = True
+                if not existing_alert.name:
+                    existing_alert.name = suggestion["name"]
+                    changed = True
+
+                if changed:
+                    existing_alert.save()
+                refreshed_alerts.append(existing_alert)
+                continue
+
+            created_alerts.append(
+                Alert.objects.create(
+                    user=user,
+                    email=user.email,
+                    confirmed=True,
+                    name=suggestion["name"],
+                    filter=suggestion["filter"],
+                )
+            )
+
+        if created_alerts:
+            alert_label = "alert" if len(created_alerts) == 1 else "alerts"
+            messages.add_message(
+                self.request,
+                messages.SUCCESS,
+                f"Created {len(created_alerts)} {alert_label} from your job brief.",
+            )
+            async_task(find_users_to_alert, group="Find Users to Alert")
+        elif refreshed_alerts:
+            messages.add_message(self.request, messages.SUCCESS, "Your matching alerts are active.")
+        else:
+            messages.add_message(self.request, messages.WARNING, "We could not create alerts from that brief.")
+
+        capture_request_event(
+            self.request,
+            "intent alerts created",
+            properties={
+                "created_count": len(created_alerts),
+                "refreshed_count": len(refreshed_alerts),
+                "suggestion_count": len(suggestions),
+                "authenticated": True,
+            },
+        )
+
+        return super().form_valid(form)
 
 
 class AlertCreateView(SuccessMessageMixin, CreateView):

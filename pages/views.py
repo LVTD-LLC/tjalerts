@@ -6,7 +6,7 @@ from django_q.tasks import async_task
 
 from hn_jobs.posthog_events import capture_request_event
 from hn_jobs.utils import add_users_context, get_tjalerts_logger
-from jobs.forms import CreateAlertForm, GenericForm
+from jobs.forms import CreateAlertForm, CreateIntentAlertForm, GenericForm
 from jobs.queries import get_latest_submissions, get_most_popular_technologies, get_most_popular_titles
 from jobs.tasks import get_hn_pages_to_analyze
 
@@ -25,7 +25,7 @@ class HomeView(TemplateView):
 
         context["latest_job_submissions"] = get_latest_submissions(9, for_homepage=True)
         context["popular_technologies"] = get_most_popular_technologies(min_count=2)
-        context["create_alert_form"] = CreateAlertForm
+        context["create_intent_alert_form"] = CreateIntentAlertForm
 
         if user.is_authenticated:
             add_users_context(context, user, self)

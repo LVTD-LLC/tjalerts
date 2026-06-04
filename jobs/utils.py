@@ -295,18 +295,106 @@ def default_alert_name(alert, idx):
         return alert.name if alert.name else f"Alert #{idx+1}"
 
 
-def remove_params_for_filters(params):
-    try:
-        del params["o"]
-    except KeyError:
-        pass
+def build_intent_alert_suggestions(intent, max_alerts=3):
+    normalized_intent = normalize_alert_intent(intent)
+    if not normalized_intent:
+        return []
 
-    try:
-        del params["page"]
-    except KeyError:
-        pass
+    base_filter = {"vector": normalized_intent}
+    if re.search(r"\b(remote|distributed|work from anywhere|worldwide)\b", normalized_intent, re.IGNORECASE):
+        base_filter["is_remote"] = "True"
+    elif re.search(r"\b(on-site|onsite|in office|office-based)\b", normalized_intent, re.IGNORECASE):
+        base_filter["is_onsite"] = "True"
 
-    return params
+    matched_titles = find_named_matches(normalized_intent, Title.objects.exclude(name="").order_by("name"))
+    matched_technologies = find_named_matches(normalized_intent, Technology.objects.exclude(name="").order_by("name"))
+
+    specific_suggestions = []
+    seen_filters = set()
+
+    def add_specific(name, alert_filter):
+        filter_key = repr(sorted(alert_filter.items()))
+        if filter_key in seen_filters:
+            return
+
+        seen_filters.add(filter_key)
+        specific_suggestions.append(
+            {
+                "name": truncate_alert_name(name),
+                "filter": alert_filter,
+            }
+        )
+
+    remote_prefix = "Remote " if base_filter.get("is_remote") == "True" else ""
+
+    for title in matched_titles[:2]:
+        for technology in matched_technologies[:2]:
+            add_specific(
+                f"{remote_prefix}{title.name} with {technology.name}",
+                {
+                    **base_filter,
+                    "titles": [str(title.id)],
+                    "technologies": [str(technology.id)],
+                },
+            )
+
+    for title in matched_titles[:2]:
+        add_specific(
+            f"{remote_prefix}{title.name} roles",
+            {
+                **base_filter,
+                "titles": [str(title.id)],
+            },
+        )
+
+    for technology in matched_technologies[:2]:
+        add_specific(
+            f"{remote_prefix}{technology.name} roles",
+            {
+                **base_filter,
+                "technologies": [str(technology.id)],
+            },
+        )
+
+    broad_suggestion = {
+        "name": "Job brief match",
+        "filter": base_filter,
+    }
+
+    if max_alerts <= 1:
+        return [broad_suggestion]
+
+    return specific_suggestions[: max_alerts - 1] + [broad_suggestion]
+
+
+def normalize_alert_intent(intent):
+    return re.sub(r"\s+", " ", (intent or "").strip())
+
+
+def find_named_matches(intent, queryset):
+    matches = []
+    for obj in queryset:
+        if name_appears_in_intent(intent, obj.name):
+            matches.append(obj)
+
+    return sorted(matches, key=lambda match: len(match.name), reverse=True)
+
+
+def name_appears_in_intent(intent, name):
+    name = (name or "").strip()
+    if len(name) < 2:
+        return False
+
+    pattern = rf"(?<![A-Za-z0-9]){re.escape(name)}(?![A-Za-z0-9])"
+    return bool(re.search(pattern, intent, re.IGNORECASE))
+
+
+def truncate_alert_name(name, max_length=100):
+    clean_name = normalize_alert_intent(name)
+    if len(clean_name) <= max_length:
+        return clean_name
+
+    return f"{clean_name[: max_length - 3].rstrip()}..."
 
 
 def is_email_confirmed(user):

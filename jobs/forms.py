@@ -28,6 +28,18 @@ class CreateCustomAlertForm(ModelForm):
         ]
 
 
+class CreateIntentAlertForm(forms.Form):
+    intent = forms.CharField(
+        min_length=20,
+        max_length=1500,
+        widget=forms.Textarea,
+        error_messages={
+            "min_length": "Describe the kind of role you want in a little more detail.",
+            "required": "Describe the kind of role you want.",
+        },
+    )
+
+
 class ConfirmAlertForm(ModelForm):
     class Meta:
         model = Alert
