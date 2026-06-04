@@ -511,7 +511,7 @@ def normalize_job_details(job_details):
 
 def normalize_job_detail_value(key, value):
     if key in JOB_DETAIL_LIST_KEYS:
-        return split_context_values(value)
+        return normalize_job_detail_list_value(value)
 
     if isinstance(value, list):
         return ", ".join(str(item).strip() for item in value if str(item).strip())
@@ -527,6 +527,10 @@ def normalize_job_detail_value(key, value):
         return ""
 
     return value
+
+
+def normalize_job_detail_list_value(value):
+    return [item for item in split_context_values(value) if item.lower() not in UNKNOWN_DETAIL_VALUES]
 
 
 def merge_context_into_job_details(job_details, context, key_map):

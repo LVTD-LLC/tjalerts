@@ -946,6 +946,7 @@ class ReaderContextTests(SimpleTestCase):
         details = normalize_job_details(
             {
                 "responsibilities": "Build APIs, Review code",
+                "requirements": "Unknown",
                 "required_technologies": ["Python", "Django"],
                 "benefits": ["Health insurance", "Unknown", {"text": "bad"}],
                 "portfolio_required": True,
@@ -957,6 +958,7 @@ class ReaderContextTests(SimpleTestCase):
         )
 
         assert details["responsibilities"] == ["Build APIs", "Review code"]
+        assert details["requirements"] == []
         assert details["required_technologies"] == ["Python", "Django"]
         assert details["benefits"] == ["Health insurance"]
         assert details["portfolio_required"] == "Yes"
