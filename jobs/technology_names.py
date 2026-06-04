@@ -203,14 +203,18 @@ VERSIONABLE_TECHNOLOGY_KEYS = {
     "django",
     "dotnet",
     "java",
+    "nextjs",
     "node",
     "nodejs",
+    "nuxtjs",
     "php",
     "python",
     "rails",
     "react",
+    "reactjs",
     "ruby",
     "vue",
+    "vuejs",
 }
 
 SPECIAL_KEY_REPLACEMENTS = (

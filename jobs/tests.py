@@ -330,6 +330,18 @@ class TechnologyNameNormalizationTests(SimpleTestCase):
         assert normalize_technology_key("aspnet") == "aspnet"
         assert extract_technology_names("aspnet, asp.net, asp net") == ["ASP.NET"]
 
+    def test_js_framework_versions_normalize_to_canonical_names(self):
+        assert normalize_technology_key("React.js 18") == "reactjs"
+        assert normalize_technology_key("Vue.js 3") == "vuejs"
+        assert normalize_technology_key("Next.js 14") == "nextjs"
+        assert normalize_technology_key("Nuxt.js 3") == "nuxtjs"
+        assert extract_technology_names("React.js 18, Vue.js 3, Next.js 14, Nuxt.js 3") == [
+            "React",
+            "Vue.js",
+            "Next.js",
+            "Nuxt.js",
+        ]
+
 
 class TechnologyCanonicalizationTests(TestCase):
     def test_get_or_create_canonical_technologies_deduplicates_aliases(self):
