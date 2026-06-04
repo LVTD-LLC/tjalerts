@@ -162,7 +162,7 @@
           <div class="flex justify-between gap-4">
             <dt class="text-zinc-500">Source</dt>
             <dd class="text-right font-medium text-zinc-900">
-              {% if object.source_url %}
+              {% if object.source != "Hacker News" and object.source_url %}
               <a href="{{ object.source_url }}" target="_blank" class="hover:text-zinc-700">{{ object.source }}</a>
               {% else %}
               {{ object.source }}

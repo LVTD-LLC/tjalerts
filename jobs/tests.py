@@ -1,5 +1,6 @@
 from unittest.mock import Mock, patch
 
+import httpx
 from django.db import IntegrityError
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.utils import timezone
@@ -23,6 +24,7 @@ from jobs.tasks import (
     clean_remote_ok_string,
     create_remote_ok_post,
     create_we_work_remotely_post,
+    fetch_we_work_remotely_jobs,
     get_remote_ok_submitted_datetime,
     import_remote_ok_jobs,
     import_we_work_remotely_jobs,
@@ -164,6 +166,49 @@ class WeWorkRemotelyParsingTests(SimpleTestCase):
         assert jobs[0]["category"] == "Full-Stack Programming"
         assert jobs[0]["description_text"] == "Build APIs & backend systems."
         assert jobs[0]["feed_url"] == "https://weworkremotely.com/categories/remote-programming-jobs.rss"
+
+    @patch("jobs.tasks.httpx.get")
+    def test_fetch_we_work_remotely_jobs_keeps_successful_feed_when_another_feed_fails(self, mock_get):
+        feed_xml = """
+        <rss version="2.0">
+          <channel>
+            <item>
+              <title>Acme: Senior Python Engineer</title>
+              <region>Anywhere in the World</region>
+              <category>Full-Stack Programming</category>
+              <description>&lt;p&gt;Build APIs.&lt;/p&gt;</description>
+              <pubDate>Tue, 02 Jun 2026 20:15:53 +0000</pubDate>
+              <guid>https://weworkremotely.com/remote-jobs/acme-senior-python-engineer</guid>
+              <link>https://weworkremotely.com/remote-jobs/acme-senior-python-engineer</link>
+            </item>
+          </channel>
+        </rss>
+        """
+        successful_response = Mock(text=feed_xml)
+        successful_response.raise_for_status.return_value = None
+
+        failed_request = httpx.Request("GET", "https://example.com/devops.rss")
+        failed_response = httpx.Response(500, request=failed_request)
+        failed_response.read()
+        failed_response.raise_for_status = Mock(
+            side_effect=httpx.HTTPStatusError(
+                "Server error",
+                request=failed_request,
+                response=failed_response,
+            )
+        )
+        mock_get.side_effect = [successful_response, failed_response]
+
+        jobs = fetch_we_work_remotely_jobs(
+            feed_urls=[
+                "https://example.com/programming.rss",
+                "https://example.com/devops.rss",
+            ]
+        )
+
+        assert len(jobs) == 1
+        assert jobs[0]["company"] == "Acme"
+        assert jobs[0]["feed_url"] == "https://example.com/programming.rss"
 
     def test_build_we_work_remotely_extraction_text_strips_html_and_preserves_source(self):
         job = {

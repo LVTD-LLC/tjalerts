@@ -746,13 +746,16 @@ def fetch_we_work_remotely_jobs(feed_urls=None):
     jobs = []
 
     for feed_url in feed_urls:
-        response = httpx.get(
-            feed_url,
-            headers={"User-Agent": WE_WORK_REMOTELY_USER_AGENT},
-            timeout=30,
-        )
-        response.raise_for_status()
-        jobs.extend(parse_we_work_remotely_feed(response.text, feed_url=feed_url))
+        try:
+            response = httpx.get(
+                feed_url,
+                headers={"User-Agent": WE_WORK_REMOTELY_USER_AGENT},
+                timeout=30,
+            )
+            response.raise_for_status()
+            jobs.extend(parse_we_work_remotely_feed(response.text, feed_url=feed_url))
+        except (httpx.HTTPError, ET.ParseError) as e:
+            logger.error("We Work Remotely feed fetch failed", feed_url=feed_url, error=e)
 
     deduped_jobs = []
     seen_ids = set()
