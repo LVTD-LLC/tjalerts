@@ -13,7 +13,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("jobs", "0036_add_we_work_remotely_post_source"),
+        ("jobs", "0037_post_job_details"),
     ]
 
     operations = [
