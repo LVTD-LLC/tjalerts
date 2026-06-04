@@ -457,7 +457,12 @@ def parse_positive_day_count(value):
     except (InvalidOperation, TypeError, ValueError):
         return None
 
-    if day_count <= 0 or day_count > MAX_ADDED_WITHIN_DAYS or day_count != day_count.to_integral_value():
+    if (
+        not day_count.is_finite()
+        or day_count <= 0
+        or day_count > MAX_ADDED_WITHIN_DAYS
+        or day_count != day_count.to_integral_value()
+    ):
         return None
 
     return int(day_count)

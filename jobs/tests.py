@@ -203,7 +203,7 @@ class FilterSummaryTests(SimpleTestCase):
     def test_invalid_added_within_days_is_not_meaningful(self):
         now = timezone.now()
 
-        for value in ("0", "1000000000"):
+        for value in ("0", "1000000000", "NaN", "sNaN"):
             query_params = QueryDict(f"added_within_days={value}")
 
             assert build_serializable_filter_params(query_params) == {}
@@ -786,10 +786,11 @@ class PostFilterTests(TestCase):
 
 class PostListViewTests(TestCase):
     def test_invalid_added_within_days_redirects_to_clean_url(self):
-        response = self.client.get(f"{reverse('posts')}?added_within_days=1000000000&q=python")
+        for value in ("1000000000", "NaN"):
+            response = self.client.get(f"{reverse('posts')}?added_within_days={value}&q=python")
 
-        assert response.status_code == 302
-        assert response["Location"] == f"{reverse('posts')}?q=python"
+            assert response.status_code == 302
+            assert response["Location"] == f"{reverse('posts')}?q=python"
 
     def test_filter_context_exposes_source_choices(self):
         company = Company.objects.create(name="Acme")
