@@ -67,6 +67,21 @@
         <div class="rounded-lg border border-zinc-200 p-4">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
+              <h3 class="text-base font-semibold text-zinc-950">Import We Work Remotely jobs</h3>
+              <p class="mt-1 text-sm leading-6 text-zinc-600">
+                Fetch recent programming and DevOps jobs from We Work Remotely.
+              </p>
+            </div>
+            <form method="post" action="{% url 'import_we_work_remotely_jobs' %}">
+              {% csrf_token %}
+              <button type="submit" class="btn-secondary">Import</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-zinc-200 p-4">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
               <h3 class="text-base font-semibold text-zinc-950">Fix submitted dates</h3>
               <p class="mt-1 text-sm leading-6 text-zinc-600">Identify and fix incorrectly formatted submission dates.</p>
             </div>

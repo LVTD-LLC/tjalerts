@@ -1,11 +1,13 @@
 import json
 import re
 from datetime import datetime, timedelta, timezone as dt_timezone
+from email.utils import parsedate_to_datetime
 from html import unescape
 
 import httpx
 import openai
 import requests
+from defusedxml import ElementTree
 from django.conf import settings
 from django.contrib.sites.models import Site
 from django.core.exceptions import ValidationError
@@ -51,7 +53,11 @@ client = OpenAI()
 
 MAX_COMPANY_EMAILS_LENGTH = 2000
 REMOTE_OK_API_URL = "https://remoteok.com/api"
-REMOTE_OK_USER_AGENT = "gettjalerts.com jobs importer (https://gettjalerts.com)"
+JOBS_IMPORTER_USER_AGENT = "gettjalerts.com jobs importer (https://gettjalerts.com)"
+WE_WORK_REMOTELY_FEED_URLS = (
+    "https://weworkremotely.com/categories/remote-programming-jobs.rss",
+    "https://weworkremotely.com/categories/remote-devops-sysadmin-jobs.rss",
+)
 MOJIBAKE_MARKERS = ("\u00c3", "\u00c2", "\u00e2", "\u00d8", "\u00d9")
 
 
@@ -512,7 +518,7 @@ def clean_remote_ok_description(value):
 def fetch_remote_ok_jobs():
     response = httpx.get(
         REMOTE_OK_API_URL,
-        headers={"User-Agent": REMOTE_OK_USER_AGENT},
+        headers={"User-Agent": JOBS_IMPORTER_USER_AGENT},
         timeout=30,
     )
     response.raise_for_status()
@@ -678,6 +684,236 @@ def import_remote_ok_jobs(limit=None):
     )
 
     return f"Imported {imported_count} Remote OK jobs. Skipped {skipped_count}. Failed {failed_count}."
+
+
+def local_xml_tag_name(tag):
+    return str(tag).rsplit("}", 1)[-1]
+
+
+def find_xml_child(element, tag_name):
+    child = element.find(tag_name)
+    if child is not None:
+        return child
+
+    for candidate in element:
+        if local_xml_tag_name(candidate.tag) == tag_name:
+            return candidate
+
+    return None
+
+
+def get_xml_text(element, tag_name):
+    child = find_xml_child(element, tag_name)
+    if child is None or child.text is None:
+        return ""
+
+    return clean_remote_ok_string(child.text)
+
+
+def parse_we_work_remotely_title(title):
+    title = clean_remote_ok_string(title)
+    if ":" not in title:
+        return "", title
+
+    company, position = title.split(":", 1)
+    return company.strip(), position.strip()
+
+
+def clean_we_work_remotely_description(value):
+    return re.sub(r"\s+", " ", strip_tags(clean_remote_ok_string(value))).strip()
+
+
+def parse_we_work_remotely_feed(feed_xml, feed_url=""):
+    root = ElementTree.fromstring(feed_xml)
+    jobs = []
+
+    for item in root.findall(".//item"):
+        title = get_xml_text(item, "title")
+        company, position = parse_we_work_remotely_title(title)
+        description_html = get_xml_text(item, "description")
+        link = get_xml_text(item, "link")
+        guid = get_xml_text(item, "guid") or link
+
+        if not guid and not link:
+            continue
+
+        jobs.append(
+            {
+                "id": guid or link,
+                "title": title,
+                "company": company,
+                "position": position,
+                "region": get_xml_text(item, "region"),
+                "category": get_xml_text(item, "category"),
+                "description": description_html,
+                "description_text": clean_we_work_remotely_description(description_html),
+                "pub_date": get_xml_text(item, "pubDate"),
+                "url": link or guid,
+                "feed_url": feed_url,
+            }
+        )
+
+    return jobs
+
+
+def fetch_we_work_remotely_jobs(feed_urls=None):
+    feed_urls = feed_urls or WE_WORK_REMOTELY_FEED_URLS
+    jobs = []
+
+    for feed_url in feed_urls:
+        try:
+            response = httpx.get(
+                feed_url,
+                headers={"User-Agent": JOBS_IMPORTER_USER_AGENT},
+                timeout=30,
+            )
+            response.raise_for_status()
+            jobs.extend(parse_we_work_remotely_feed(response.text, feed_url=feed_url))
+        except (httpx.HTTPError, ElementTree.ParseError) as e:
+            logger.error("We Work Remotely feed fetch failed", feed_url=feed_url, error=e)
+
+    deduped_jobs = []
+    seen_ids = set()
+    for job in jobs:
+        source_id = str(job.get("id", ""))
+        if not source_id or source_id in seen_ids:
+            continue
+
+        seen_ids.add(source_id)
+        deduped_jobs.append(job)
+
+    return deduped_jobs
+
+
+def build_we_work_remotely_extraction_text(we_work_remotely_job):
+    company = clean_remote_ok_string(we_work_remotely_job.get("company"))
+    position = clean_remote_ok_string(we_work_remotely_job.get("position"))
+    region = clean_remote_ok_string(we_work_remotely_job.get("region"))
+    category = clean_remote_ok_string(we_work_remotely_job.get("category"))
+    description = we_work_remotely_job.get("description_text") or clean_we_work_remotely_description(
+        we_work_remotely_job.get("description")
+    )
+
+    parts = [
+        f"Company: {company}" if company else "",
+        f"Job title: {position}" if position else "",
+        "Source: We Work Remotely",
+        "Work arrangement: Remote",
+        f"Location: {region}" if region else "",
+        f"Category: {category}" if category else "",
+        f"Description: {description}" if description else "",
+    ]
+
+    return "\n".join(part for part in parts if part)
+
+
+def get_we_work_remotely_submitted_datetime(we_work_remotely_job):
+    source_id = we_work_remotely_job.get("id")
+    raw_date = clean_remote_ok_string(we_work_remotely_job.get("pub_date"))
+
+    if raw_date:
+        try:
+            submitted_datetime = parsedate_to_datetime(raw_date)
+            if timezone.is_naive(submitted_datetime):
+                submitted_datetime = submitted_datetime.replace(tzinfo=dt_timezone.utc)
+            return submitted_datetime.astimezone(dt_timezone.utc)
+        except (TypeError, ValueError, IndexError, OverflowError):
+            logger.warning("We Work Remotely job has invalid pubDate", source_id=source_id, pub_date=raw_date)
+
+    logger.warning("We Work Remotely job has no submitted timestamp; using current time", source_id=source_id)
+    return timezone.now()
+
+
+def apply_we_work_remotely_structured_defaults(we_work_remotely_job, extracted_data):
+    company = clean_remote_ok_string(we_work_remotely_job.get("company"))
+    position = clean_remote_ok_string(we_work_remotely_job.get("position"))
+    region = clean_remote_ok_string(we_work_remotely_job.get("region"))
+    source_url = clean_remote_ok_string(we_work_remotely_job.get("url"))
+    description = we_work_remotely_job.get("description_text") or clean_we_work_remotely_description(
+        we_work_remotely_job.get("description")
+    )
+
+    extracted_data["company_name"] = extracted_data.get("company_name") or company
+    extracted_data["job_titles"] = extracted_data.get("job_titles") or position
+    extracted_data["locations"] = extracted_data.get("locations") or region
+    extracted_data["is_remote"] = True
+    extracted_data["description"] = extracted_data.get("description") or description
+    extracted_data["company_job_application_link"] = extracted_data.get("company_job_application_link") or source_url
+
+    return extracted_data
+
+
+def create_we_work_remotely_post(we_work_remotely_job):
+    source_id = str(we_work_remotely_job["id"])
+    existing_post = Post.objects.filter(source=PostSource.WE_WORK_REMOTELY, source_external_id=source_id).first()
+    if existing_post:
+        return existing_post
+
+    extraction_text = build_we_work_remotely_extraction_text(we_work_remotely_job)
+    source_url = clean_remote_ok_string(we_work_remotely_job.get("url"))
+    submitted_datetime = get_we_work_remotely_submitted_datetime(we_work_remotely_job)
+
+    extracted_data = extract_job_data_from_text(extraction_text)
+    extracted_data = apply_we_work_remotely_structured_defaults(we_work_remotely_job, extracted_data)
+    cleaned_data = clean_job_json_object({"text": extraction_text}, extracted_data)
+
+    return create_post_from_cleaned_data(
+        cleaned_data,
+        source=PostSource.WE_WORK_REMOTELY,
+        source_external_id=source_id,
+        source_url=source_url,
+        source_payload=we_work_remotely_job,
+        submitted_datetime=submitted_datetime,
+        vector=get_embedding(extraction_text),
+    )
+
+
+def import_we_work_remotely_jobs(limit=None):
+    jobs = fetch_we_work_remotely_jobs()
+
+    if settings.DEBUG and limit is None:
+        jobs = jobs[:10]
+    elif limit:
+        jobs = jobs[: int(limit)]
+
+    imported_count = 0
+    skipped_count = 0
+    failed_count = 0
+
+    for job in jobs:
+        source_id = str(job.get("id", ""))
+        if not source_id:
+            skipped_count += 1
+            continue
+
+        if Post.objects.filter(source=PostSource.WE_WORK_REMOTELY, source_external_id=source_id).exists():
+            skipped_count += 1
+            continue
+
+        try:
+            create_we_work_remotely_post(job)
+            imported_count += 1
+        except IntegrityError:
+            skipped_count += 1
+            logger.info("We Work Remotely job already imported by concurrent task", source_id=source_id)
+        except (openai.RateLimitError, openai.APIError):
+            raise
+        except Exception as e:
+            failed_count += 1
+            logger.error("We Work Remotely job import failed", source_id=source_id, error=e)
+
+    capture_event(
+        "we work remotely import completed",
+        properties={
+            "imported_count": imported_count,
+            "skipped_count": skipped_count,
+            "failed_count": failed_count,
+            "fetched_count": len(jobs),
+            "limit": limit,
+        },
+    )
+
+    return f"Imported {imported_count} We Work Remotely jobs. Skipped {skipped_count}. Failed {failed_count}."
 
 
 def create_valid_emails():
