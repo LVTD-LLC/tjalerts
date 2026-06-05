@@ -1256,10 +1256,12 @@ class ReaderContextTests(SimpleTestCase):
         assert enriched_data["job_details"]["application_instructions"] == "Email your resume."
         assert enriched_data["job_details"]["extraction_confidence"] == "medium"
 
-    @override_settings(OPENAI_PAGE_CONTEXT_EXTRACTION_MODEL="test-model")
-    @patch("jobs.enrichment.client.chat.completions.create")
-    def test_extract_structured_page_context_marks_page_content_as_untrusted(self, completion_mock):
-        completion_mock.return_value = Mock(choices=[Mock(message=Mock(content='{"page_summary": "Hiring"}'))])
+    @override_settings(AI_PAGE_CONTEXT_EXTRACTION_MODEL="test-model")
+    @patch("jobs.enrichment.run_structured_ai_task")
+    def test_extract_structured_page_context_marks_page_content_as_untrusted(self, run_structured_mock):
+        output = Mock()
+        output.model_dump.return_value = {"page_summary": "Hiring"}
+        run_structured_mock.return_value = Mock(output=output, usage=None)
 
         extract_structured_page_context(
             "job_posting",
@@ -1270,10 +1272,11 @@ class ReaderContextTests(SimpleTestCase):
             },
         )
 
-        messages = completion_mock.call_args.kwargs["messages"]
-        assert "untrusted data" in messages[0]["content"]
-        assert "<untrusted_page_content>" in messages[1]["content"]
-        assert "</untrusted_page_content>" in messages[1]["content"]
+        system_prompt = run_structured_mock.call_args.args[1]
+        user_prompt = run_structured_mock.call_args.args[2]
+        assert "untrusted data" in system_prompt
+        assert "<untrusted_page_content>" in user_prompt
+        assert "</untrusted_page_content>" in user_prompt
 
 
 class HNCommentHiringDetectionTests(SimpleTestCase):

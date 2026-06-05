@@ -214,18 +214,6 @@ def cache_model_flag(flag_key, model):
     return model
 
 
-def openai_usage_properties(completion):
-    usage = getattr(completion, "usage", None)
-    if not usage:
-        return {}
-
-    return {
-        "prompt_tokens": getattr(usage, "prompt_tokens", None),
-        "completion_tokens": getattr(usage, "completion_tokens", None),
-        "total_tokens": getattr(usage, "total_tokens", None),
-    }
-
-
 @contextmanager
 def ai_span(name, *, attributes=None):
     tracer = trace.get_tracer("tjalerts.ai")

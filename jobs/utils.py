@@ -9,8 +9,8 @@ from allauth.account.models import EmailAddress
 from django.conf import settings
 from django.db.models import Count, Q
 from django.utils.html import strip_tags
-from openai import OpenAI
 
+from hn_jobs.ai import ai_usage_properties, embed_query
 from hn_jobs.posthog_events import ai_span, capture_event, model_from_feature_flag
 from hn_jobs.utils import get_tjalerts_logger
 from jobs.choices import PostSource
@@ -18,8 +18,6 @@ from jobs.constants import GENERIC_KEYWORDS
 from jobs.models import Post, Technology, TechnologyMapping, Title
 
 logger = get_tjalerts_logger(__name__)
-
-client = OpenAI()
 
 list_of_expected_keys = [
     "company_name",
@@ -265,7 +263,7 @@ def has_number(input_string):
 
 def get_embedding(text):
     text = text.replace("\n", " ")
-    model = model_from_feature_flag("embedding-model", settings.OPENAI_EMBEDDING_MODEL)
+    model = model_from_feature_flag("embedding-model", settings.AI_EMBEDDING_MODEL)
 
     with ai_span(
         "ai.embedding",
@@ -275,20 +273,18 @@ def get_embedding(text):
             "input_length": len(text),
         },
     ):
-        embedding = client.embeddings.create(input=[text], model=model)
+        result = embed_query(text, model)
 
-    usage = getattr(embedding, "usage", None)
     capture_event(
         "ai embedding completed",
         properties={
             "model": model,
             "input_length": len(text),
-            "prompt_tokens": getattr(usage, "prompt_tokens", None) if usage else None,
-            "total_tokens": getattr(usage, "total_tokens", None) if usage else None,
+            **ai_usage_properties(result.usage),
         },
     )
 
-    return embedding.data[0].embedding
+    return result.output
 
 
 def default_alert_name(alert, idx):

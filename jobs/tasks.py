@@ -1,11 +1,9 @@
-import json
 import re
 from datetime import datetime, timedelta, timezone as dt_timezone
 from email.utils import parsedate_to_datetime
 from html import unescape
 
 import httpx
-import openai
 import requests
 from defusedxml import ElementTree
 from django.conf import settings
@@ -20,8 +18,14 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.html import strip_tags
 from django_q.tasks import async_task
-from openai import OpenAI
 
+from hn_jobs.ai import (
+    AIRequestError,
+    JobExtractionResult,
+    SalaryExtractionResult,
+    ai_usage_properties,
+    run_structured_ai_task,
+)
 from hn_jobs.posthog_events import (
     ai_span,
     capture_event,
@@ -29,7 +33,6 @@ from hn_jobs.posthog_events import (
     distinct_id_for_email,
     identify_company,
     model_from_feature_flag,
-    openai_usage_properties,
 )
 from hn_jobs.utils import get_tjalerts_logger
 from users.models import CustomUser
@@ -54,8 +57,6 @@ from jobs.utils import (
 )
 
 logger = get_tjalerts_logger(__name__)
-
-client = OpenAI()
 
 MAX_COMPANY_EMAILS_LENGTH = 2000
 REMOTE_OK_API_URL = "https://remoteok.com/api"
@@ -146,7 +147,7 @@ def build_job_extraction_request(text):
 
 
 def extract_job_data_from_text(text):
-    model = model_from_feature_flag("job-extraction-model", settings.OPENAI_JOB_EXTRACTION_MODEL)
+    model = model_from_feature_flag("job-extraction-model", settings.AI_JOB_EXTRACTION_MODEL)
     request = build_job_extraction_request(text)
 
     try:
@@ -158,19 +159,13 @@ def extract_job_data_from_text(text):
                 "input_length": len(text or ""),
             },
         ):
-            completion = client.chat.completions.create(
-                model=model,
-                response_format={"type": "json_object"},
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a helpful assistant.",
-                    },
-                    {"role": "user", "content": request},
-                ],
+            result = run_structured_ai_task(
+                model,
+                "You extract structured job posting data. Use only the supplied text.",
+                request,
+                JobExtractionResult,
             )
-        converted_comment_response = completion.choices[0].message
-    except (openai.RateLimitError, openai.APIError) as e:
+    except AIRequestError as e:
         capture_event(
             "ai job extraction failed",
             properties={
@@ -181,30 +176,16 @@ def extract_job_data_from_text(text):
         )
         raise e
 
-    try:
-        parsed_response = json.loads(converted_comment_response.content)
-    except json.decoder.JSONDecodeError as e:
-        capture_event(
-            "ai job extraction json failed",
-            properties={
-                "model": model,
-                "error_type": type(e).__name__,
-                "input_length": len(text or ""),
-                **openai_usage_properties(completion),
-            },
-        )
-        raise e
-
     capture_event(
         "ai job extraction completed",
         properties={
             "model": model,
             "input_length": len(text or ""),
-            **openai_usage_properties(completion),
+            **ai_usage_properties(result.usage),
         },
     )
 
-    return parsed_response
+    return result.output.model_dump()
 
 
 def split_comma_separated_values(value):
@@ -728,7 +709,7 @@ def import_remote_ok_jobs(limit=None):
         except IntegrityError:
             skipped_count += 1
             logger.info("Remote OK job already imported by concurrent task", remote_ok_id=remote_ok_id)
-        except (openai.RateLimitError, openai.APIError):
+        except AIRequestError:
             raise
         except Exception as e:
             failed_count += 1
@@ -967,7 +948,7 @@ def import_we_work_remotely_jobs(limit=None):
         except IntegrityError:
             skipped_count += 1
             logger.info("We Work Remotely job already imported by concurrent task", source_id=source_id)
-        except (openai.RateLimitError, openai.APIError):
+        except AIRequestError:
             raise
         except Exception as e:
             failed_count += 1
@@ -1144,18 +1125,16 @@ def create_update_min_and_max_salary_jobs():
 
 
 def update_min_and_max_salary(job):
-    model = model_from_feature_flag("salary-extraction-model", settings.OPENAI_SALARY_EXTRACTION_MODEL)
+    model = model_from_feature_flag("salary-extraction-model", settings.AI_SALARY_EXTRACTION_MODEL)
 
-    request = f"""Find the minimum and maximum salary for the job, based on the following information: '{job.compensation_summary}'.
+    request = f"""Find the minimum and maximum salary for the job, based on this information:
+'{job.compensation_summary}'.
 If there is no minimum or maximum salary, return 0. Do not lie, or make up numbers.
 If the summary states that sarlary is weekly or monthly, convert it to annualy please.
-Return a valid JSON Object with the following format:
-{{
-  min_salary: (integer, if not available return 0),
-  max_salary: (integer, if not available return 0),
-  currency: (string, e.g "USD", "EUR", etc. if not available return "")
-}}
-Do not return anything else. Just the JSON Object."""  # noqa: E501
+Return salary fields with:
+- min_salary: integer, if not available return 0
+- max_salary: integer, if not available return 0
+- currency: string, e.g. "USD", "EUR", etc.; if not available return ""."""  # noqa: E501
 
     with ai_span(
         "ai.salary_extraction",
@@ -1165,23 +1144,17 @@ Do not return anything else. Just the JSON Object."""  # noqa: E501
             "post_id": str(job.id),
         },
     ):
-        completion = client.chat.completions.create(
-            model=model,
-            response_format={"type": "json_object"},
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a helpful assistant.",
-                },
-                {"role": "user", "content": request},
-            ],
+        result = run_structured_ai_task(
+            model,
+            "You extract salary ranges from job compensation summaries. Do not infer missing compensation.",
+            request,
+            SalaryExtractionResult,
         )
-    converted_comment_response = completion.choices[0].message
 
-    json_converted_comment_response = json.loads(converted_comment_response.content)
+    salary_data = result.output
 
-    min_salary = json_converted_comment_response["min_salary"]
-    max_salary = json_converted_comment_response["max_salary"]
+    min_salary = salary_data.min_salary
+    max_salary = salary_data.max_salary
 
     if min_salary == 0 and max_salary != 0:
         min_salary = max_salary
@@ -1191,7 +1164,7 @@ Do not return anything else. Just the JSON Object."""  # noqa: E501
     job.min_salary = min_salary
     job.max_salary = max_salary
 
-    job.currency = json_converted_comment_response["currency"]
+    job.currency = salary_data.currency
     job.save(update_fields=["min_salary", "max_salary", "currency"])
 
     capture_event(
@@ -1201,7 +1174,7 @@ Do not return anything else. Just the JSON Object."""  # noqa: E501
             "post_id": str(job.id),
             "has_salary": bool(min_salary or max_salary),
             "currency": job.currency,
-            **openai_usage_properties(completion),
+            **ai_usage_properties(result.usage),
         },
         groups=company_group(job.company),
     )
