@@ -26,7 +26,7 @@ from jobs.choices import PostSource
 from jobs.constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
 from jobs.filters import POSTED_WITHIN_CHOICES, WORK_MODE_CHOICES, PostFilter
 from jobs.forms import ConfirmAlertForm, CreateAlertForm, CreateCustomAlertForm, CreateIntentAlertForm
-from jobs.models import Alert, AlertEmailSend, Company, Post, Technology, TechnologyMapping, Title
+from jobs.models import Alert, AlertEmailSend, Company, Post, Technology, Title
 from jobs.tasks import (
     add_email_to_buttondown,
     create_backfill_vector_data_jobs,
@@ -37,6 +37,7 @@ from jobs.tasks import (
     import_we_work_remotely_jobs,
     send_confirmation_email,
 )
+from jobs.technology_normalization import get_related_technology_ids
 from jobs.utils import (
     MAX_ADDED_WITHIN_DAYS,
     build_intent_alert_suggestions,
@@ -330,18 +331,16 @@ class HighestPaidJobsView(ListView):
     def get_queryset(self):
         queryset = super().get_queryset().select_related("company").prefetch_related("titles", "technologies")
 
-        tech_id = (
+        tech = (
             Technology.objects.filter(slug__icontains=self.kwargs.get("slug"))
             .annotate(post_count=Count("post"))
             .order_by("-post_count")
-            .values_list("id", flat=True)
             .first()
         )
 
-        child_ids = list(TechnologyMapping.objects.filter(parent_id=tech_id).values_list("child__id", flat=True))
-        all_related_ids = [tech_id] + child_ids
+        all_related_ids = get_related_technology_ids(tech)
 
-        logger.info("Got all related tech ids", tech_id=tech_id, number_of_child_ids=len(child_ids))
+        logger.info("Got all related tech ids", tech_id=tech.id if tech else None, count=len(all_related_ids))
 
         # This is to avoid multiple posting by a single company
         subquery = Post.objects.values("company").annotate(latest_post=Max("submitted_datetime")).values("latest_post")
@@ -829,8 +828,12 @@ class TechnologyJobsView(ListView):
     def get_queryset(self):
         queryset = super().get_queryset().select_related("company").prefetch_related("titles", "technologies")
         two_months_ago = timezone.now() - timezone.timedelta(days=60)
+        technology = Technology.objects.filter(slug=self.kwargs.get("slug")).first()
 
-        return queryset.filter(technologies__slug=self.kwargs.get("slug"), submitted_datetime__gte=two_months_ago)
+        return queryset.filter(
+            technologies__id__in=get_related_technology_ids(technology),
+            submitted_datetime__gte=two_months_ago,
+        ).distinct()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

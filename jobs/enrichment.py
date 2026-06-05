@@ -381,6 +381,9 @@ Return only a valid JSON object with these exact keys:
 
 Use empty strings or empty arrays when the page does not contain a field.
 Only use the parsed page content. Do not infer facts that are not present.
+Normalize technologies to canonical product names when the mention is clear. Examples: DRF -> Django REST Framework, django-rest-framework -> Django REST Framework, postgres -> PostgreSQL, js -> JavaScript, ts -> TypeScript, node -> Node.js, k8s -> Kubernetes.
+Split combined technology phrases into separate items. Examples: Django/DRF -> Django and Django REST Framework; Python backend (Django) -> Python and Django.
+Remove versions from technology names unless the version is part of the product name. Do not return generic descriptors like backend, frontend, full-stack, API, REST, web, mobile, database, or cloud as technologies.
 
 URL: {page.get("url", "")}
 Title: {page.get("title", "")}

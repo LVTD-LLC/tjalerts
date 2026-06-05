@@ -1,6 +1,7 @@
 import uuid
 
 from autoslug import AutoSlugField
+from django.contrib.postgres.indexes import GinIndex
 from django.db import models
 from django.urls import reverse
 from model_utils.models import TimeStampedModel
@@ -111,6 +112,36 @@ class Technology(TimeStampedModel):
             models.Index(fields=["name"], name="index_t_technology_name"),
             models.Index(fields=["id"], name="index_t_technology_id"),
             models.Index(fields=["slug"], name="index_t_technology_slug"),
+        ]
+
+
+class TechnologyAlias(BaseModel):
+    technology = models.ForeignKey(Technology, on_delete=models.CASCADE, related_name="aliases")
+    alias = models.CharField(max_length=256)
+    normalized_alias = models.CharField(max_length=256, unique=True)
+    source = models.CharField(max_length=50, default="manual")
+    notes = models.TextField(blank=True)
+
+    def save(self, *args, **kwargs):
+        from jobs.technology_names import normalize_technology_key
+
+        self.normalized_alias = normalize_technology_key(self.alias)
+        if (
+            kwargs.get("update_fields")
+            and "alias" in kwargs["update_fields"]
+            and "normalized_alias" not in kwargs["update_fields"]
+        ):
+            kwargs["update_fields"] = [*kwargs["update_fields"], "normalized_alias"]
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.alias} -> {self.technology.name}"
+
+    class Meta:
+        indexes = [
+            GinIndex(fields=["alias"], name="index_t_alias_alias_trgm", opclasses=["gin_trgm_ops"]),
+            GinIndex(fields=["normalized_alias"], name="index_t_alias_norm_trgm", opclasses=["gin_trgm_ops"]),
+            models.Index(fields=["technology"], name="index_t_alias_technology"),
         ]
 
 

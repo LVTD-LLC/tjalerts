@@ -2,8 +2,9 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from api.views import search_technologies
 from jobs.choices import PostSource
-from jobs.models import Company, Post
+from jobs.models import Company, Post, Technology
 
 
 class JobsApiTests(TestCase):
@@ -57,3 +58,13 @@ class JobsApiTests(TestCase):
         response = self.client.get(reverse("api-1.0.0:get_jobs"), {"source": "LinkedIn"})
 
         assert response.status_code == 400
+
+
+class TechnologySearchTests(TestCase):
+    def test_search_technologies_matches_builtin_alias_without_alias_row(self):
+        Technology.objects.create(name="Django REST Framework")
+
+        results = search_technologies(None, query="drf")
+
+        assert len(results) == 1
+        assert results[0].name == "Django REST Framework"
