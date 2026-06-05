@@ -140,6 +140,7 @@ class TechnologyAlias(BaseModel):
     class Meta:
         indexes = [
             GinIndex(fields=["alias"], name="index_t_alias_alias_trgm", opclasses=["gin_trgm_ops"]),
+            GinIndex(fields=["normalized_alias"], name="index_t_alias_norm_trgm", opclasses=["gin_trgm_ops"]),
             models.Index(fields=["technology"], name="index_t_alias_technology"),
         ]
 

@@ -13,7 +13,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("jobs", "0037_post_job_details"),
+        ("jobs", "0038_post_created_index"),
     ]
 
     operations = [
@@ -55,6 +55,14 @@ class Migration(migrations.Migration):
         migrations.AddIndex(
             model_name="technologyalias",
             index=GinIndex(fields=["alias"], name="index_t_alias_alias_trgm", opclasses=["gin_trgm_ops"]),
+        ),
+        migrations.AddIndex(
+            model_name="technologyalias",
+            index=GinIndex(
+                fields=["normalized_alias"],
+                name="index_t_alias_norm_trgm",
+                opclasses=["gin_trgm_ops"],
+            ),
         ),
         migrations.AddIndex(
             model_name="technologyalias",
