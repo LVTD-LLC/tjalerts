@@ -448,11 +448,38 @@ def is_positive_salary_floor(value):
     return salary_floor > 0
 
 
+MAX_ADDED_WITHIN_DAYS = 3650
+
+
+def parse_positive_day_count(value):
+    try:
+        day_count = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+
+    if (
+        not day_count.is_finite()
+        or day_count <= 0
+        or day_count > MAX_ADDED_WITHIN_DAYS
+        or day_count != day_count.to_integral_value()
+    ):
+        return None
+
+    return int(day_count)
+
+
+def day_count_label(day_count):
+    return f"{day_count} day{'s' if day_count != 1 else ''}"
+
+
 def has_meaningful_filter_value(query_params, key):
     values = [value for value in query_params.getlist(key) if value not in ["", "unknown"]]
 
     if key == "salary_floor":
         return any(is_positive_salary_floor(value) for value in values)
+
+    if key == "added_within_days":
+        return any(parse_positive_day_count(value) is not None for value in values)
 
     return bool(values)
 
@@ -478,6 +505,11 @@ def generate_job_search_title(query_params, first_item_datetime):
 
     if query_param == "posted_within":
         return f"Jobs from the last {query_params['posted_within']} days - {date}"
+
+    if query_param == "added_within_days":
+        day_count = parse_positive_day_count(query_params["added_within_days"])
+        if day_count is not None:
+            return f"Jobs added in the last {day_count_label(day_count)} - {date}"
 
     if query_param == "salary_floor" and is_positive_salary_floor(query_params["salary_floor"]):
         return f"Jobs paying at least {query_params['salary_floor']} - {date}"
@@ -556,6 +588,11 @@ def generate_job_search_keywords(query_params):
 
         if key == "posted_within":
             keywords.append(f"Last {query_params['posted_within']} days")
+
+        if key == "added_within_days":
+            day_count = parse_positive_day_count(query_params["added_within_days"])
+            if day_count is not None:
+                keywords.append(f"Added in last {day_count_label(day_count)}")
 
         if key == "salary_floor" and is_positive_salary_floor(query_params["salary_floor"]):
             keywords.append(f"Salary at least {query_params['salary_floor']}")

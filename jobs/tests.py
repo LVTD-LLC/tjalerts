@@ -182,6 +182,35 @@ class FilterSummaryTests(SimpleTestCase):
         assert generate_job_search_title(query_params, now) == f"Unique Employer Jobs - {now.strftime('%B %Y')}"
         assert generate_job_search_keywords(query_params) == ["Unique employers"]
 
+    def test_added_within_days_is_serialized_shown_and_used_for_metadata(self):
+        query_params = QueryDict("added_within_days=14")
+        now = timezone.now()
+
+        assert build_serializable_filter_params(query_params) == {"added_within_days": "14"}
+        assert active_filter_summary(query_params) == [
+            {
+                "label": "Added",
+                "param": "added_within_days",
+                "value": "14",
+                "display": "Last 14 days",
+            }
+        ]
+        assert (
+            generate_job_search_title(query_params, now) == f"Jobs added in the last 14 days - {now.strftime('%B %Y')}"
+        )
+        assert generate_job_search_keywords(query_params) == ["Added in last 14 days"]
+
+    def test_invalid_added_within_days_is_not_meaningful(self):
+        now = timezone.now()
+
+        for value in ("0", "1000000000", "NaN", "sNaN"):
+            query_params = QueryDict(f"added_within_days={value}")
+
+            assert build_serializable_filter_params(query_params) == {}
+            assert active_filter_summary(query_params) == []
+            assert generate_job_search_title(query_params, now) == f"Available Jobs - {now.strftime('%B %Y')}"
+            assert generate_job_search_keywords(query_params) == []
+
 
 class CreateIntentAlertsViewTests(TestCase):
     def setUp(self):
@@ -709,6 +738,7 @@ class PostFilterTests(TestCase):
             emails="",
             source=PostSource.WE_WORK_REMOTELY,
         )
+        Post.objects.filter(pk=cls.hybrid_post.pk).update(created=now - timezone.timedelta(days=90))
 
     def filtered_ids(self, params):
         return set(PostFilter(params, queryset=Post.objects.all()).qs.values_list("id", flat=True))
@@ -747,11 +777,21 @@ class PostFilterTests(TestCase):
     def test_posted_within_filters_by_submitted_datetime(self):
         assert self.filtered_ids({"posted_within": "30"}) == {self.remote_post.id, self.onsite_post.id}
 
+    def test_added_within_days_filters_by_created_timestamp(self):
+        assert self.filtered_ids({"added_within_days": "30"}) == {self.remote_post.id, self.onsite_post.id}
+
     def test_source_filter_limits_by_job_source(self):
         assert self.filtered_ids({"source": PostSource.REMOTE_OK}) == {self.onsite_post.id}
 
 
 class PostListViewTests(TestCase):
+    def test_invalid_added_within_days_redirects_to_clean_url(self):
+        for value in ("1000000000", "NaN"):
+            response = self.client.get(f"{reverse('posts')}?added_within_days={value}&q=python")
+
+            assert response.status_code == 302
+            assert response["Location"] == f"{reverse('posts')}?q=python"
+
     def test_filter_context_exposes_source_choices(self):
         company = Company.objects.create(name="Acme")
         Post.objects.create(company=company, submitted_datetime=timezone.now(), description="Build software.")
