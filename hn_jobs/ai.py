@@ -1,4 +1,6 @@
+from dataclasses import dataclass
 from functools import lru_cache
+from typing import Generic, TypeVar
 
 from django.conf import settings
 from django.test.signals import setting_changed
@@ -13,6 +15,7 @@ from pydantic_ai.providers.openrouter import OpenRouterProvider
 
 
 AIRequestError = (AgentRunError, UserError)
+OutputT = TypeVar("OutputT")
 AI_CACHE_SETTINGS = {
     "AI_EMBEDDING_DIMENSIONS",
     "AI_RESULT_RETRIES",
@@ -23,11 +26,10 @@ AI_CACHE_SETTINGS = {
 }
 
 
-class AIResult(BaseModel):
-    output: object
+@dataclass(frozen=True)
+class AIResult(Generic[OutputT]):
+    output: OutputT
     usage: object | None = None
-
-    model_config = {"arbitrary_types_allowed": True}
 
 
 class JobExtractionResult(BaseModel):
@@ -154,7 +156,12 @@ class PageContextResult(BaseModel):
     confidence: str = ""
 
 
-def run_structured_ai_task(model_name, system_prompt, user_prompt, output_type):
+def run_structured_ai_task(
+    model_name: str,
+    system_prompt: str,
+    user_prompt: str,
+    output_type: type[OutputT],
+) -> AIResult[OutputT]:
     agent = get_structured_agent(
         normalize_openrouter_model_name(model_name),
         system_prompt,
@@ -168,7 +175,7 @@ def run_structured_ai_task(model_name, system_prompt, user_prompt, output_type):
     return AIResult(output=result.output, usage=result.usage)
 
 
-def embed_query(text, model_name=None):
+def embed_query(text: str, model_name: str | None = None) -> AIResult[list[float]]:
     model_name = model_name or settings.AI_EMBEDDING_MODEL
     embedder = get_openrouter_embedder(
         normalize_openrouter_model_name(model_name),
@@ -179,7 +186,14 @@ def embed_query(text, model_name=None):
         settings.OPENROUTER_APP_TITLE,
     )
     result = embedder.embed_query_sync(text)
-    return AIResult(output=list(result.embeddings[0]), usage=result.usage)
+    if not result.embeddings:
+        raise UserError("OpenRouter embedding response did not include an embedding.")
+
+    embedding = result.embeddings[0]
+    if not embedding:
+        raise UserError("OpenRouter embedding response included an empty embedding.")
+
+    return AIResult(output=list(embedding), usage=result.usage)
 
 
 def normalize_openrouter_model_name(model_name):
