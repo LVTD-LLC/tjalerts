@@ -142,6 +142,7 @@ Common endpoints include:
 - `GET /api/technology/{id}`
 - `GET /api/title/search?query=backend`
 - `GET /api/title/{id}`
+- `GET /api/posts/similar/{id}`
 - `GET /api/emails`
 
 The jobs endpoint supports pagination and filtering by technologies and source:
@@ -160,9 +161,9 @@ Stimulus controllers handle interaction patterns such as filters, search-and-sel
 
 Production-oriented Dockerfiles and entrypoints live in `deployment/`.
 
-- `deployment/Dockerfile.server` builds frontend assets, installs Python dependencies, collects static files, runs migrations, and starts Gunicorn.
-- `deployment/Dockerfile.workers` is used for worker deployments.
-- `deployment/entrypoint.sh` selects server or worker mode.
+- `deployment/Dockerfile.server` builds frontend assets, installs Python dependencies, and starts `deployment/entrypoint.sh -s`.
+- `deployment/Dockerfile.workers` builds frontend assets, installs Python dependencies, and starts `deployment/entrypoint.sh -w`.
+- `deployment/entrypoint.sh` selects server or worker mode. Server mode collects static files, runs migrations, and starts Gunicorn; worker mode starts Django Q.
 
 See [docs/production-data-changes.md](docs/production-data-changes.md) for notes on keeping startup migrations schema-only and running large data work separately.
 
