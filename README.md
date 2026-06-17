@@ -145,13 +145,14 @@ Common endpoints include:
 - `GET /api/title/search?query=backend`
 - `GET /api/title/{id}`
 - `GET /api/posts/similar/{id}`
-- `GET /api/emails`
 
 The jobs endpoint supports pagination and filtering by technologies and source:
 
 ```text
 /api/jobs?technologies=Python,Django&source=Hacker%20News&page=1&page_size=20
 ```
+
+Internal and admin-oriented routes are intentionally omitted from this public endpoint list.
 
 ## Frontend
 
