@@ -115,6 +115,8 @@ npm run build               # Build frontend assets for production
 npm run watch               # Watch frontend assets without the dev server
 ```
 
+The npm commands require Node on the host, or can be run from the Docker `frontend` service.
+
 ## Background Jobs And Imports
 
 Background work runs through Django Q and Redis. The `workers` service starts `python manage.py qcluster`.
