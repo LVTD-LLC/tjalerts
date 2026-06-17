@@ -90,6 +90,8 @@ Then start the development stack:
 make serve
 ```
 
+This starts the local services and follows backend logs in the foreground. Use `docker compose down` when you want to stop the stack.
+
 Useful local URLs:
 
 - App: <http://localhost:8000>
