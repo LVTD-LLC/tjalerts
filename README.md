@@ -102,7 +102,7 @@ The backend container runs migrations before starting Django. The frontend conta
 ## Common Commands
 
 ```bash
-make serve                  # Build and start the local Docker stack
+make serve                  # Build and start the local Docker stack (follows backend logs)
 make shell                  # Open a Django shell_plus session in the backend container
 make manage createsuperuser # Run any Django management command
 make migrate                # Run Django migrations
