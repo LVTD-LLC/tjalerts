@@ -89,12 +89,18 @@
             id="technology-search"
             type="text"
             data-search-and-select-target="search"
-            data-action="input->search-and-select#search"
+            data-action="input->search-and-select#search keydown->search-and-select#handleKeydown"
             placeholder="Search technologies"
             class="app-input"
+            autocomplete="off"
+            spellcheck="false"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-controls="technology-search-results"
+            aria-expanded="false"
           />
-          <div data-search-and-select-target="selectedResults" class="selected-filter-list"></div>
-          <div data-search-and-select-target="searchResults" class="filter-search-results"></div>
+          <div data-search-and-select-target="selectedResults" class="selected-filter-list" role="list" aria-live="polite"></div>
+          <div id="technology-search-results" data-search-and-select-target="searchResults" class="filter-search-results" role="listbox" aria-label="Technology search results"></div>
         </div>
       </div>
 
@@ -111,12 +117,18 @@
             id="title-search"
             type="text"
             data-search-and-select-target="search"
-            data-action="input->search-and-select#search"
+            data-action="input->search-and-select#search keydown->search-and-select#handleKeydown"
             placeholder="Search roles"
             class="app-input"
+            autocomplete="off"
+            spellcheck="false"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-controls="title-search-results"
+            aria-expanded="false"
           />
-          <div data-search-and-select-target="selectedResults" class="selected-filter-list"></div>
-          <div data-search-and-select-target="searchResults" class="filter-search-results"></div>
+          <div data-search-and-select-target="selectedResults" class="selected-filter-list" role="list" aria-live="polite"></div>
+          <div id="title-search-results" data-search-and-select-target="searchResults" class="filter-search-results" role="listbox" aria-label="Role search results"></div>
         </div>
       </div>
     </div>

@@ -20,19 +20,35 @@
 
     <form class="mt-6 space-y-4" method="post" action="{% url 'account_login' %}">
       {% csrf_token %}
-      {{ form.non_field_errors | safe }}
+      {% if form.non_field_errors %}
+      <div class="app-form-error" role="alert">
+        {{ form.non_field_errors | safe }}
+      </div>
+      {% endif %}
       <input type="hidden" name="remember" value="true" />
 
       <div>
-        {{ form.login.errors | safe }}
         <label for="username" class="app-label">Username or email</label>
+        {% if form.login.errors %}
+        {% render_field form.login placeholder="you@example.com" id="username" name="username" type="text" autocomplete="username" required=True aria-invalid="true" aria-describedby="username-error" class="app-input mt-1" %}
+        <div id="username-error" class="app-field-error" role="alert">
+          {{ form.login.errors | safe }}
+        </div>
+        {% else %}
         {% render_field form.login placeholder="you@example.com" id="username" name="username" type="text" autocomplete="username" required=True class="app-input mt-1" %}
+        {% endif %}
       </div>
 
       <div>
-        {{ form.password.errors | safe }}
         <label for="password" class="app-label">Password</label>
+        {% if form.password.errors %}
+        {% render_field form.password id="password" name="password" type="password" autocomplete="current-password" required="True" aria-invalid="true" aria-describedby="password-error" class="app-input mt-1" placeholder="Password" %}
+        <div id="password-error" class="app-field-error" role="alert">
+          {{ form.password.errors | safe }}
+        </div>
+        {% else %}
         {% render_field form.password id="password" name="password" type="password" autocomplete="current-password" required="True" class="app-input mt-1" placeholder="Password" %}
+        {% endif %}
       </div>
 
       {% if redirect_field_value %}

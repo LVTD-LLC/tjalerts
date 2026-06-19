@@ -20,31 +20,59 @@
 
     <form class="mt-6 space-y-4" id="signup_form" method="post" action="{% url 'account_signup' %}">
       {% csrf_token %}
-      {{ form.non_field_errors | safe }}
+      {% if form.non_field_errors %}
+      <div class="app-form-error" role="alert">
+        {{ form.non_field_errors | safe }}
+      </div>
+      {% endif %}
       <input type="hidden" name="remember" value="true" />
 
       <div>
-        {{ form.username.errors | safe }}
         <label for="username" class="app-label">Username</label>
+        {% if form.username.errors %}
+        {% render_field form.username placeholder="username" id="username" name="username" type="text" autocomplete="username" required=True aria-invalid="true" aria-describedby="username-error" class="app-input mt-1" %}
+        <div id="username-error" class="app-field-error" role="alert">
+          {{ form.username.errors | safe }}
+        </div>
+        {% else %}
         {% render_field form.username placeholder="username" id="username" name="username" type="text" autocomplete="username" required=True class="app-input mt-1" %}
+        {% endif %}
       </div>
 
       <div>
-        {{ form.email.errors | safe }}
         <label for="email" class="app-label">Email</label>
+        {% if form.email.errors %}
+        {% render_field form.email id="email" name="email" placeholder="you@example.com" type="email" autocomplete="email" required="True" aria-invalid="true" aria-describedby="email-error" class="app-input mt-1" %}
+        <div id="email-error" class="app-field-error" role="alert">
+          {{ form.email.errors | safe }}
+        </div>
+        {% else %}
         {% render_field form.email id="email" name="email" placeholder="you@example.com" type="email" autocomplete="email" required="True" class="app-input mt-1" %}
+        {% endif %}
       </div>
 
       <div>
-        {{ form.password1.errors | safe }}
         <label for="password1" class="app-label">Password</label>
+        {% if form.password1.errors %}
+        {% render_field form.password1 id="password1" name="password1" placeholder="Password" type="password" autocomplete="new-password" required="True" aria-invalid="true" aria-describedby="password1-error" class="app-input mt-1" %}
+        <div id="password1-error" class="app-field-error" role="alert">
+          {{ form.password1.errors | safe }}
+        </div>
+        {% else %}
         {% render_field form.password1 id="password1" name="password1" placeholder="Password" type="password" autocomplete="new-password" required="True" class="app-input mt-1" %}
+        {% endif %}
       </div>
 
       <div>
-        {{ form.password2.errors | safe }}
         <label for="password2" class="app-label">Confirm password</label>
+        {% if form.password2.errors %}
+        {% render_field form.password2 id="password2" name="password2" type="password" autocomplete="new-password" required="True" aria-invalid="true" aria-describedby="password2-error" class="app-input mt-1" placeholder="Confirm password" %}
+        <div id="password2-error" class="app-field-error" role="alert">
+          {{ form.password2.errors | safe }}
+        </div>
+        {% else %}
         {% render_field form.password2 id="password2" name="password2" type="password" autocomplete="new-password" required="True" class="app-input mt-1" placeholder="Confirm password" %}
+        {% endif %}
       </div>
 
       {% if redirect_field_value %}
