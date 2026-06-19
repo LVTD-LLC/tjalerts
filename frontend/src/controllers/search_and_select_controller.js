@@ -75,7 +75,10 @@ export default class extends Controller {
       }
 
       const items = await response.json();
-      if (query !== this.searchTarget.value) return;
+      if (query !== this.searchTarget.value) {
+        this.clearSearchResults();
+        return;
+      }
 
       const filteredItems = items.filter(item => !this.selectedItems.has(String(item.id)));
 

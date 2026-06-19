@@ -14,10 +14,12 @@ export default class extends Controller {
 
   connect() {
     this.previouslyFocusedElement = null;
+    this.pendingFocusFrame = null;
     this.close();
   }
 
   disconnect() {
+    this.cancelPendingFocus();
     this.restorePageState();
   }
 
@@ -30,7 +32,10 @@ export default class extends Controller {
     this.buttonTarget.setAttribute("aria-expanded", "true");
     document.body.classList.add("overflow-hidden");
 
-    requestAnimationFrame(() => {
+    this.pendingFocusFrame = requestAnimationFrame(() => {
+      this.pendingFocusFrame = null;
+      if (!this.isOpen()) return;
+
       const firstFocusable = this.focusableElements()[0];
       (firstFocusable || this.panelTarget).focus();
     });
@@ -39,6 +44,7 @@ export default class extends Controller {
   close() {
     if (!this.hasMenuTarget) return;
 
+    this.cancelPendingFocus();
     this.menuTarget.classList.add("hidden");
     this.menuTarget.setAttribute("aria-hidden", "true");
 
@@ -97,5 +103,12 @@ export default class extends Controller {
 
   restorePageState() {
     document.body.classList.remove("overflow-hidden");
+  }
+
+  cancelPendingFocus() {
+    if (this.pendingFocusFrame) {
+      cancelAnimationFrame(this.pendingFocusFrame);
+      this.pendingFocusFrame = null;
+    }
   }
 }
