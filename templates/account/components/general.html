@@ -5,11 +5,21 @@
 <form action="" method="post" class="app-panel">
   {% csrf_token %}
   <div class="grid gap-4">
-    {{ form.non_field_errors }}
+    {% if form.non_field_errors %}
+    <div class="app-form-error" role="alert">
+      {{ form.non_field_errors }}
+    </div>
+    {% endif %}
     <div>
-      {{ form.name.errors | safe }}
       <label for="name" class="app-label">Name</label>
+      {% if form.name.errors %}
+      {% render_field form.name id="name" name="name" type="text" autocomplete="given-name" aria-invalid="true" aria-describedby="name-error" class="app-input mt-1" %}
+      <div id="name-error" class="app-field-error" role="alert">
+        {{ form.name.errors | safe }}
+      </div>
+      {% else %}
       {% render_field form.name id="name" name="name" type="text" autocomplete="given-name" class="app-input mt-1" %}
+      {% endif %}
     </div>
   </div>
   <div class="mt-5 flex justify-end">

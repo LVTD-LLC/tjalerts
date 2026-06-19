@@ -12,7 +12,7 @@
       <button
         data-action="click->reveal#hide"
         type="button"
-        class="rounded-md p-1 {% if message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}text-red-700 hover:bg-red-100{% else %}text-emerald-700 hover:bg-emerald-100{% endif %}"
+        class="inline-flex min-h-[2.75rem] min-w-[2.75rem] items-center justify-center rounded-md p-1 {% if message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}text-red-700 hover:bg-red-100{% else %}text-emerald-700 hover:bg-emerald-100{% endif %}"
       >
         <span class="sr-only">Dismiss</span>
         <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">

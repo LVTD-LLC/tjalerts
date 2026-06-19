@@ -3,17 +3,56 @@
 @import "tailwindcss/utilities";
 
 @layer base {
+  :root {
+    --color-canvas: oklch(0.985 0.002 247);
+    --color-surface: oklch(0.995 0.002 247);
+    --color-surface-muted: oklch(0.965 0.004 247);
+    --color-surface-hover: oklch(0.97 0.003 247);
+    --color-text: oklch(0.21 0.006 247);
+    --color-text-muted: oklch(0.46 0.01 247);
+    --color-text-subtle: oklch(0.59 0.012 247);
+    --color-border: oklch(0.89 0.006 247);
+    --color-border-strong: oklch(0.76 0.012 247);
+    --color-field-border: oklch(0.81 0.012 247);
+    --color-disabled: oklch(0.88 0.005 247);
+    --color-disabled-text: oklch(0.62 0.008 247);
+    --color-accent: oklch(0.47 0.12 164);
+    --color-accent-hover: oklch(0.4 0.11 164);
+    --color-accent-surface: oklch(0.96 0.032 164);
+    --color-accent-surface-hover: oklch(0.92 0.05 164);
+    --color-accent-border: oklch(0.86 0.075 164);
+    --color-accent-border-strong: oklch(0.74 0.11 164);
+    --color-accent-text: oklch(0.36 0.095 164);
+    --color-accent-text-strong: oklch(0.22 0.075 164);
+    --color-accent-selection: oklch(0.87 0.08 164);
+    --color-danger: oklch(0.5 0.17 28);
+    --color-danger-hover: oklch(0.43 0.15 28);
+    --color-danger-surface: oklch(0.96 0.025 28);
+    --color-danger-surface-hover: oklch(0.92 0.05 28);
+    --color-danger-border: oklch(0.86 0.07 28);
+    --color-danger-text: oklch(0.46 0.15 28);
+    --color-on-accent: oklch(0.99 0.002 247);
+    --color-focus: var(--color-accent);
+    --radius-panel: 0.5rem;
+    --radius-control: 0.375rem;
+    --target-touch: 2.75rem;
+  }
+
   html {
     scroll-behavior: smooth;
   }
 
   body {
-    @apply bg-zinc-50 text-zinc-950 antialiased;
+    @apply antialiased;
+
+    background-color: var(--color-canvas);
+    color: var(--color-text);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
   ::selection {
-    @apply bg-emerald-200 text-zinc-950;
+    background-color: var(--color-accent-selection);
+    color: var(--color-text);
   }
 
   a,
@@ -22,10 +61,14 @@
   select,
   textarea {
     @apply transition-colors duration-150;
+
+    touch-action: manipulation;
   }
 
   :focus-visible {
-    @apply outline outline-2 outline-offset-2 outline-emerald-700;
+    @apply outline outline-2 outline-offset-2;
+
+    outline-color: var(--color-focus);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -42,7 +85,10 @@
 
 @layer components {
   .app-shell {
-    @apply flex min-h-screen flex-col bg-zinc-50 text-zinc-950;
+    @apply flex min-h-screen flex-col;
+
+    background-color: var(--color-canvas);
+    color: var(--color-text);
   }
 
   .app-container {
@@ -54,43 +100,86 @@
   }
 
   .app-card {
-    @apply rounded-lg border border-zinc-200 bg-white;
+    @apply rounded-lg border;
+
+    background-color: var(--color-surface);
+    border-color: var(--color-border);
+    border-radius: var(--radius-panel);
   }
 
   .app-panel {
-    @apply rounded-lg border border-zinc-200 bg-white p-4 sm:p-6;
+    @apply rounded-lg border p-4 sm:p-6;
+
+    background-color: var(--color-surface);
+    border-color: var(--color-border);
+    border-radius: var(--radius-panel);
   }
 
   .app-muted-panel {
-    @apply rounded-lg border border-zinc-200 bg-zinc-100/70 p-4 sm:p-6;
+    @apply rounded-lg border p-4 sm:p-6;
+
+    background-color: var(--color-surface-muted);
+    border-color: var(--color-border);
+    border-radius: var(--radius-panel);
   }
 
   .filter-panel {
-    @apply space-y-5 rounded-lg border border-zinc-200 bg-white p-4 sm:p-5;
+    @apply space-y-5 rounded-lg border p-4 sm:p-5;
+
+    background-color: var(--color-surface);
+    border-color: var(--color-border);
+    border-radius: var(--radius-panel);
   }
 
   .filter-section {
-    @apply border-t border-zinc-200 pt-5;
+    @apply border-t pt-5;
+
+    border-color: var(--color-border);
   }
 
   .filter-count {
-    @apply whitespace-nowrap rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800;
+    @apply inline-flex min-h-[2.75rem] items-center whitespace-nowrap rounded-md border;
+    @apply px-2 py-1 text-xs font-semibold sm:min-h-0;
+
+    background-color: var(--color-accent-surface);
+    border-color: var(--color-accent-border);
+    border-radius: var(--radius-control);
+    color: var(--color-accent-text);
   }
 
   .filter-choice {
-    @apply flex min-h-[2.5rem] cursor-pointer items-center rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-medium leading-5 text-zinc-700 transition-colors duration-150 hover:border-zinc-300 hover:bg-zinc-50;
+    @apply flex min-h-[2.75rem] cursor-pointer items-center rounded-md border px-3 py-2;
+    @apply text-sm font-medium leading-5 transition-colors duration-150;
+
+    background-color: var(--color-surface);
+    border-color: var(--color-border);
+    border-radius: var(--radius-control);
+    color: var(--color-text-muted);
+  }
+
+  .filter-choice:hover {
+    background-color: var(--color-surface-hover);
+    border-color: var(--color-border-strong);
   }
 
   .filter-choice input {
     @apply sr-only;
   }
 
-  .filter-choice:has(input:checked) {
-    @apply border-emerald-300 bg-emerald-50 text-emerald-950 ring-1 ring-emerald-200;
+  .filter-choice:focus-within {
+    @apply outline outline-2 outline-offset-2;
+
+    outline-color: var(--color-focus);
   }
 
-  .filter-choice:focus-within {
-    @apply outline outline-2 outline-offset-2 outline-emerald-700;
+  .filter-choice:has(input:checked) {
+    @apply ring-1;
+
+    --tw-ring-color: var(--color-accent-border);
+
+    background-color: var(--color-accent-surface);
+    border-color: var(--color-accent-border-strong);
+    color: var(--color-accent-text-strong);
   }
 
   .selected-filter-list {
@@ -98,11 +187,65 @@
   }
 
   .filter-search-results {
-    @apply mt-2 max-h-64 overflow-auto rounded-md bg-white;
+    @apply mt-2 max-h-64 overflow-auto rounded-md;
+
+    background-color: var(--color-surface);
+    border-radius: var(--radius-control);
+  }
+
+  .filter-search-results-active {
+    border: 1px solid var(--color-border);
+  }
+
+  .search-option {
+    @apply flex min-h-[2.75rem] w-full cursor-pointer items-center justify-between gap-3 px-3 py-2;
+    @apply text-left text-sm;
+
+    border-radius: var(--radius-control);
+    color: var(--color-text);
+  }
+
+  .search-option:hover,
+  .search-option-active {
+    background-color: var(--color-surface-hover);
+  }
+
+  .search-option-count {
+    @apply shrink-0 text-xs;
+
+    color: var(--color-text-subtle);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .search-status {
+    @apply p-2 text-sm;
+
+    color: var(--color-text-muted);
+  }
+
+  .search-error {
+    @apply space-y-2 p-2 text-sm;
+
+    color: var(--color-text-muted);
+  }
+
+  .search-retry {
+    @apply inline-flex min-h-[2.75rem] items-center font-semibold;
+
+    color: var(--color-accent-text);
+  }
+
+  .search-retry:hover {
+    color: var(--color-accent-hover);
   }
 
   .result-toolbar {
-    @apply flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between;
+    @apply flex flex-col gap-3 rounded-lg border p-4;
+    @apply sm:flex-row sm:items-center sm:justify-between;
+
+    background-color: var(--color-surface);
+    border-color: var(--color-border);
+    border-radius: var(--radius-panel);
   }
 
   .active-filter-list {
@@ -110,85 +253,336 @@
   }
 
   .active-filter-chip {
-    @apply inline-flex max-w-full items-center gap-2 rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-800 hover:border-zinc-300 hover:bg-zinc-50 active:translate-y-px;
+    @apply inline-flex min-h-[2.75rem] max-w-full items-center gap-2 rounded-md border;
+    @apply px-3 py-2 text-xs font-semibold active:translate-y-px sm:min-h-0 sm:px-2.5 sm:py-1.5;
+
+    background-color: var(--color-surface);
+    border-color: var(--color-border);
+    border-radius: var(--radius-control);
+    color: var(--color-text);
+  }
+
+  .active-filter-chip:hover {
+    background-color: var(--color-surface-hover);
+    border-color: var(--color-border-strong);
   }
 
   .app-page-header {
-    @apply border-b border-zinc-200 bg-white;
+    @apply border-b;
+
+    background-color: var(--color-surface);
+    border-color: var(--color-border);
   }
 
   .app-title {
-    @apply text-2xl font-semibold tracking-tight text-zinc-950 sm:text-3xl;
+    @apply text-2xl font-semibold tracking-tight sm:text-3xl;
+
+    color: var(--color-text);
     text-wrap: balance;
   }
 
   .app-subtitle {
-    @apply mt-2 max-w-2xl text-sm leading-6 text-zinc-600 sm:text-base;
+    @apply mt-2 max-w-2xl text-sm leading-6 sm:text-base;
+
+    color: var(--color-text-muted);
     text-wrap: pretty;
   }
 
   .app-label {
-    @apply block text-sm font-medium text-zinc-800;
+    @apply block text-sm font-medium;
+
+    color: var(--color-text);
   }
 
   .app-help {
-    @apply text-sm leading-6 text-zinc-600;
+    @apply text-sm leading-6;
+
+    color: var(--color-text-muted);
+  }
+
+  .app-field-error {
+    @apply mt-2 text-sm leading-6;
+
+    color: var(--color-danger-text);
+  }
+
+  .app-form-error {
+    @apply rounded-md border px-3 py-2 text-sm leading-6;
+
+    background-color: var(--color-danger-surface);
+    border-color: var(--color-danger-border);
+    border-radius: var(--radius-control);
+    color: var(--color-danger-text);
   }
 
   .app-input {
-    @apply block w-full rounded-md border-0 bg-white px-3 py-2 text-sm text-zinc-950 ring-1 ring-inset ring-zinc-300 placeholder:text-zinc-500 focus:ring-2 focus:ring-inset focus:ring-emerald-700;
+    @apply block min-h-[2.75rem] w-full rounded-md border-0 px-3 py-2 text-sm;
+    @apply ring-1 ring-inset focus:ring-2 focus:ring-inset;
+
+    --tw-ring-color: var(--color-field-border);
+
+    background-color: var(--color-surface);
+    border-radius: var(--radius-control);
+    color: var(--color-text);
+  }
+
+  .app-input::placeholder {
+    color: var(--color-text-subtle);
+  }
+
+  .app-input:focus {
+    --tw-ring-color: var(--color-focus);
   }
 
   .app-select {
-    @apply block w-full rounded-md border-0 bg-white py-2 pl-3 pr-10 text-sm text-zinc-950 ring-1 ring-inset ring-zinc-300 focus:ring-2 focus:ring-inset focus:ring-emerald-700;
+    @apply block min-h-[2.75rem] w-full rounded-md border-0 py-2 pl-3 pr-10 text-sm;
+    @apply ring-1 ring-inset focus:ring-2 focus:ring-inset;
+
+    --tw-ring-color: var(--color-field-border);
+
+    background-color: var(--color-surface);
+    border-radius: var(--radius-control);
+    color: var(--color-text);
+  }
+
+  .app-select:focus {
+    --tw-ring-color: var(--color-focus);
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 active:translate-y-px disabled:cursor-not-allowed disabled:bg-zinc-300;
+    @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold active:translate-y-px;
+    @apply disabled:cursor-not-allowed;
+
+    background-color: var(--color-accent);
+    border-radius: var(--radius-control);
+    color: var(--color-on-accent);
+    min-height: var(--target-touch);
+  }
+
+  .btn-primary:disabled {
+    background-color: var(--color-disabled);
+    color: var(--color-disabled-text);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--color-accent-hover);
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-100 active:translate-y-px disabled:cursor-not-allowed disabled:text-zinc-400;
+    @apply inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-semibold;
+    @apply active:translate-y-px disabled:cursor-not-allowed;
+
+    background-color: var(--color-surface);
+    border-color: var(--color-field-border);
+    border-radius: var(--radius-control);
+    color: var(--color-text);
+    min-height: var(--target-touch);
+  }
+
+  .btn-secondary:disabled {
+    color: var(--color-disabled-text);
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background-color: var(--color-surface-hover);
   }
 
   .btn-danger {
-    @apply inline-flex items-center justify-center rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 active:translate-y-px;
+    @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold active:translate-y-px;
+
+    background-color: var(--color-danger);
+    border-radius: var(--radius-control);
+    color: var(--color-on-accent);
+    min-height: var(--target-touch);
+  }
+
+  .btn-danger:hover {
+    background-color: var(--color-danger-hover);
   }
 
   .btn-quiet {
-    @apply inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 active:translate-y-px;
+    @apply inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium active:translate-y-px;
+
+    border-radius: var(--radius-control);
+    color: var(--color-text-muted);
+    min-height: var(--target-touch);
+  }
+
+  .btn-quiet:hover {
+    background-color: var(--color-surface-hover);
+    color: var(--color-text);
   }
 
   .nav-link {
-    @apply rounded-md px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950;
+    @apply inline-flex items-center rounded-md px-3 py-2 text-sm font-medium;
+
+    border-radius: var(--radius-control);
+    color: var(--color-text-muted);
+    min-height: var(--target-touch);
+  }
+
+  .nav-link:hover {
+    background-color: var(--color-surface-hover);
+    color: var(--color-text);
   }
 
   .nav-link-active {
-    @apply bg-zinc-100 text-zinc-950;
+    background-color: var(--color-surface-hover);
+    color: var(--color-text);
   }
 
   .tag {
-    @apply my-1 mr-1 inline-flex items-center rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800 hover:border-emerald-400 hover:bg-emerald-100;
+    @apply my-1 mr-1 inline-flex min-h-[2.75rem] items-center rounded-md border px-2.5 py-2;
+    @apply text-xs font-medium sm:min-h-0 sm:px-2 sm:py-1;
+
+    background-color: var(--color-accent-surface);
+    border-color: var(--color-accent-border);
+    border-radius: var(--radius-control);
+    color: var(--color-accent-text);
+  }
+
+  .tag:hover {
+    background-color: var(--color-accent-surface-hover);
+    border-color: var(--color-accent-border-strong);
   }
 
   .tag-neutral {
-    @apply my-1 mr-1 inline-flex items-center rounded-md border border-zinc-200 bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700;
+    @apply my-1 mr-1 inline-flex min-h-[2.75rem] items-center rounded-md border px-2.5 py-2;
+    @apply text-xs font-medium sm:min-h-0 sm:px-2 sm:py-1;
+
+    background-color: var(--color-surface-muted);
+    border-color: var(--color-border);
+    border-radius: var(--radius-control);
+    color: var(--color-text-muted);
+  }
+
+  .chip-action {
+    @apply -my-2 -mr-2 ml-1 inline-flex min-h-[2.75rem] min-w-[2.75rem] items-center justify-center rounded-md;
+
+    color: var(--color-accent-text-strong);
+  }
+
+  .chip-action:hover {
+    background-color: var(--color-accent-surface-hover);
   }
 
   .job-card {
-    @apply rounded-lg border border-zinc-200 bg-white transition-colors duration-150 hover:border-zinc-300 hover:bg-zinc-50;
+    @apply rounded-lg border transition-colors duration-150;
+
+    background-color: var(--color-surface);
+    border-color: var(--color-border);
+    border-radius: var(--radius-panel);
+  }
+
+  .job-card:hover {
+    background-color: var(--color-surface-hover);
+    border-color: var(--color-border-strong);
   }
 
   .job-section-label {
-    @apply text-xs font-semibold text-zinc-500;
+    @apply text-xs font-semibold;
+
+    color: var(--color-text-subtle);
   }
 
   .empty-state {
-    @apply rounded-lg border border-dashed border-zinc-300 bg-white p-8 text-center;
+    @apply rounded-lg border border-dashed p-8 text-center;
+
+    background-color: var(--color-surface);
+    border-color: var(--color-field-border);
+    border-radius: var(--radius-panel);
   }
 
   .auth-panel {
-    @apply mx-auto w-full max-w-md rounded-lg border border-zinc-200 bg-white p-6 sm:p-8;
+    @apply mx-auto w-full max-w-md rounded-lg border p-6 sm:p-8;
+
+    background-color: var(--color-surface);
+    border-color: var(--color-border);
+    border-radius: var(--radius-panel);
+  }
+
+  .home-hero {
+    @apply overflow-hidden border-b;
+
+    background-color: var(--color-surface);
+    border-color: var(--color-border);
+  }
+
+  .home-eyebrow {
+    @apply text-sm font-semibold;
+
+    color: var(--color-accent-text);
+  }
+
+  .home-title {
+    @apply mt-3 max-w-4xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl lg:text-6xl;
+
+    color: var(--color-text);
+    text-wrap: balance;
+  }
+
+  .home-copy {
+    @apply mt-5 max-w-2xl text-base leading-7 sm:text-lg;
+
+    color: var(--color-text-muted);
+    text-wrap: pretty;
+  }
+
+  .home-alert-composer {
+    @apply rounded-lg border p-4 sm:p-5;
+
+    background-color: var(--color-surface-muted);
+    border-color: var(--color-border);
+    border-radius: var(--radius-panel);
+  }
+
+  .home-intent-input {
+    @apply mt-2 block min-h-[190px] w-full rounded-lg border-0 px-4 py-4 text-base leading-7;
+    @apply ring-1 ring-inset focus:ring-2 focus:ring-inset;
+
+    --tw-ring-color: var(--color-field-border);
+
+    background-color: var(--color-surface);
+    color: var(--color-text);
+  }
+
+  .home-intent-input:focus {
+    --tw-ring-color: var(--color-focus);
+  }
+
+  .home-intent-input:disabled {
+    --tw-ring-color: var(--color-border);
+
+    background-color: var(--color-surface-muted);
+    color: var(--color-text-muted);
+  }
+
+  .home-stat {
+    @apply rounded-lg border p-4;
+
+    background-color: var(--color-surface-muted);
+    border-color: var(--color-border);
+    border-radius: var(--radius-panel);
+  }
+
+  .home-stat-label {
+    @apply text-sm font-medium;
+
+    color: var(--color-text-muted);
+  }
+
+  .home-stat-value {
+    @apply mt-2 text-2xl font-semibold tracking-tight;
+
+    color: var(--color-text);
+  }
+
+  .dynamic-title {
+    color: var(--color-text);
+  }
+
+  .dynamic-copy {
+    color: var(--color-text-muted);
   }
 
   .legal-copy {
