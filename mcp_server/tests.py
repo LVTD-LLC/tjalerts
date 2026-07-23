@@ -1,7 +1,8 @@
 import json
+from unittest.mock import patch
 
 import anyio
-from django.test import TransactionTestCase
+from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
 from fastmcp import Client
 from mcp.types import ToolAnnotations
@@ -96,3 +97,33 @@ class MCPServerTests(TransactionTestCase):
         payload = json.loads(response.content)
         self.assertEqual(payload["result"]["serverInfo"]["name"], "Tech Job Alerts")
         self.assertNotIn("Mcp-Session-Id", response.headers)
+
+    @override_settings(
+        SENTRY_DSN="https://public@example.com/1",
+        SENTRY_ENABLE_METRICS=True,
+        SENTRY_ENABLE_LOGS=False,
+    )
+    def test_mcp_emits_http_request_metrics(self):
+        with patch("hn_jobs.middleware.capture_http_server_metrics") as capture_mock:
+            with TestClient(application) as client:
+                response = client.post(
+                    "/mcp/",
+                    headers=MCP_HEADERS,
+                    json={
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "initialize",
+                        "params": {
+                            "protocolVersion": "2025-06-18",
+                            "capabilities": {},
+                            "clientInfo": {"name": "tjalerts-test", "version": "0.1"},
+                        },
+                    },
+                )
+
+        self.assertEqual(response.status_code, 200)
+        capture_mock.assert_called_once()
+        request = capture_mock.call_args.args[0]
+        self.assertEqual(request.method, "POST")
+        self.assertEqual(capture_mock.call_args.kwargs["route_name"], "mcp")
+        self.assertEqual(capture_mock.call_args.kwargs["status_code"], 200)

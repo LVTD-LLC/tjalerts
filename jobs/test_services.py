@@ -80,6 +80,19 @@ class JobQueryServiceTests(TestCase):
             ],
         )
 
+    def test_search_jobs_excludes_incomplete_posts(self):
+        incomplete_post = Post.objects.create(
+            company=self.remote_post.company,
+            submitted_datetime=timezone.now(),
+            description="",
+            source=PostSource.REMOTE_OK,
+        )
+
+        result = search_jobs()
+
+        self.assertEqual(result["count"], 2)
+        self.assertNotIn(str(incomplete_post.id), [job["id"] for job in result["jobs"]])
+
     def test_get_job_returns_one_serialized_job(self):
         result = get_job(self.remote_post.id)
 

@@ -116,7 +116,7 @@ def search_jobs(
     if technologies and len(technologies) > MAX_TECHNOLOGY_FILTERS:
         raise JobQueryError(f"Use at most {MAX_TECHNOLOGY_FILTERS} technology filters")
 
-    posts = _job_queryset()
+    posts = _job_queryset().exclude(description__exact="")
 
     if query and (query := query.strip()):
         if len(query) > MAX_JOB_QUERY_LENGTH:
