@@ -197,6 +197,7 @@ INSTALLED_APPS = [
     "users.apps.UsersConfig",
     "jobs.apps.JobsConfig",
     "api.apps.ApiConfig",
+    "mcp_server.apps.MCPServerConfig",
     "utils.apps.UtilsConfig",
     "blog.apps.BlogConfig",
 ]
@@ -239,6 +240,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "hn_jobs.wsgi.application"
+ASGI_APPLICATION = "hn_jobs.asgi.application"
 
 
 # Database

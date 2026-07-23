@@ -9,7 +9,7 @@ The app powers [jobs.lvtd.dev](https://jobs.lvtd.dev/). It imports job posts fro
 - Aggregates developer jobs from Hacker News Who is Hiring threads, Remote OK, and We Work Remotely.
 - Uses OpenAI-backed extraction and embeddings to normalize job titles, technologies, company details, compensation, locations, remote policy, contact data, and application links.
 - Provides keyword search, semantic intent search, technology filters, role filters, source filters, location filters, salary filters, work-mode filters, and recency filters.
-- Exposes job data through a web UI and HTTP API, with CLI and MCP access on the product roadmap.
+- Exposes job data through a web UI, HTTP API, and a read-only MCP server, with CLI access on the product roadmap.
 - Exposes public browsing pages for jobs, companies, technologies, titles, highest-paid roles, and blog content.
 - Includes internal admin workflows for imports, vector backfills, salary extraction, and data cleanup.
 - Ships with structured logging, Sentry, PostHog, Logfire, and Django Q workers for background jobs.
@@ -32,6 +32,7 @@ The app powers [jobs.lvtd.dev](https://jobs.lvtd.dev/). It imports job posts fro
 hn_jobs/      Django project settings, URLs, middleware, observability, and shared helpers
 jobs/         Job models, filters, views, import tasks, alert logic, and enrichment code
 api/          Django Ninja API endpoints and schemas
+mcp_server/   Read-only FastMCP tools backed by the shared jobs service layer
 pages/        Marketing/static pages, support form, and admin panel views
 users/        Custom user model, auth forms, account views, and signals
 blog/         Blog models, views, URLs, and templates
@@ -155,6 +156,17 @@ The jobs endpoint supports pagination and filtering by technologies and source:
 ```
 
 Internal and admin-oriented routes are intentionally omitted from this public endpoint list.
+
+## MCP
+
+The read-only MCP server is served over streamable HTTP at `/mcp/`. It exposes:
+
+- `search_jobs` for bounded text, technology, source, remote, and salary searches
+- `get_job` for fetching one public job by UUID
+
+Both tools call `jobs.services`, the transport-neutral query layer intended for reuse by
+future API and CLI surfaces. The MCP app does not expose import, enrichment, admin, or
+other mutation operations.
 
 ## Frontend
 

@@ -35,7 +35,11 @@ if [ "$server" = true ]; then
     # docs/production-data-changes.md.
     python manage.py migrate
     # python manage.py djstripe_sync_models
-    gunicorn ${PROJECT_NAME}.wsgi:application --bind 0.0.0.0:80 --workers 3 --threads 2 --reload
+    gunicorn ${PROJECT_NAME}.asgi:application \
+        --bind 0.0.0.0:80 \
+        --workers 3 \
+        --worker-class uvicorn_worker.UvicornWorker \
+        --reload
 else
     python manage.py qcluster
 fi
