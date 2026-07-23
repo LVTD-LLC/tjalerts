@@ -6,11 +6,11 @@ product
 
 ## Users
 
-Actively job-seeking developers are the primary users. They come to the product to find relevant technology jobs quickly, compare opportunities, and create alerts for new matches. Casual browsers are a secondary audience: they should be able to scan companies, roles, and technologies without committing to an alert immediately.
+Actively job-seeking developers are the primary human users. They come to the product to find relevant technology jobs quickly and compare opportunities. AI agents and developers building job-search workflows are a second primary audience: they need structured, dependable access through the API, CLI, and MCP. Casual browsers should be able to scan companies, roles, and technologies without creating an account.
 
 ## Product Purpose
 
-Tech Job Alerts turns Hacker News job posts into a searchable, filterable job board with personalized alerts. Success means a developer can understand the current market, find relevant openings, and subscribe to useful updates without friction.
+Tech Job Alerts turns job posts from Hacker News and remote-job sources into a searchable, structured database. Success means a person or agent can discover relevant openings and reliably access the same normalized job data through the UI, API, CLI, or MCP.
 
 ## Brand Personality
 
@@ -18,14 +18,14 @@ Clear, useful, straightforward. The interface should feel like a dependable work
 
 ## Anti-references
 
-Avoid generic SaaS decoration, heavy gradients, playful startup visuals, ornamental motion, vague marketing copy, and anything that makes job search feel less direct. Do not hide core jobs, filters, or alert actions behind decorative layouts.
+Avoid generic SaaS decoration, heavy gradients, playful startup visuals, ornamental motion, vague marketing copy, and anything that makes job search feel less direct. Do not hide core jobs, filters, or access methods behind decorative layouts.
 
 ## Design Principles
 
-1. Put the work first: search, filters, job cards, and alert creation should be immediately visible and easy to use.
+1. Put the data first: search, filters, job cards, and access methods should be immediately visible and easy to use.
 2. Optimize for scanning: developers should compare roles, companies, tech stacks, remote status, compensation, and recency at a glance.
 3. Keep confidence high: use plain copy, predictable controls, visible states, and accessible contrast.
-4. Support both intent levels: job seekers get powerful filtering and alerts, casual browsers can browse without pressure.
+4. Support both audiences: job seekers get powerful browsing and filtering, while agents get documented, stable interfaces.
 5. Stay quiet: visual polish should come from spacing, typography, alignment, and component consistency, not decoration.
 
 ## Accessibility & Inclusion

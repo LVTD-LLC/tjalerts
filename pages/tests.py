@@ -9,6 +9,7 @@ class HomePageRenderTests(TestCase):
         response = self.client.get(reverse("home"))
 
         assert response.status_code == 200
+        self.assertContains(response, "Search a structured database of tech jobs.")
         self.assertContains(response, "Browse database")
         self.assertContains(response, reverse("posts"))
 

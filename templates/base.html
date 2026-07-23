@@ -11,24 +11,23 @@
   <link rel="icon" type="image/png" sizes="16x16 32x32 500x500" href="{% static 'vendors/favicon/logo.png' %}" />
 
   {% block meta %}
-  <title>Tech Job Alerts</title>
-  <meta name="description" content="Search technology jobs from Hacker News and create alerts for the stacks you care about." />
-  <meta name="keywords" content="jobs, tech jobs, tech job alerts" />
+  <title>Tech Jobs Database | Search Developer Jobs</title>
+  <meta name="description" content="Search a structured database of developer and startup jobs by role, technology, company, salary, location, work mode, and source." />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="{{ SITE_URL }}/" />
 
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Tech Job Alerts" />
+  <meta property="og:title" content="Tech Jobs Database" />
   <meta property="og:url" content="{{ SITE_URL }}/" />
-  <meta property="og:description" content="Search technology jobs from Hacker News and create alerts for the stacks you care about." />
+  <meta property="og:description" content="Search a structured database of developer and startup jobs by role, technology, company, salary, location, work mode, and source." />
   <meta property="og:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
   <meta property="og:locale" content="en_US" />
 
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:creator" content="@rasulkireev" />
   <meta name="twitter:site" content="@rasulkireev" />
-  <meta name="twitter:title" content="Tech Job Alerts" />
-  <meta name="twitter:description" content="Search technology jobs from Hacker News and create alerts for the stacks you care about." />
+  <meta name="twitter:title" content="Tech Jobs Database" />
+  <meta name="twitter:description" content="Search a structured database of developer and startup jobs by role, technology, company, salary, location, work mode, and source." />
   <meta name="twitter:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
   {% endblock meta %}
 
@@ -36,7 +35,7 @@
   {{ SENTRY_BROWSER_CONFIG|json_script:"tjalerts-sentry-config" }}
   {% javascript_pack 'index' attrs='defer' %}
 
-  <script defer data-domain="gettjalerts.com" src="https://plausible-v2.cr.lvtd.dev/js/script.js"></script>
+  <script defer data-domain="jobs.lvtd.dev" src="https://plausible-v2.cr.lvtd.dev/js/script.js"></script>
   {% if POSTHOG_ENABLED and POSTHOG_API_KEY %}
   <script>
     !function (t, e) { var o, n, p, r; e.__SV || (window.posthog = e, e._i = [], e.init = function (i, s, a) { function g(t, e) { var o = e.split("."); 2 == o.length && (t = t[o[0]], e = o[1]), t[e] = function () { t.push([e].concat(Array.prototype.slice.call(arguments, 0))) } } (p = t.createElement("script")).type = "text/javascript", p.crossOrigin = "anonymous", p.async = !0, p.src = s.api_host.replace(".i.posthog.com", "-assets.i.posthog.com") + "/static/array.js", (r = t.getElementsByTagName("script")[0]).parentNode.insertBefore(p, r); var u = e; for (void 0 !== a ? u = e[a] = [] : a = "posthog", u.people = u.people || [], u.toString = function (t) { var e = "posthog"; return "posthog" !== a && (e += "." + a), t || (e += " (stub)"), e }, u.people.toString = function () { return u.toString(1) + ".people (stub)" }, o = "capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys".split(" "), n = 0; n < o.length; n++)g(u, o[n]); e._i.push([i, s, a]) }, e.__SV = 1) }(document, window.posthog || []);
@@ -193,8 +192,8 @@
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      "name": "Tech Job Alerts",
-      "description": "Search technology jobs from Hacker News and create alerts for the stacks you care about.",
+      "name": "Tech Jobs Database",
+      "description": "Search a structured database of developer and startup jobs by role, technology, company, salary, location, work mode, and source.",
       "thumbnailUrl": "{{ SITE_URL }}{% static 'vendors/images/logo.png' %}",
       "url": "{{ SITE_URL }}/",
       "author": {

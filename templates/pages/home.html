@@ -4,24 +4,23 @@
 {% load widget_tweaks %}
 
 {% block meta %}
-<title>Tech Job Alerts | Tell us what jobs to watch</title>
-<meta name="description" content="Describe the role you want and Tech Job Alerts will watch the job database for matching Hacker News and remote startup roles." />
-<meta name="keywords" content="jobs, tech jobs, tech job alerts, Hacker News jobs" />
+<title>Tech Jobs Database | Search Developer and Startup Jobs</title>
+<meta name="description" content="Search developer and startup jobs from Hacker News, Remote OK, and other sources by stack, role, company, salary, location, and work mode." />
 <meta name="robots" content="index, follow" />
 <link rel="canonical" href="{{ SITE_URL }}/" />
 
 <meta property="og:type" content="website" />
-<meta property="og:title" content="Tech Job Alerts" />
+<meta property="og:title" content="Tech Jobs Database" />
 <meta property="og:url" content="{{ SITE_URL }}/" />
-<meta property="og:description" content="Describe the role you want and Tech Job Alerts will watch the job database for matching Hacker News and remote startup roles." />
+<meta property="og:description" content="Search developer and startup jobs from Hacker News, Remote OK, and other sources by stack, role, company, salary, location, and work mode." />
 <meta property="og:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
 <meta property="og:locale" content="en_US" />
 
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:creator" content="@rasulkireev" />
 <meta name="twitter:site" content="@rasulkireev" />
-<meta name="twitter:title" content="Tech Job Alerts" />
-<meta name="twitter:description" content="Describe the role you want and Tech Job Alerts will watch the job database for matching Hacker News and remote startup roles." />
+<meta name="twitter:title" content="Tech Jobs Database" />
+<meta name="twitter:description" content="Search developer and startup jobs from Hacker News, Remote OK, and other sources by stack, role, company, salary, location, and work mode." />
 <meta name="twitter:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
 {% endblock meta %}
 
@@ -32,10 +31,10 @@
       <div>
         <p class="home-eyebrow">Hacker News and remote startup jobs</p>
         <h1 class="home-title">
-          Describe the role. We watch the database.
+          Search a structured database of tech jobs.
         </h1>
         <p class="home-copy">
-          Tell us the stack, role, location, seniority, and constraints you care about. We turn that into a few focused alerts for your confirmed account.
+          Browse developer and startup jobs by stack, role, company, salary, location, work mode, and source. Every post is normalized into data you can compare and filter.
         </p>
         <div class="mt-7 flex flex-wrap gap-2">
           <a href="{% url 'posts' %}" class="btn-primary">Browse database</a>
@@ -97,8 +96,8 @@
         <dd class="home-stat-value">HN + Remote OK</dd>
       </div>
       <div class="home-stat">
-        <dt class="home-stat-label">Delivery</dt>
-        <dd class="home-stat-value">Weekly digest</dd>
+        <dt class="home-stat-label">Access</dt>
+        <dd class="home-stat-value">UI + API</dd>
       </div>
       <div class="home-stat">
         <dt class="home-stat-label">Browsing</dt>

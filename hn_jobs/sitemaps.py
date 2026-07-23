@@ -1,6 +1,9 @@
 from datetime import timedelta
+from types import SimpleNamespace
+from urllib.parse import urlsplit
 
 from django.contrib import sitemaps
+from django.conf import settings
 
 # from django.contrib.sitemaps import GenericSitemap
 from django.db.models import Count, Exists, Max, OuterRef
@@ -13,7 +16,13 @@ from jobs.models import Company, Post, Technology, Title
 from utils.constants import HIRABLE_TECH_LIST_SLUGS
 
 
-class StaticViewSitemap(sitemaps.Sitemap):
+class CanonicalHostSitemap(sitemaps.Sitemap):
+    def get_urls(self, page=1, site=None, protocol=None):
+        canonical_site = SimpleNamespace(domain=urlsplit(settings.SITE_URL).netloc)
+        return super().get_urls(page=page, site=canonical_site, protocol=protocol)
+
+
+class StaticViewSitemap(CanonicalHostSitemap):
     priority = 0.9
     protocol = "https"
 
@@ -35,26 +44,29 @@ class StaticViewSitemap(sitemaps.Sitemap):
         return reverse(item)
 
 
-class HighestPaidJobsListicleSitemap(sitemaps.Sitemap):
+class HighestPaidJobsListicleSitemap(CanonicalHostSitemap):
     changefreq = "weekly"
     priority = 0.8
     protocol = "https"
 
     def items(self):
         return (
-            Technology.objects.filter(slug__in=HIRABLE_TECH_LIST_SLUGS)
-            .annotate(num_posts=Count("post"))
-            .filter(num_posts__gt=0)
+            Technology.objects.filter(slug__in=HIRABLE_TECH_LIST_SLUGS, post__isnull=False)
+            .order_by("slug")
+            .values_list("slug", flat=True)
+            .distinct()
         )
 
-    def lastmod(self, obj):
-        return Post.objects.filter(technologies=obj).aggregate(latest_date=Max("submitted_datetime"))["latest_date"]
+    def lastmod(self, slug):
+        return Post.objects.filter(technologies__slug=slug).aggregate(latest_date=Max("submitted_datetime"))[
+            "latest_date"
+        ]
 
-    def location(self, obj):
-        return reverse("highest-paid-job-blog-post", kwargs={"slug": obj.slug})
+    def location(self, slug):
+        return reverse("highest-paid-job-blog-post", kwargs={"slug": slug})
 
 
-class CompaniesJobsListicleSitemap(sitemaps.Sitemap):
+class CompaniesJobsListicleSitemap(CanonicalHostSitemap):
     changefreq = "weekly"
     priority = 0.8
     protocol = "https"
@@ -63,22 +75,23 @@ class CompaniesJobsListicleSitemap(sitemaps.Sitemap):
         two_months_ago = timezone.now() - timedelta(days=60)
         recent_posts = Post.objects.filter(submitted_datetime__gte=two_months_ago).values("company")
 
-        companies_with_recent_posts = (
+        return (
             Company.objects.annotate(has_recent_posts=Exists(recent_posts.filter(company=OuterRef("pk"))))
             .filter(has_recent_posts=True)
-            .exclude(name="")
+            .exclude(name="", slug="")
+            .order_by("slug")
+            .values_list("slug", flat=True)
             .distinct()
         )
-        return companies_with_recent_posts
 
-    def lastmod(self, obj):
-        return Post.objects.filter(company=obj).aggregate(latest_date=Max("submitted_datetime"))["latest_date"]
+    def lastmod(self, slug):
+        return Post.objects.filter(company__slug=slug).aggregate(latest_date=Max("submitted_datetime"))["latest_date"]
 
-    def location(self, obj):
-        return reverse("company-jobs", kwargs={"slug": obj.slug})
+    def location(self, slug):
+        return reverse("company-jobs", kwargs={"slug": slug})
 
 
-class TechnologiesJobsListicleSitemap(sitemaps.Sitemap):
+class TechnologiesJobsListicleSitemap(CanonicalHostSitemap):
     changefreq = "weekly"
     priority = 0.8
     protocol = "https"
@@ -87,25 +100,29 @@ class TechnologiesJobsListicleSitemap(sitemaps.Sitemap):
         two_months_ago = timezone.now() - timedelta(days=60)
         recent_posts = Post.objects.filter(submitted_datetime__gte=two_months_ago).values("technologies")
 
-        technologies_with_recent_posts = (
+        return (
             Technology.objects.exclude(name__in=EXCLUDED_TECHNOLOGIES)
             .annotate(
                 post_count=Count("posttechnology"),
                 has_recent_posts=Exists(recent_posts.filter(technologies=OuterRef("pk"))),
             )
             .filter(has_recent_posts=True, post_count__gt=0)
+            .exclude(slug="")
+            .order_by("slug")
+            .values_list("slug", flat=True)
             .distinct()
         )
-        return technologies_with_recent_posts
 
-    def lastmod(self, obj):
-        return Post.objects.filter(technologies=obj).aggregate(latest_date=Max("submitted_datetime"))["latest_date"]
+    def lastmod(self, slug):
+        return Post.objects.filter(technologies__slug=slug).aggregate(latest_date=Max("submitted_datetime"))[
+            "latest_date"
+        ]
 
-    def location(self, obj):
-        return reverse("technology-jobs", kwargs={"slug": obj.slug})
+    def location(self, slug):
+        return reverse("technology-jobs", kwargs={"slug": slug})
 
 
-class TitlesJobsListicleSitemap(sitemaps.Sitemap):
+class TitlesJobsListicleSitemap(CanonicalHostSitemap):
     changefreq = "weekly"
     priority = 0.8
     protocol = "https"
@@ -114,24 +131,26 @@ class TitlesJobsListicleSitemap(sitemaps.Sitemap):
         two_months_ago = timezone.now() - timedelta(days=60)
         recent_posts = Post.objects.filter(submitted_datetime__gte=two_months_ago).values("titles")
 
-        titles_with_recent_posts = (
+        return (
             Title.objects.annotate(
                 post_count=Count("posttitle"),
                 has_recent_posts=Exists(recent_posts.filter(titles=OuterRef("pk"))),
             )
             .filter(has_recent_posts=True, post_count__gt=0)
+            .exclude(slug="")
+            .order_by("slug")
+            .values_list("slug", flat=True)
             .distinct()
         )
-        return titles_with_recent_posts
 
-    def lastmod(self, obj):
-        return Post.objects.filter(titles=obj).aggregate(latest_date=Max("submitted_datetime"))["latest_date"]
+    def lastmod(self, slug):
+        return Post.objects.filter(titles__slug=slug).aggregate(latest_date=Max("submitted_datetime"))["latest_date"]
 
-    def location(self, obj):
-        return reverse("title-jobs", kwargs={"slug": obj.slug})
+    def location(self, slug):
+        return reverse("title-jobs", kwargs={"slug": slug})
 
 
-class BlogPostSitemap(sitemaps.Sitemap):
+class BlogPostSitemap(CanonicalHostSitemap):
     changefreq = "weekly"
     priority = 0.91
     protocol = "https"
@@ -146,7 +165,7 @@ class BlogPostSitemap(sitemaps.Sitemap):
         return reverse("blog-post", kwargs={"slug": obj.slug})
 
 
-class RecentPostSitemap(sitemaps.Sitemap):
+class RecentPostSitemap(CanonicalHostSitemap):
     changefreq = "daily"
     priority = 0.7
     protocol = "https"
