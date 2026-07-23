@@ -30,7 +30,7 @@ services:
       context: .
       dockerfile: ./deployment/Dockerfile.python
     working_dir: /app
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    command: sh -c "python manage.py migrate && uvicorn hn_jobs.asgi:application --host 0.0.0.0 --port 8000 --reload"
     volumes:
       - .:/app
     ports:
