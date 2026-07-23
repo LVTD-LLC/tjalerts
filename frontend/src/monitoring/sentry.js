@@ -18,29 +18,27 @@ const addIntegration = (integrations, integrationFactory, options) => {
   }
 };
 
-const initSentry = async () => {
-  const config = readSentryConfig();
-
+const initSentry = async (config) => {
   if (!config.dsn) {
     return;
   }
 
-  const Sentry = await import("@sentry/browser");
-  const integrations = [];
-  addIntegration(integrations, Sentry.browserTracingIntegration);
-  addIntegration(integrations, Sentry.feedbackIntegration, {
-    colorScheme: "system",
-    showBranding: false,
-  });
-  addIntegration(integrations, Sentry.replayIntegration, {
-    blockAllMedia: true,
-    maskAllText: true,
-  });
-  addIntegration(integrations, Sentry.consoleLoggingIntegration, {
-    levels: ["warn", "error"],
-  });
+  const {
+    browserTracingIntegration,
+    consoleLoggingIntegration,
+    init,
+  } = await import("@sentry/browser");
 
-  Sentry.init({
+  const integrations = [];
+  addIntegration(integrations, browserTracingIntegration);
+
+  if (config.enableLogs) {
+    addIntegration(integrations, consoleLoggingIntegration, {
+      levels: ["warn", "error"],
+    });
+  }
+
+  init({
     dsn: config.dsn,
     environment: config.environment || undefined,
     release: config.release || undefined,
@@ -54,4 +52,27 @@ const initSentry = async () => {
   });
 };
 
-initSentry().catch(() => {});
+const scheduleSentryInit = () => {
+  const config = readSentryConfig();
+
+  if (!config.dsn) {
+    return;
+  }
+
+  const start = () => {
+    initSentry(config).catch(() => {});
+  };
+
+  if ("requestIdleCallback" in window) {
+    window.requestIdleCallback(start, { timeout: 3000 });
+    return;
+  }
+
+  window.setTimeout(start, 1500);
+};
+
+if (document.readyState === "complete") {
+  scheduleSentryInit();
+} else {
+  window.addEventListener("load", scheduleSentryInit, { once: true });
+}

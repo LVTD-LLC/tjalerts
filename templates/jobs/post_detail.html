@@ -57,11 +57,13 @@
                             {% if object.company_job_application_link %}
                                 <a href="{{ object.split_application_links.0 }}?utm_source=gettjalerts.com"
                                    target="_blank"
+                                   rel="noopener noreferrer"
                                    class="btn-primary">Apply</a>
                             {% endif %}
                             {% if object.source == "Hacker News" %}
                                 <a href="https://news.ycombinator.com/item?id={{ object.who_is_hiring_comment_id }}&utm_source=gettjalerts.com"
                                    target="_blank"
+                                   rel="noopener noreferrer"
                                    class="btn-secondary gap-2">
                                     <img src="{% static 'vendors/images/source-hacker-news.svg' %}"
                                          alt=""
@@ -72,6 +74,7 @@
                             {% elif object.source == "Remote OK" and object.source_url %}
                                 <a href="{{ object.source_url }}"
                                    target="_blank"
+                                   rel="noopener noreferrer"
                                    class="btn-secondary gap-2">
                                     <img src="{% static 'vendors/images/source-remote-ok.png' %}"
                                          alt=""
@@ -82,11 +85,13 @@
                             {% elif object.source_url %}
                                 <a href="{{ object.source_url }}"
                                    target="_blank"
+                                   rel="noopener noreferrer"
                                    class="btn-secondary gap-2">View on {{ object.source }}</a>
                             {% endif %}
                             {% if object.company.company_homepage_link %}
                                 <a href="{{ object.company.fixed_company_homepage_link }}"
                                    target="_blank"
+                                   rel="noopener noreferrer"
                                    class="btn-secondary">Company site</a>
                             {% endif %}
                         </div>
@@ -389,6 +394,7 @@
                                             <dd class="mt-1 break-words leading-6 text-zinc-700">
                                                 <a href="{{ details.canonical_job_url }}"
                                                    target="_blank"
+                                                   rel="noopener noreferrer"
                                                    class="hover:text-zinc-950">{{ details.canonical_job_url }}</a>
                                             </dd>
                                         </div>
@@ -482,7 +488,7 @@
                             <div class="mb-3 flex items-center justify-between">
                                 <h2 class="text-lg font-semibold text-zinc-950">Similar jobs</h2>
                             </div>
-                            <ul data-similar-posts-target="container" role="list" class="space-y-3">
+                            <ul data-similar-posts-target="container" role="list" class="space-y-3" aria-live="polite" aria-busy="true">
                                 <li class="app-panel">
                                     <p class="text-sm text-zinc-600">Loading similar jobs...</p>
                                 </li>
@@ -505,6 +511,7 @@
                                         {% if object.source != "Hacker News" and object.source_url %}
                                             <a href="{{ object.source_url }}"
                                                target="_blank"
+                                               rel="noopener noreferrer"
                                                class="hover:text-zinc-700">{{ object.source }}</a>
                                         {% else %}
                                             {{ object.source }}

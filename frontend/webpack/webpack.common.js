@@ -32,7 +32,22 @@ module.exports = {
     new CleanWebpackPlugin(),
     new CopyWebpackPlugin({
       patterns: [
-        { from: Path.resolve(__dirname, "../vendors"), to: "vendors" },
+        {
+          from: Path.resolve(__dirname, "../vendors/favicon/logo.png"),
+          to: "vendors/favicon/logo.png",
+        },
+        {
+          from: Path.resolve(__dirname, "../vendors/images/logo.png"),
+          to: "vendors/images/logo.png",
+        },
+        {
+          from: Path.resolve(__dirname, "../vendors/images/source-hacker-news.svg"),
+          to: "vendors/images/source-hacker-news.svg",
+        },
+        {
+          from: Path.resolve(__dirname, "../vendors/images/source-remote-ok.png"),
+          to: "vendors/images/source-remote-ok.png",
+        },
       ],
     }),
     new WebpackAssetsManifest({

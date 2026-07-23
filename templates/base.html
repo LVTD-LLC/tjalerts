@@ -70,10 +70,10 @@
   {% include "components/messages.html" with messages=messages %}
   {% endblock default_messages %}
 
-  <header data-controller="dropdown" class="sticky top-0 z-40 border-b border-zinc-200 bg-white/95">
+  <header data-controller="mobile-menu" data-action="keydown@window->mobile-menu#handleKeydown" class="sticky top-0 z-40 border-b border-zinc-200 bg-white/95">
     <nav class="app-container flex h-16 items-center justify-between" aria-label="Global">
       <div class="flex min-w-0 items-center gap-6">
-        <a href="{% url 'home' %}" class="flex min-w-0 items-center gap-2 rounded-md p-1.5 -m-1.5">
+        <a href="{% url 'home' %}" class="flex min-h-[2.75rem] min-w-[2.75rem] items-center gap-2 rounded-md p-1.5 -m-1.5">
           <img class="h-8 w-auto" src="{% static 'vendors/images/logo.png' %}" alt="Tech Job Alerts Logo" />
           <span class="truncate text-sm font-semibold text-zinc-950 sm:text-base">Tech Job Alerts</span>
         </a>
@@ -102,7 +102,15 @@
         {% endif %}
       </div>
 
-      <button data-action="dropdown#toggle click@window->dropdown#hide" type="button" class="btn-secondary lg:hidden">
+      <button
+        data-mobile-menu-target="button"
+        data-action="mobile-menu#open"
+        type="button"
+        class="btn-secondary lg:hidden"
+        aria-controls="mobile-menu"
+        aria-expanded="false"
+        aria-haspopup="dialog"
+      >
         <span class="sr-only">Open main menu</span>
         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h16" />
@@ -110,15 +118,25 @@
       </button>
     </nav>
 
-    <div data-dropdown-target="menu" class="hidden lg:hidden" role="dialog" aria-modal="true">
-      <div class="fixed inset-0 z-40 bg-zinc-950/20"></div>
-      <div class="fixed inset-x-3 top-3 z-50 rounded-lg border border-zinc-200 bg-white p-4">
+    <div
+      id="mobile-menu"
+      data-mobile-menu-target="menu"
+      class="hidden lg:hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mobile-menu-title"
+      aria-hidden="true"
+    >
+      <button type="button" data-action="mobile-menu#close" class="fixed inset-0 z-40 bg-zinc-950/20">
+        <span class="sr-only">Close main menu</span>
+      </button>
+      <div data-mobile-menu-target="panel" class="fixed inset-x-3 top-3 z-50 max-h-[calc(100dvh-1.5rem)] overflow-y-auto rounded-lg border border-zinc-200 bg-white p-4" tabindex="-1">
         <div class="flex items-center justify-between">
-          <a href="{% url 'home' %}" class="flex items-center gap-2 rounded-md p-1 -m-1">
+          <a href="{% url 'home' %}" class="flex min-h-[2.75rem] min-w-[2.75rem] items-center gap-2 rounded-md p-1 -m-1">
             <img class="h-8 w-auto" src="{% static 'vendors/images/logo.png' %}" alt="Tech Job Alerts Logo" />
-            <span class="text-sm font-semibold text-zinc-950">Tech Job Alerts</span>
+            <span id="mobile-menu-title" class="text-sm font-semibold text-zinc-950">Tech Job Alerts</span>
           </a>
-          <button data-action="dropdown#toggle click@window->dropdown#hide" type="button" class="btn-quiet">
+          <button data-action="mobile-menu#close" type="button" class="btn-quiet">
             <span class="sr-only">Close menu</span>
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -157,7 +175,7 @@
 
   <footer class="border-t border-zinc-200 bg-white">
     <div class="app-container flex flex-col gap-4 py-8 text-sm text-zinc-600 md:flex-row md:items-center md:justify-between">
-      <p>&copy; 2026 <a href="https://lvtd.dev" target="_blank" class="font-medium text-zinc-900 hover:text-emerald-800">LVTD, LLC</a>. All rights reserved.</p>
+      <p>&copy; 2026 <a href="https://lvtd.dev" target="_blank" rel="noopener noreferrer" class="font-medium text-zinc-900 hover:text-emerald-800">LVTD, LLC</a>. All rights reserved.</p>
       <nav class="flex flex-wrap gap-x-4 gap-y-2" aria-label="Footer">
         <a href="{% url 'sitemap' %}" class="hover:text-zinc-950">Sitemap</a>
         <a href="https://statushen.com/tjalerts/" class="hover:text-zinc-950">Status</a>
