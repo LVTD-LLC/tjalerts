@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -5,15 +7,27 @@ from django.urls import reverse
 
 
 class HomePageRenderTests(TestCase):
-    def test_anonymous_home_keeps_database_browsing_visible(self):
+    @patch("pages.views.get_latest_submissions")
+    def test_home_has_one_database_cta_and_requests_six_jobs(self, get_latest_submissions):
+        get_latest_submissions.return_value = []
+
         response = self.client.get(reverse("home"))
 
         assert response.status_code == 200
-        self.assertContains(response, "Search a structured database of tech jobs.")
-        self.assertContains(response, "Browse database")
-        self.assertContains(response, reverse("posts"))
+        self.assertContains(response, "Find the right tech job faster")
+        self.assertContains(response, "Browse database", count=1)
+        self.assertContains(response, f'href="{reverse("posts")}"', count=1)
+        self.assertNotContains(response, 'aria-label="Global"')
+        get_latest_submissions.assert_called_once_with(6, for_homepage=True)
 
-    def test_verified_user_home_does_not_offer_email_alerts(self):
+    def test_non_home_pages_keep_global_navigation(self):
+        response = self.client.get(reverse("posts"))
+
+        assert response.status_code == 200
+        self.assertContains(response, 'aria-label="Global"')
+        self.assertContains(response, "Create account")
+
+    def test_verified_user_home_stays_focused_on_database_browsing(self):
         User = get_user_model()
         user = User.objects.create_user(
             username="home-user",
@@ -26,6 +40,7 @@ class HomePageRenderTests(TestCase):
         response = self.client.get(reverse("home"))
 
         assert response.status_code == 200
+        self.assertContains(response, "Browse database", count=1)
         self.assertNotContains(response, "Weekly digest")
         self.assertNotContains(response, "Create alerts")
         self.assertNotContains(response, 'name="intent"')

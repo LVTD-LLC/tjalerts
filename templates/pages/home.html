@@ -1,17 +1,16 @@
 {% extends "base.html" %}
-{% load markdown_extras %}
-{% load webpack_loader static %}
+{% load static %}
 
 {% block meta %}
 <title>Tech Jobs Database | Search Developer and Startup Jobs</title>
-<meta name="description" content="Search developer and startup jobs from Hacker News, Remote OK, and other sources by stack, role, company, salary, location, and work mode." />
+<meta name="description" content="Browse developer and startup jobs from Hacker News and remote job boards. Filter by role, stack, company, salary, location, or work style." />
 <meta name="robots" content="index, follow" />
 <link rel="canonical" href="{{ SITE_URL }}/" />
 
 <meta property="og:type" content="website" />
 <meta property="og:title" content="Tech Jobs Database" />
 <meta property="og:url" content="{{ SITE_URL }}/" />
-<meta property="og:description" content="Search developer and startup jobs from Hacker News, Remote OK, and other sources by stack, role, company, salary, location, and work mode." />
+<meta property="og:description" content="Browse developer and startup jobs from Hacker News and remote job boards. Filter by role, stack, company, salary, location, or work style." />
 <meta property="og:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
 <meta property="og:locale" content="en_US" />
 
@@ -19,126 +18,75 @@
 <meta name="twitter:creator" content="@rasulkireev" />
 <meta name="twitter:site" content="@rasulkireev" />
 <meta name="twitter:title" content="Tech Jobs Database" />
-<meta name="twitter:description" content="Search developer and startup jobs from Hacker News, Remote OK, and other sources by stack, role, company, salary, location, and work mode." />
+<meta name="twitter:description" content="Browse developer and startup jobs from Hacker News and remote job boards. Filter by role, stack, company, salary, location, or work style." />
 <meta name="twitter:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
 {% endblock meta %}
 
 {% block content %}
-<section class="home-hero">
-  <div class="app-container py-10 sm:py-14 lg:py-16">
-    <div class="max-w-4xl">
-      <p class="home-eyebrow">Hacker News and remote startup jobs</p>
-      <h1 class="home-title">
-        Search a structured database of tech jobs.
-      </h1>
-      <p class="home-copy">
-        Browse developer and startup jobs by stack, role, company, salary, location, work mode, and source. Every post is normalized into data you can compare and filter.
-      </p>
-      <div class="mt-7 flex flex-wrap gap-2">
-        <a href="{% url 'posts' %}" class="btn-primary">Browse database</a>
-        <a href="{% url 'technologies' %}" class="btn-secondary">Explore stacks</a>
-        <a href="{% url 'titles' %}" class="btn-quiet">Explore titles</a>
-      </div>
+<section class="home-hero py-16 sm:py-20 lg:py-24">
+  <div class="app-container text-center">
+    <img class="mx-auto size-12 sm:size-14" src="{% static 'vendors/images/logo.png' %}" alt="" />
+    <p class="home-eyebrow">Tech jobs, organized.</p>
+    <h1 class="home-title mx-auto">Find the right tech job faster</h1>
+    <p class="home-copy mx-auto">
+      Search jobs from Hacker News and remote job boards. Filter by role, stack, company, salary, location, or work style.
+    </p>
+    <div class="mt-8">
+      <a href="{% url 'posts' %}" class="btn-primary px-5 py-3">Browse database</a>
     </div>
-
-    <dl class="mt-10 grid gap-3 sm:grid-cols-3">
-      <div class="home-stat">
-        <dt class="home-stat-label">Sources</dt>
-        <dd class="home-stat-value">3 feeds</dd>
-      </div>
-      <div class="home-stat">
-        <dt class="home-stat-label">Access</dt>
-        <dd class="home-stat-value">Open database</dd>
-      </div>
-      <div class="home-stat">
-        <dt class="home-stat-label">Updates</dt>
-        <dd class="home-stat-value">Continuous</dd>
-      </div>
-    </dl>
   </div>
 </section>
-<section class="app-container py-8 sm:py-10">
-  <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
+
+<section class="py-12 sm:py-16">
+  <div class="app-container">
     <div>
-      <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 class="text-xl font-semibold tracking-tight text-zinc-950">Latest jobs in the database</h2>
-          <p class="mt-1 text-sm leading-6 text-zinc-600">Recent posts with detected roles and technologies.</p>
-        </div>
-        <a href="{% url 'posts' %}" class="btn-secondary self-start sm:self-auto">View all jobs</a>
-      </div>
-
-      <ul role="list" class="grid grid-cols-1 gap-3 xl:grid-cols-2">
-        {% for object in latest_job_submissions %}
-          {% with titles=object.titles.all technologies=object.technologies.all %}
-          {% if technologies|length > 0 or titles|length > 0 %}
-          <li class="app-card p-4">
-            <a class="block" href="{% url 'post' object.id %}">
-              <div class="flex items-start justify-between gap-3">
-                <h3 class="min-w-0 truncate text-base font-semibold text-zinc-950">
-                  {% if object.company.name %}{{ object.company.name }}{% else %}Stealth company{% endif %}
-                </h3>
-                <span class="tabular whitespace-nowrap text-xs text-zinc-500">{{ object.submitted_datetime|timesince }} ago</span>
-              </div>
-              <p class="mt-2 line-clamp-2 text-sm leading-6 text-zinc-600">{{ object.description|truncatechars:160 }}</p>
-            </a>
-
-            {% if titles|length > 0 %}
-            <div class="mt-4">
-              <h4 class="job-section-label">Roles</h4>
-              <div class="mt-1">
-                {% for title in titles %}
-                  {% include "components/title-link.html" with title=title %}
-                {% endfor %}
-              </div>
-            </div>
-            {% endif %}
-
-            {% if technologies|length > 0 %}
-            <div class="mt-3">
-              <h4 class="job-section-label">Tech stack</h4>
-              <div class="mt-1">
-                {% for technology in technologies %}
-                  {% include "components/technology-link.html" with technology=technology %}
-                {% endfor %}
-              </div>
-            </div>
-            {% endif %}
-          </li>
-          {% endif %}
-          {% endwith %}
-        {% empty %}
-          <li class="empty-state xl:col-span-2">
-            <h2 class="text-lg font-semibold text-zinc-950">No recent jobs yet</h2>
-            <p class="mt-2 text-sm leading-6 text-zinc-600">Check back after the next import finishes.</p>
-          </li>
-        {% endfor %}
-      </ul>
+      <h2 class="max-w-[40ch] text-2xl font-semibold tracking-tight text-zinc-950 text-balance sm:text-3xl">
+        Six recent jobs
+      </h2>
+      <p class="mt-3 max-w-[56ch] text-base leading-7 text-zinc-600 text-pretty sm:text-sm sm:leading-6">
+        A quick look at the latest roles added to the database.
+      </p>
     </div>
 
-    <aside class="space-y-4 lg:sticky lg:top-24 lg:self-start">
-      <div class="app-muted-panel">
-        <h2 class="text-base font-semibold text-zinc-950">Browse without an account</h2>
-        <p class="mt-1 text-sm leading-6 text-zinc-600">The database remains open for scanning companies, stacks, titles, and current posts.</p>
-        <div class="mt-4 grid gap-2">
-          <a href="{% url 'posts' %}" class="btn-secondary">Jobs</a>
-          <a href="{% url 'companies' %}" class="btn-secondary">Companies</a>
-          <a href="{% url 'technologies' %}" class="btn-secondary">Technologies</a>
-          <a href="{% url 'titles' %}" class="btn-secondary">Titles</a>
+    <ul role="list" class="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {% for object in latest_job_submissions %}
+      <li class="home-job-card">
+        <div class="flex items-start justify-between gap-4">
+          <h3 class="min-w-0 text-lg font-semibold text-zinc-950 text-balance">
+            {% if object.company.name %}{{ object.company.name }}{% else %}Stealth company{% endif %}
+          </h3>
+          <p class="shrink-0 whitespace-nowrap text-base text-zinc-500 tabular-nums sm:text-sm">
+            {{ object.submitted_datetime|timesince }} ago
+          </p>
         </div>
-      </div>
+        <p class="mt-4 line-clamp-3 text-base leading-7 text-zinc-600 text-pretty sm:text-sm sm:leading-6">
+          {{ object.description|truncatechars:180 }}
+        </p>
 
-      {% if popular_technologies %}
-      <div class="app-panel">
-        <h2 class="text-base font-semibold text-zinc-950">Popular stacks</h2>
-        <div class="mt-3">
-          {% for technology in popular_technologies|slice:":12" %}
-            {% include "components/technology-link.html" with technology=technology %}
-          {% endfor %}
-        </div>
-      </div>
-      {% endif %}
-    </aside>
+        <dl class="mt-6 grid gap-4 border-t border-zinc-950/10 pt-5">
+          <div>
+            <dt class="text-base font-medium text-zinc-950 sm:text-sm">Roles</dt>
+            <dd class="mt-1 text-base leading-7 text-zinc-600 sm:text-sm sm:leading-6">
+              {% for title in object.titles.all %}{{ title.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-base font-medium text-zinc-950 sm:text-sm">Stack</dt>
+            <dd class="mt-1 text-base leading-7 text-zinc-600 sm:text-sm sm:leading-6">
+              {% for technology in object.technologies.all %}{{ technology.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+            </dd>
+          </div>
+        </dl>
+      </li>
+      {% empty %}
+      <li class="empty-state md:col-span-2 lg:col-span-3">
+        <h2 class="text-lg font-semibold text-zinc-950">No recent jobs yet</h2>
+        <p class="mt-2 text-base leading-7 text-zinc-600 sm:text-sm sm:leading-6">
+          Check back after the next import finishes.
+        </p>
+      </li>
+      {% endfor %}
+    </ul>
   </div>
 </section>
 
