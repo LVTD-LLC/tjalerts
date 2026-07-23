@@ -1,11 +1,13 @@
 from datetime import timedelta
 from importlib import import_module
+from io import StringIO
 from unittest.mock import Mock, patch
 
 import httpx
 from django.apps import apps
 from django.core import mail
 from django.core.cache import cache
+from django.core.management import call_command
 from django.db import IntegrityError
 from django.http import QueryDict
 from django.test import SimpleTestCase, TestCase, override_settings
@@ -125,6 +127,66 @@ class RetiredAlertDeliveryTests(TestCase):
 
         assert not Schedule.objects.filter(func__in=migration.ALERT_DELIVERY_TASKS).exists()
         assert Schedule.objects.filter(name="unrelated").exists()
+
+
+class SendAlertRetirementEmailCommandTests(TestCase):
+    def setUp(self):
+        now = timezone.now()
+        Alert.objects.create(
+            email="active@example.com",
+            confirmed=True,
+            unsubscribed=False,
+            filter={},
+        )
+        Alert.objects.create(
+            email="inactive@example.com",
+            confirmed=False,
+            unsubscribed=False,
+            filter={},
+        )
+        Alert.objects.create(
+            email="unsubscribed@example.com",
+            confirmed=True,
+            unsubscribed=True,
+            filter={},
+        )
+        AlertEmailSend.objects.create(
+            email="recent@example.com",
+            created=now - timedelta(days=29),
+        )
+        AlertEmailSend.objects.create(
+            email="ACTIVE@example.com",
+            created=now - timedelta(days=1),
+        )
+        AlertEmailSend.objects.create(
+            email="old@example.com",
+            created=now - timedelta(days=31),
+        )
+
+    def test_dry_run_reports_deduplicated_recipient_count_without_sending(self):
+        stdout = StringIO()
+
+        call_command("send_alert_retirement_email", stdout=stdout)
+
+        assert "2 unique recipients" in stdout.getvalue()
+        assert "--send" in stdout.getvalue()
+        assert mail.outbox == []
+
+    def test_send_delivers_one_private_service_notice_per_recipient(self):
+        stdout = StringIO()
+
+        call_command("send_alert_retirement_email", send=True, stdout=stdout)
+
+        assert len(mail.outbox) == 2
+        assert {message.to[0] for message in mail.outbox} == {
+            "active@example.com",
+            "recent@example.com",
+        }
+        assert all(len(message.to) == 1 for message in mail.outbox)
+        assert all(message.subject == "A change to Tech Job Alerts" for message in mail.outbox)
+        assert all("API, MCP, and CLI" in message.body for message in mail.outbox)
+        assert all("will no longer send emails" in message.body for message in mail.outbox)
+        assert "Sent 2 emails" in stdout.getvalue()
 
 
 class PopularQueryTests(TestCase):
