@@ -60,7 +60,7 @@ logger = get_tjalerts_logger(__name__)
 
 MAX_COMPANY_EMAILS_LENGTH = 2000
 REMOTE_OK_API_URL = "https://remoteok.com/api"
-JOBS_IMPORTER_USER_AGENT = "gettjalerts.com jobs importer (https://gettjalerts.com)"
+JOBS_IMPORTER_USER_AGENT = "jobs.lvtd.dev jobs importer (https://jobs.lvtd.dev)"
 WE_WORK_REMOTELY_FEED_URLS = (
     "https://weworkremotely.com/categories/remote-programming-jobs.rss",
     "https://weworkremotely.com/categories/remote-devops-sysadmin-jobs.rss",
@@ -1361,7 +1361,7 @@ def add_email_to_buttondown(email, tag):
         "email": str(email),
         "metadata": {"source": tag},
         "tags": [tag],
-        "referrer_url": "https://gettjalerts.com",
+        "referrer_url": "https://jobs.lvtd.dev",
         "subscriber_type": "unactivated",
     }
     if tag == "user":
@@ -1420,7 +1420,7 @@ def send_daily_new_contacts_email():
 
         for email_obj in new_emails:
             name = email_obj.name if email_obj.name else "N/A"
-            email_body += f"{name} | {email_obj.email} | {email_obj.company.name} | {email_obj.company.fixed_company_homepage_link} | https://gettjalerts.com{email_obj.post.get_absolute_url()}\n"
+            email_body += f"{name} | {email_obj.email} | {email_obj.company.name} | {email_obj.company.fixed_company_homepage_link} | https://jobs.lvtd.dev{email_obj.post.get_absolute_url()}\n"
 
         email_body += f"\nTotal new contacts: {new_emails.count()}\n"
 

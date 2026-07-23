@@ -14,7 +14,13 @@ and this project tries to adhere to [Semantic Versioning](https://semver.org/spe
 **Security** in case of vulnerabilities.
 
 ## Unreleased
+### Added
+- Added a database-first SEO roadmap for the `jobs.lvtd.dev` migration and future UI, API, CLI, and MCP discovery surfaces.
+
 ### Changed
+- Repositioned homepage and default metadata around the structured tech jobs database instead of email delivery, and moved analytics attribution to `jobs.lvtd.dev`.
+- Deduplicated company, technology, title, and highest-paid sitemap URLs by canonical slug and made sitemap hosts follow `SITE_URL` instead of a stale Django Site record.
+- Changed the default public site URL from `gettjalerts.com` to `jobs.lvtd.dev`.
 - Updated OpenAI model defaults for HN job extraction to `gpt-5.4-nano`, salary parsing to `gpt-5-nano`, and made chat/embedding model names configurable via Django settings.
 - Removed the unsafe btree index on `Company.emails` and bounded the denormalized company email summary to prevent oversized index-row errors during HN job analysis.
 

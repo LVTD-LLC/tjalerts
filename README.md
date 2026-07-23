@@ -1,15 +1,15 @@
 # Tech Job Alerts
 
-Tech Job Alerts is a Django application for turning developer job posts into a searchable job board and personalized email alerts.
+Tech Job Alerts is a Django application that turns developer job posts into a structured, searchable jobs database.
 
-The app powers [gettjalerts.com](https://gettjalerts.com/). It imports job posts from Hacker News, Remote OK, and We Work Remotely, enriches them into structured records, and helps developers browse, filter, compare, and subscribe to relevant technology roles.
+The app powers [jobs.lvtd.dev](https://jobs.lvtd.dev/). It imports job posts from Hacker News, Remote OK, and We Work Remotely, enriches them into structured records, and helps people and agents browse, filter, compare, and consume relevant jobs.
 
 ## What It Does
 
 - Aggregates developer jobs from Hacker News Who is Hiring threads, Remote OK, and We Work Remotely.
 - Uses OpenAI-backed extraction and embeddings to normalize job titles, technologies, company details, compensation, locations, remote policy, contact data, and application links.
 - Provides keyword search, semantic intent search, technology filters, role filters, source filters, location filters, salary filters, work-mode filters, and recency filters.
-- Lets users create confirmed job alerts and receive digest emails for matching roles.
+- Exposes job data through a web UI and HTTP API, with CLI and MCP access on the product roadmap.
 - Exposes public browsing pages for jobs, companies, technologies, titles, highest-paid roles, and blog content.
 - Includes internal admin workflows for imports, vector backfills, salary extraction, and data cleanup.
 - Ships with structured logging, Sentry, PostHog, Logfire, and Django Q workers for background jobs.
@@ -129,7 +129,7 @@ Main import/enrichment workflows live in `jobs/tasks.py`:
 - OpenAI job data extraction
 - embedding generation and vector backfills
 - salary extraction
-- alert matching and digest email sending
+- scheduled job imports and enrichment
 - contact/email validation and reporting
 
 Staff-only admin actions in the app enqueue several of these workflows from the admin panel and job routes.
