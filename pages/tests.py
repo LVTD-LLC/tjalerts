@@ -20,6 +20,13 @@ class HomePageRenderTests(TestCase):
         self.assertNotContains(response, 'aria-label="Global"')
         get_latest_submissions.assert_called_once_with(6, for_homepage=True)
 
+    def test_non_home_pages_keep_global_navigation(self):
+        response = self.client.get(reverse("posts"))
+
+        assert response.status_code == 200
+        self.assertContains(response, 'aria-label="Global"')
+        self.assertContains(response, "Create account")
+
     def test_verified_user_home_stays_focused_on_database_browsing(self):
         User = get_user_model()
         user = User.objects.create_user(

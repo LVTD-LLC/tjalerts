@@ -71,6 +71,9 @@
   {% include "components/messages.html" with messages=messages %}
   {% endblock default_messages %}
 
+  {% block navigation %}
+  {% endblock navigation %}
+
   <main id="content" class="isolate flex-1">
     {% block content %}
     {% endblock content %}
