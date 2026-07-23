@@ -1,0 +1,73 @@
+{
+  "initialized_at": "2026-07-23",
+  "roadmap_path": "docs/seo-sprint.md",
+  "domain": "https://jobs.lvtd.dev",
+  "legacy_domain": "https://gettjalerts.com",
+  "stack": "django-templates",
+  "language": "python-django-templates",
+  "marketing_route_prefix": "templates",
+  "marketing_layout": "templates/base.html",
+  "components_dir": "templates/components",
+  "data_dir": ".seo",
+  "sitemap_path": "hn_jobs/sitemaps.py",
+  "robots_path": "templates/robots.txt",
+  "tailwind_config": "tailwind.config.js",
+  "keyword_data_source": "dataforseo",
+  "keyword_location": "United States",
+  "keyword_language": "English",
+  "authority_rank": 0,
+  "authority_metric": "dataforseo_backlinks_rank",
+  "kd_cap": 30,
+  "gsc_properties": [
+    {
+      "property": "sc-domain:lvtd.dev",
+      "page_filter": "https://jobs.lvtd.dev/",
+      "purpose": "new-domain owned-search truth"
+    },
+    {
+      "property": "sc-domain:gettjalerts.com",
+      "purpose": "legacy-domain migration monitoring"
+    }
+  ],
+  "ahrefs_project_id": null,
+  "plausible_site_id": "gettjalerts.com",
+  "plausible_desired_site_id": "jobs.lvtd.dev",
+  "posthog_project_id": 31589,
+  "tools": {
+    "gsc": {
+      "status": "connected",
+      "credential_evidence": "TOOLS.md and Infisical /services/google-search-console",
+      "call_evidence": "sites.list, searchAnalytics.query, and sitemaps.list succeeded on 2026-07-23"
+    },
+    "ahrefs": {
+      "status": "missing",
+      "credential_evidence": "No MCP connector, runtime credential, TOOLS.md route, or repo config",
+      "call_evidence": "No callable Ahrefs tool was discovered"
+    },
+    "dataforseo": {
+      "status": "connected",
+      "credential_evidence": "TOOLS.md, dataforseo-toolkit, and Infisical /services/dataforseo",
+      "call_evidence": "Keyword overview/ideas, ranked keywords, backlinks, referring domains, and live SERPs succeeded"
+    },
+    "plausible": {
+      "status": "connected",
+      "credential_evidence": "PLAUSIBLE_API_KEY and TOOLS.md API host",
+      "call_evidence": "gettjalerts.com queries succeeded; jobs.lvtd.dev returned invalid site ID"
+    },
+    "posthog": {
+      "status": "connected",
+      "credential_evidence": "POSTHOG_API_KEY and TOOLS.md",
+      "call_evidence": "Project 31589 and 90-day HogQL queries succeeded"
+    },
+    "discovery": {
+      "status": "connected",
+      "credential_evidence": "EXA_API_KEY and TOOLS.md",
+      "call_evidence": "Three competitor/category discovery searches succeeded"
+    },
+    "extraction": {
+      "status": "connected",
+      "credential_evidence": "FIRECRAWL_API_KEY and TOOLS.md",
+      "call_evidence": "Six current competitor/product pages were extracted successfully"
+    }
+  }
+}
