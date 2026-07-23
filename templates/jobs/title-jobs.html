@@ -47,7 +47,7 @@
 </div>
 
 <div class="app-container py-8">
-  <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+  <div>
     <div>
       {% if object_list %}
       <ul role="list" class="space-y-3">
@@ -58,18 +58,11 @@
       {% else %}
       <div class="empty-state">
         <h2 class="text-lg font-semibold text-zinc-950">No recent jobs for this title</h2>
-        <p class="mt-2 text-sm leading-6 text-zinc-600">Try searching all jobs or create an alert for a technology you use.</p>
+        <p class="mt-2 text-sm leading-6 text-zinc-600">Try searching all jobs or broadening the filters.</p>
       </div>
       {% endif %}
     </div>
 
-    <aside class="app-panel lg:sticky lg:top-24 lg:self-start">
-      <h2 class="text-base font-semibold text-zinc-950">Create a job alert</h2>
-      <p class="mt-1 text-sm leading-6 text-zinc-600">Start with a technology alert, then use search filters for more specific matches.</p>
-      <div class="mt-4">
-        {% include "components/simple-alert-form.html" with create_alert_form=create_alert_form %}
-      </div>
-    </aside>
   </div>
 </div>
 {% endblock content %}

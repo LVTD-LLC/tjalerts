@@ -450,8 +450,6 @@ else:
         EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"
 
 API_TOKEN = env("API_TOKEN")
-BUTTONDOWN_API_TOKEN = env("BUTTONDOWN_API_TOKEN")
-
 MJML_BACKEND_MODE = "httpserver"
 MJML_HTTPSERVERS = [
     {

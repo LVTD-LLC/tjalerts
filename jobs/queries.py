@@ -2,13 +2,11 @@ import time
 
 from django.core.cache import cache
 from django.db.models import Case, Count, Exists, IntegerField, OuterRef, Q, When
-from django.utils import timezone
 from pgvector.django import L2Distance
 
 from jobs.constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
 from jobs.models import Post, Technology, TechnologyMapping, Title
 from jobs.utils import get_tjalerts_logger
-from users.models import Subscriber
 
 logger = get_tjalerts_logger(__name__)
 
@@ -157,13 +155,6 @@ def get_most_popular_technologies(number_of: int = 0, min_count: int = 0, order_
     )
 
     return technology_objects
-
-
-def get_weekly_jobs_for_a_subscriber(subscriber: Subscriber) -> str:
-    seven_days_ago = timezone.now() - timezone.timedelta(days=7)
-    return Post.objects.filter(
-        created__gte=seven_days_ago, technologies__name=subscriber.technology_selected
-    ).distinct()
 
 
 def get_similar_posts_from_db(post, limit=5):

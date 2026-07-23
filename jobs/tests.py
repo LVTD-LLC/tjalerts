@@ -1,15 +1,17 @@
 from datetime import timedelta
+from importlib import import_module
 from unittest.mock import Mock, patch
 
 import httpx
-from allauth.account.models import EmailAddress
-from django.contrib.auth import get_user_model
+from django.apps import apps
+from django.core import mail
 from django.core.cache import cache
 from django.db import IntegrityError
 from django.http import QueryDict
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from django_q.models import Schedule
 
 from jobs.choices import PostSource
 from jobs.enrichment import (
@@ -21,7 +23,7 @@ from jobs.enrichment import (
     read_url_with_jina,
 )
 from jobs.filters import PostFilter
-from jobs.models import Alert, Company, Post, Technology, TechnologyAlias, TechnologyMapping, Title
+from jobs.models import Alert, AlertEmailSend, Company, Post, Technology, TechnologyAlias, TechnologyMapping, Title
 from jobs.queries import get_most_popular_technologies, get_most_popular_titles
 from jobs.tasks import (
     MAX_COMPANY_EMAILS_LENGTH,
@@ -41,6 +43,7 @@ from jobs.tasks import (
     merge_company_emails,
     parse_we_work_remotely_feed,
     parse_we_work_remotely_title,
+    send_alerts,
 )
 from jobs.technology_names import extract_technology_names, normalize_technology_key
 from jobs.technology_normalization import (
@@ -49,15 +52,79 @@ from jobs.technology_normalization import (
     get_related_technology_ids,
 )
 from jobs.utils import (
-    build_intent_alert_suggestions,
-    canonical_filter_key,
     clean_job_json_object,
     generate_job_search_keywords,
     generate_job_search_title,
     is_probably_non_hiring_hn_comment,
     normalize_hn_comment_text,
 )
-from jobs.views import active_filter_summary, build_serializable_filter_params
+from jobs.views import active_filter_summary
+
+
+class RetiredAlertDeliveryTests(TestCase):
+    def test_queued_alert_delivery_is_a_safe_noop(self):
+        company = Company.objects.create(name="Acme")
+        Post.objects.create(
+            company=company,
+            submitted_datetime=timezone.now(),
+            is_remote=True,
+        )
+        alert = Alert.objects.create(
+            email="reader@example.com",
+            confirmed=True,
+            filter={},
+        )
+
+        result = send_alerts("reader@example.com", [alert])
+
+        assert result == "Alert email delivery is disabled."
+        assert mail.outbox == []
+        assert not AlertEmailSend.objects.filter(email="reader@example.com").exists()
+
+    def test_every_legacy_delivery_task_is_a_safe_noop(self):
+        legacy_tasks = (
+            ("jobs.tasks", "add_email_to_buttondown"),
+            ("jobs.tasks", "find_users_to_alert"),
+            ("jobs.tasks", "send_confirmation_email"),
+            ("users.tasks", "find_subs_to_alert"),
+            ("users.tasks", "send_alert"),
+            ("users.tasks", "send_confirmation_email"),
+        )
+
+        for module_name, function_name in legacy_tasks:
+            with self.subTest(task=f"{module_name}.{function_name}"):
+                task = getattr(import_module(module_name), function_name)
+
+                result = task("legacy", object(), unexpected=True)
+
+                assert result == "Alert email delivery is disabled."
+
+        assert mail.outbox == []
+        assert not AlertEmailSend.objects.exists()
+
+    def test_alert_and_digest_endpoints_are_gone(self):
+        retired_paths = (
+            "/jobs/create-alert/",
+            "/jobs/create-custom-alert/",
+            "/jobs/create-intent-alerts/",
+            "/jobs/digest/",
+        )
+
+        for path in retired_paths:
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                assert response.status_code == 404
+
+    def test_alert_delivery_schedules_are_removed(self):
+        migration = import_module("jobs.migrations.0040_disable_alert_delivery_schedules")
+        for func in migration.ALERT_DELIVERY_TASKS:
+            Schedule.objects.create(name=func, func=func)
+        Schedule.objects.create(name="unrelated", func="jobs.tasks.import_remote_ok_jobs")
+
+        migration.remove_alert_delivery_schedules(apps, None)
+
+        assert not Schedule.objects.filter(func__in=migration.ALERT_DELIVERY_TASKS).exists()
+        assert Schedule.objects.filter(name="unrelated").exists()
 
 
 class PopularQueryTests(TestCase):
@@ -107,56 +174,10 @@ class PopularQueryTests(TestCase):
         mock_cache_set.assert_called_once()
 
 
-class IntentAlertSuggestionTests(TestCase):
-    def test_builds_broad_and_specific_alert_filters(self):
-        technology = Technology.objects.create(name="Python")
-        title = Title.objects.create(name="Backend Engineer")
-
-        suggestions = build_intent_alert_suggestions(
-            "Remote Backend Engineer roles using Python, Postgres, and infrastructure work.",
-            max_alerts=3,
-        )
-
-        assert len(suggestions) == 3
-        assert suggestions[0]["filter"]["technologies"] == [str(technology.id)]
-        assert suggestions[0]["filter"]["titles"] == [str(title.id)]
-        assert suggestions[0]["filter"]["is_remote"] == "True"
-        assert suggestions[-1] == {
-            "name": "Job brief match",
-            "filter": {
-                "vector": "Remote Backend Engineer roles using Python, Postgres, and infrastructure work.",
-                "is_remote": "True",
-            },
-        }
-
-    def test_builds_broad_alert_when_no_names_match(self):
-        suggestions = build_intent_alert_suggestions(
-            "Remote climate infrastructure work with salary transparency and async-friendly teams.",
-            max_alerts=3,
-        )
-
-        assert suggestions == [
-            {
-                "name": "Job brief match",
-                "filter": {
-                    "vector": "Remote climate infrastructure work with salary transparency and async-friendly teams.",
-                    "is_remote": "True",
-                },
-            }
-        ]
-
-    def test_canonical_filter_key_ignores_list_order(self):
-        first_key = canonical_filter_key({"technologies": ["2", "1"], "titles": ["3"]})
-        second_key = canonical_filter_key({"titles": ["3"], "technologies": ["1", "2"]})
-
-        assert first_key == second_key
-
-
 class FilterSummaryTests(SimpleTestCase):
-    def test_salary_floor_zero_is_not_serialized_or_shown_as_active(self):
+    def test_salary_floor_zero_is_not_shown_as_active(self):
         query_params = QueryDict("salary_floor=0")
 
-        assert build_serializable_filter_params(query_params) == {}
         assert active_filter_summary(query_params) == []
 
     def test_salary_floor_zero_is_not_used_for_metadata(self):
@@ -189,11 +210,10 @@ class FilterSummaryTests(SimpleTestCase):
         assert generate_job_search_title(query_params, now) == f"Unique Employer Jobs - {now.strftime('%B %Y')}"
         assert generate_job_search_keywords(query_params) == ["Unique employers"]
 
-    def test_added_within_days_is_serialized_shown_and_used_for_metadata(self):
+    def test_added_within_days_is_shown_and_used_for_metadata(self):
         query_params = QueryDict("added_within_days=14")
         now = timezone.now()
 
-        assert build_serializable_filter_params(query_params) == {"added_within_days": "14"}
         assert active_filter_summary(query_params) == [
             {
                 "label": "Added",
@@ -213,101 +233,9 @@ class FilterSummaryTests(SimpleTestCase):
         for value in ("0", "1000000000", "NaN", "sNaN"):
             query_params = QueryDict(f"added_within_days={value}")
 
-            assert build_serializable_filter_params(query_params) == {}
             assert active_filter_summary(query_params) == []
             assert generate_job_search_title(query_params, now) == f"Available Jobs - {now.strftime('%B %Y')}"
             assert generate_job_search_keywords(query_params) == []
-
-
-class CreateIntentAlertsViewTests(TestCase):
-    def setUp(self):
-        User = get_user_model()
-        self.user = User.objects.create_user(
-            username="intent-user",
-            email="intent@example.com",
-            password="password",
-        )
-
-    def verify_email(self):
-        EmailAddress.objects.create(user=self.user, email=self.user.email, verified=True, primary=True)
-
-    @patch("jobs.views.async_task")
-    def test_verified_user_creates_confirmed_alerts(self, mock_async_task):
-        self.verify_email()
-        Technology.objects.create(name="Python")
-        Title.objects.create(name="Backend Engineer")
-        self.client.force_login(self.user)
-
-        response = self.client.post(
-            reverse("create-intent-alerts"),
-            {
-                "intent": "Remote Backend Engineer roles using Python, Postgres, and infrastructure work.",
-            },
-        )
-
-        assert response.status_code == 302
-        assert response["Location"] == reverse("settings")
-        alerts = Alert.objects.filter(email=self.user.email)
-        assert alerts.count() == 3
-        assert all(alert.confirmed for alert in alerts)
-        assert all(alert.user == self.user for alert in alerts)
-        assert any(alert.filter.get("technologies") for alert in alerts)
-        assert any(alert.filter.get("vector") for alert in alerts)
-        mock_async_task.assert_called_once()
-
-    @patch("jobs.views.async_task")
-    def test_repeat_submission_does_not_duplicate_active_alerts(self, mock_async_task):
-        self.verify_email()
-        self.client.force_login(self.user)
-        intent = "Remote climate infrastructure work with salary transparency and async-friendly teams."
-
-        self.client.post(reverse("create-intent-alerts"), {"intent": intent})
-        response = self.client.post(reverse("create-intent-alerts"), {"intent": intent})
-
-        assert response.status_code == 302
-        alerts = Alert.objects.filter(email=self.user.email)
-        assert alerts.count() == 1
-        assert alerts.first().filter == {"vector": intent, "is_remote": "True"}
-        mock_async_task.assert_called_once()
-
-    @patch("jobs.views.async_task")
-    def test_reactivated_alert_queues_matching_task(self, mock_async_task):
-        self.verify_email()
-        self.client.force_login(self.user)
-        intent = "Remote climate infrastructure work with salary transparency and async-friendly teams."
-        alert = Alert.objects.create(
-            user=self.user,
-            email=self.user.email,
-            confirmed=False,
-            unsubscribed=True,
-            name="Job brief match",
-            filter={"vector": intent, "is_remote": "True"},
-        )
-
-        response = self.client.post(reverse("create-intent-alerts"), {"intent": intent})
-
-        assert response.status_code == 302
-        alert.refresh_from_db()
-        assert alert.confirmed is True
-        assert alert.unsubscribed is False
-        mock_async_task.assert_called_once()
-
-    @patch("jobs.views.async_task")
-    def test_unverified_user_cannot_create_intent_alerts(self, mock_async_task):
-        EmailAddress.objects.create(user=self.user, email=self.user.email, verified=False, primary=True)
-        self.client.force_login(self.user)
-
-        response = self.client.post(
-            reverse("create-intent-alerts"),
-            {
-                "intent": "Remote Backend Engineer roles using Python, Postgres, and infrastructure work.",
-            },
-        )
-
-        assert response.status_code == 302
-        assert response["Location"] == reverse("settings")
-        assert Alert.objects.filter(email=self.user.email).count() == 0
-        mock_async_task.assert_not_called()
 
 
 class TechnologyNameNormalizationTests(SimpleTestCase):

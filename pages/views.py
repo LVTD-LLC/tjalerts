@@ -4,9 +4,9 @@ from django.urls import reverse_lazy
 from django.views.generic import FormView, TemplateView
 from django_q.tasks import async_task
 
-from hn_jobs.posthog_events import capture_request_event
-from hn_jobs.utils import add_users_context, get_tjalerts_logger
-from jobs.forms import CreateAlertForm, CreateIntentAlertForm, GenericForm
+from hn_jobs.posthog_events import alias_request_user, capture_request_event
+from hn_jobs.utils import get_tjalerts_logger
+from jobs.forms import GenericForm
 from jobs.queries import get_latest_submissions, get_most_popular_technologies, get_most_popular_titles
 from jobs.tasks import get_hn_pages_to_analyze
 
@@ -25,10 +25,8 @@ class HomeView(TemplateView):
 
         context["latest_job_submissions"] = get_latest_submissions(9, for_homepage=True)
         context["popular_technologies"] = get_most_popular_technologies(number_of=12, min_count=2)
-        context["create_intent_alert_form"] = CreateIntentAlertForm
-
         if user.is_authenticated:
-            add_users_context(context, user, self)
+            alias_request_user(self.request)
 
         return context
 
@@ -49,7 +47,7 @@ class PricingView(TemplateView):
         user = self.request.user
 
         if user.is_authenticated:
-            add_users_context(context, user, self)
+            alias_request_user(self.request)
 
         return context
 
@@ -71,7 +69,7 @@ class SupportView(FormView):
 
         user = self.request.user
         if user.is_authenticated:
-            add_users_context(context, user, self)
+            alias_request_user(self.request)
 
         return context
 
@@ -102,10 +100,8 @@ class ProductHuntView(TemplateView):
         context["latest_job_submissions"] = get_latest_submissions(9, for_homepage=True)
         context["popular_titles"] = get_most_popular_titles()
         context["popular_technologies"] = get_most_popular_technologies(number_of=12, min_count=2)
-        context["create_alert_form"] = CreateAlertForm
-
         if user.is_authenticated:
-            add_users_context(context, user, self)
+            alias_request_user(self.request)
 
         return context
 
@@ -121,13 +117,12 @@ class AdminPanelView(LoginRequiredMixin, UserPassesTestMixin, FormView):
 
     def get_context_data(self, **kwargs):
         from django.contrib.auth import get_user_model
-        from jobs.models import Alert, Email
+        from jobs.models import Email
 
         context = super().get_context_data(**kwargs)
 
         User = get_user_model()
         context["total_users"] = User.objects.count()
-        context["total_alerts"] = Alert.objects.filter(confirmed=True, unsubscribed=False).count()
         context["latest_emails"] = (
             Email.objects.filter(email_is_valid=True, email_is_generic=False, is_approved=True)
             .select_related("company", "post")

@@ -8,7 +8,6 @@ from django.views.generic import UpdateView
 
 from hn_jobs.posthog_events import capture_request_event, capture_user_event
 from hn_jobs.utils import add_users_context, get_tjalerts_logger
-from jobs.models import Alert
 
 from .models import CustomUser
 
@@ -28,10 +27,7 @@ class UserSettingsView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        user = self.request.user
-        add_users_context(context, user, self)
-
-        context["alerts"] = Alert.objects.filter(email=user.email)
+        add_users_context(context, self.request.user, self)
 
         return context
 

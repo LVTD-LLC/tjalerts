@@ -12,7 +12,7 @@ class HomePageRenderTests(TestCase):
         self.assertContains(response, "Browse database")
         self.assertContains(response, reverse("posts"))
 
-    def test_verified_user_home_renders_intent_alert_form(self):
+    def test_verified_user_home_does_not_offer_email_alerts(self):
         User = get_user_model()
         user = User.objects.create_user(
             username="home-user",
@@ -25,5 +25,6 @@ class HomePageRenderTests(TestCase):
         response = self.client.get(reverse("home"))
 
         assert response.status_code == 200
-        self.assertContains(response, reverse("create-intent-alerts"))
-        self.assertContains(response, 'name="intent"')
+        self.assertNotContains(response, "Weekly digest")
+        self.assertNotContains(response, "Create alerts")
+        self.assertNotContains(response, 'name="intent"')

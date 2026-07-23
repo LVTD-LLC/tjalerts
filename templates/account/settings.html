@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% load widget_tweaks %}
-{% load alert_extras %}
 
 {% block meta %}
 <title>Settings | Tech Job Alerts</title>
@@ -11,7 +10,7 @@
 <div class="app-page-header">
   <div class="app-container py-8">
     <h1 class="app-title">Settings</h1>
-    <p class="app-subtitle">Manage your profile and job alerts.</p>
+    <p class="app-subtitle">Manage your profile and account email.</p>
   </div>
 </div>
 
@@ -22,63 +21,11 @@
     <section class="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
       <div>
         <h2 class="text-base font-semibold text-zinc-950">Personal information</h2>
-        <p class="mt-1 text-sm leading-6 text-zinc-600">Used for account communication and alert ownership.</p>
+        <p class="mt-1 text-sm leading-6 text-zinc-600">Used for account communication.</p>
       </div>
       {% include "account/components/personal-information-form.html" with form=form %}
     </section>
 
-    <section class="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-      <div>
-        <h2 class="text-base font-semibold text-zinc-950">Alerts</h2>
-        <p class="mt-1 text-sm leading-6 text-zinc-600">Pause alerts you do not need, or turn them back on later.</p>
-      </div>
-
-      <div class="app-card overflow-hidden">
-        {% if alerts %}
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-zinc-200">
-            <thead class="bg-zinc-50">
-              <tr>
-                <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-zinc-500">Alert</th>
-                <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-zinc-500">Status</th>
-                <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-zinc-500">Action</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-zinc-200 bg-white">
-              {% for alert in alerts %}
-              <tr>
-                <td class="px-4 py-4 text-sm font-medium text-zinc-950">{{ alert | show_default_alert_name:forloop.counter }}</td>
-                <td class="px-4 py-4 text-right text-sm">
-                  {% if alert.unsubscribed %}
-                  <span class="tag-neutral my-0 mr-0">Paused</span>
-                  {% else %}
-                  <span class="tag my-0 mr-0">Active</span>
-                  {% endif %}
-                </td>
-                <td class="px-4 py-4 text-right text-sm">
-                  <form method="post" action="{% url 'toggle_subscription_from_authed_alert' alert.id %}">
-                    {% csrf_token %}
-                    <button
-                      class="{% if alert.unsubscribed %}btn-primary{% else %}btn-danger{% endif %}"
-                      type="submit">
-                      {% if alert.unsubscribed %}Subscribe{% else %}Unsubscribe{% endif %}
-                    </button>
-                  </form>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        {% else %}
-        <div class="empty-state m-4">
-          <h3 class="text-base font-semibold text-zinc-950">No alerts yet</h3>
-          <p class="mt-2 text-sm leading-6 text-zinc-600">Create your first alert from the home page or a filtered search.</p>
-          <a href="{% url 'posts' %}" class="btn-primary mt-5">Browse jobs</a>
-        </div>
-        {% endif %}
-      </div>
-    </section>
   </div>
 </div>
 {% endblock content %}

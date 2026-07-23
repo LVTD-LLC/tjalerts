@@ -1,19 +1,18 @@
 {% extends "base.html" %}
 {% load markdown_extras %}
 {% load webpack_loader static %}
-{% load widget_tweaks %}
 
 {% block meta %}
-<title>Tech Job Alerts | Tell us what jobs to watch</title>
-<meta name="description" content="Describe the role you want and Tech Job Alerts will watch the job database for matching Hacker News and remote startup roles." />
-<meta name="keywords" content="jobs, tech jobs, tech job alerts, Hacker News jobs" />
+<title>Tech Job Alerts | Search the job database</title>
+<meta name="description" content="Search and filter jobs from Hacker News and remote job sources." />
+<meta name="keywords" content="jobs, tech jobs, Hacker News jobs" />
 <meta name="robots" content="index, follow" />
 <link rel="canonical" href="{{ SITE_URL }}/" />
 
 <meta property="og:type" content="website" />
 <meta property="og:title" content="Tech Job Alerts" />
 <meta property="og:url" content="{{ SITE_URL }}/" />
-<meta property="og:description" content="Describe the role you want and Tech Job Alerts will watch the job database for matching Hacker News and remote startup roles." />
+<meta property="og:description" content="Search and filter jobs from Hacker News and remote job sources." />
 <meta property="og:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
 <meta property="og:locale" content="en_US" />
 
@@ -21,95 +20,44 @@
 <meta name="twitter:creator" content="@rasulkireev" />
 <meta name="twitter:site" content="@rasulkireev" />
 <meta name="twitter:title" content="Tech Job Alerts" />
-<meta name="twitter:description" content="Describe the role you want and Tech Job Alerts will watch the job database for matching Hacker News and remote startup roles." />
+<meta name="twitter:description" content="Search and filter jobs from Hacker News and remote job sources." />
 <meta name="twitter:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
 {% endblock meta %}
 
 {% block content %}
 <section class="overflow-hidden border-b border-zinc-200 bg-white">
   <div class="app-container py-10 sm:py-14 lg:py-16">
-    <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(380px,520px)] lg:items-center">
-      <div>
-        <p class="text-sm font-semibold text-emerald-800">Hacker News and remote startup jobs</p>
-        <h1 class="mt-3 max-w-4xl text-4xl font-semibold leading-tight tracking-tight text-zinc-950 sm:text-5xl lg:text-6xl">
-          Describe the role. We watch the database.
-        </h1>
-        <p class="mt-5 max-w-2xl text-base leading-7 text-zinc-600 sm:text-lg">
-          Tell us the stack, role, location, seniority, and constraints you care about. We turn that into a few focused alerts for your confirmed account.
-        </p>
-        <div class="mt-7 flex flex-wrap gap-2">
-          <a href="{% url 'posts' %}" class="btn-primary">Browse database</a>
-          <a href="{% url 'technologies' %}" class="btn-secondary">Explore stacks</a>
-        </div>
-      </div>
-
-      <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-3 shadow-sm shadow-zinc-200/70">
-        <div class="rounded-md bg-white p-4 sm:p-5">
-          {% if request.user.is_authenticated and email_verified %}
-          <form action="{% url 'create-intent-alerts' %}" method="post" class="space-y-4">
-            {% csrf_token %}
-            <div>
-              <label for="intent" class="app-label">What should we watch for?</label>
-              {% render_field create_intent_alert_form.intent id="intent" name="intent" placeholder="Senior backend or platform roles using Python, Django, Postgres, or infrastructure work. Remote in Europe or async-friendly teams. Prefer product companies with salary info." required="True" class="mt-2 block min-h-[190px] w-full resize-y rounded-lg border-0 bg-zinc-50 px-4 py-4 text-base leading-7 text-zinc-950 ring-1 ring-inset ring-zinc-300 placeholder:text-zinc-500 focus:bg-white focus:ring-2 focus:ring-inset focus:ring-emerald-700" %}
-            </div>
-            <div class="flex flex-col gap-3 border-t border-zinc-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
-              <p class="text-sm leading-6 text-zinc-600">Alerts will be sent to <span class="font-medium text-zinc-950">{{ request.user.email }}</span>.</p>
-              <button type="submit" class="btn-primary shrink-0">Create alerts</button>
-            </div>
-          </form>
-          {% elif request.user.is_authenticated %}
-          <div class="space-y-4">
-            <div>
-              <label for="disabled-intent" class="app-label">What should we watch for?</label>
-              <textarea id="disabled-intent" disabled class="mt-2 block min-h-[190px] w-full resize-none rounded-lg border-0 bg-zinc-100 px-4 py-4 text-base leading-7 text-zinc-500 ring-1 ring-inset ring-zinc-200">Senior backend roles with Python, infrastructure work, remote-friendly teams, and salary info.</textarea>
-            </div>
-            <div class="border-t border-zinc-200 pt-4">
-              <h2 class="text-base font-semibold text-zinc-950">Confirm your email first</h2>
-              <p class="mt-1 text-sm leading-6 text-zinc-600">Alert creation is available after your email address is verified.</p>
-              <div class="mt-4 flex flex-wrap gap-2">
-                <a href="{% url 'resend_email_confirmation_email' %}" class="btn-primary">Send confirmation</a>
-                <a href="{% url 'posts' %}" class="btn-secondary">Browse database</a>
-              </div>
-            </div>
-          </div>
-          {% else %}
-          <div class="space-y-4">
-            <div>
-              <label for="signed-out-intent" class="app-label">What should we watch for?</label>
-              <textarea id="signed-out-intent" disabled class="mt-2 block min-h-[190px] w-full resize-none rounded-lg border-0 bg-zinc-100 px-4 py-4 text-base leading-7 text-zinc-500 ring-1 ring-inset ring-zinc-200">Senior backend roles with Python, infrastructure work, remote-friendly teams, and salary info.</textarea>
-            </div>
-            <div class="border-t border-zinc-200 pt-4">
-              <h2 class="text-base font-semibold text-zinc-950">Alerts are for confirmed accounts</h2>
-              <p class="mt-1 text-sm leading-6 text-zinc-600">The job database stays open. Sign in when you want us to watch it for you.</p>
-              <div class="mt-4 flex flex-wrap gap-2">
-                <a href="{% url 'account_signup' %}" class="btn-primary">Create account</a>
-                <a href="{% url 'account_login' %}" class="btn-secondary">Log in</a>
-                <a href="{% url 'posts' %}" class="btn-quiet">Browse database</a>
-              </div>
-            </div>
-          </div>
-          {% endif %}
-        </div>
+    <div class="max-w-4xl">
+      <p class="text-sm font-semibold text-emerald-800">Hacker News and remote startup jobs</p>
+      <h1 class="mt-3 text-4xl font-semibold leading-tight tracking-tight text-zinc-950 sm:text-5xl lg:text-6xl">
+        Search the current job database.
+      </h1>
+      <p class="mt-5 max-w-2xl text-base leading-7 text-zinc-600 sm:text-lg">
+        Explore roles from Hacker News, Remote OK, and We Work Remotely. Filter by stack, title, location, source, work mode, compensation, and recency.
+      </p>
+      <div class="mt-7 flex flex-wrap gap-2">
+        <a href="{% url 'posts' %}" class="btn-primary">Browse database</a>
+        <a href="{% url 'technologies' %}" class="btn-secondary">Explore stacks</a>
+        <a href="{% url 'titles' %}" class="btn-quiet">Explore titles</a>
       </div>
     </div>
 
     <dl class="mt-10 grid gap-3 sm:grid-cols-3">
       <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
         <dt class="text-sm font-medium text-zinc-600">Sources</dt>
-        <dd class="mt-2 text-2xl font-semibold tracking-tight text-zinc-950">HN + Remote OK</dd>
+        <dd class="mt-2 text-2xl font-semibold tracking-tight text-zinc-950">3 feeds</dd>
       </div>
       <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-        <dt class="text-sm font-medium text-zinc-600">Delivery</dt>
-        <dd class="mt-2 text-2xl font-semibold tracking-tight text-zinc-950">Weekly digest</dd>
-      </div>
-      <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-        <dt class="text-sm font-medium text-zinc-600">Browsing</dt>
+        <dt class="text-sm font-medium text-zinc-600">Access</dt>
         <dd class="mt-2 text-2xl font-semibold tracking-tight text-zinc-950">Open database</dd>
+      </div>
+      <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+        <dt class="text-sm font-medium text-zinc-600">Updates</dt>
+        <dd class="mt-2 text-2xl font-semibold tracking-tight text-zinc-950">Continuous</dd>
       </div>
     </dl>
   </div>
 </section>
-
 <section class="app-container py-8 sm:py-10">
   <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
     <div>

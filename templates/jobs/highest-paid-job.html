@@ -42,7 +42,7 @@
   </div>
 
   <div class="app-container py-8">
-    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+    <div>
       <section itemprop="articleBody">
         {% if object_list %}
         <ol role="list" class="space-y-3">
@@ -90,13 +90,6 @@
         {% endif %}
       </section>
 
-      <aside class="app-panel lg:sticky lg:top-24 lg:self-start">
-        <h2 class="text-base font-semibold text-zinc-950">Create a {{ tech_name }} alert</h2>
-        <p class="mt-1 text-sm leading-6 text-zinc-600">Get new posts for this technology by email.</p>
-        <div class="mt-4">
-          {% include "components/simple-alert-form.html" with create_alert_form=create_alert_form %}
-        </div>
-      </aside>
     </div>
   </div>
 </article>

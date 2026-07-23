@@ -9,10 +9,10 @@
     <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(360px,480px)] lg:items-end">
       <div>
         <h1 class="max-w-3xl text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl">
-          Job alerts for developers who follow Hacker News hiring threads.
+          A searchable job database built from Hacker News hiring threads.
         </h1>
         <p class="mt-4 max-w-2xl text-base leading-7 text-zinc-600">
-          Search recent posts, filter by technology, and get new matches by email.
+          Search recent posts and filter by technology, title, location, source, and compensation.
         </p>
         <div class="mt-6 flex flex-wrap gap-2">
           <a href="{% url 'posts' %}" class="btn-primary">Browse jobs</a>
@@ -21,11 +21,9 @@
       </div>
 
       <div class="app-panel">
-        <h2 class="text-base font-semibold text-zinc-950">Create an alert</h2>
-        <p class="mt-1 text-sm leading-6 text-zinc-600">Start with one technology. You can refine alerts later.</p>
-        <div class="mt-4">
-          {% include "components/simple-alert-form.html" with create_alert_form=create_alert_form %}
-        </div>
+        <h2 class="text-base font-semibold text-zinc-950">Browse the database</h2>
+        <p class="mt-1 text-sm leading-6 text-zinc-600">Use the full set of filters to narrow the current job data.</p>
+        <a href="{% url 'posts' %}" class="btn-primary mt-4">Browse jobs</a>
       </div>
     </div>
   </div>

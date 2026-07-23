@@ -12,15 +12,15 @@
 
   {% block meta %}
   <title>Tech Job Alerts</title>
-  <meta name="description" content="Search technology jobs from Hacker News and create alerts for the stacks you care about." />
-  <meta name="keywords" content="jobs, tech jobs, tech job alerts" />
+  <meta name="description" content="Search technology jobs from Hacker News and remote job sources." />
+  <meta name="keywords" content="jobs, tech jobs, Hacker News jobs" />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="{{ SITE_URL }}/" />
 
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Tech Job Alerts" />
   <meta property="og:url" content="{{ SITE_URL }}/" />
-  <meta property="og:description" content="Search technology jobs from Hacker News and create alerts for the stacks you care about." />
+  <meta property="og:description" content="Search technology jobs from Hacker News and remote job sources." />
   <meta property="og:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
   <meta property="og:locale" content="en_US" />
 
@@ -28,7 +28,7 @@
   <meta name="twitter:creator" content="@rasulkireev" />
   <meta name="twitter:site" content="@rasulkireev" />
   <meta name="twitter:title" content="Tech Job Alerts" />
-  <meta name="twitter:description" content="Search technology jobs from Hacker News and create alerts for the stacks you care about." />
+  <meta name="twitter:description" content="Search technology jobs from Hacker News and remote job sources." />
   <meta name="twitter:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
   {% endblock meta %}
 
@@ -91,7 +91,6 @@
 
       <div class="hidden items-center gap-2 lg:flex">
         {% if user.is_authenticated %}
-        <a href="{% url 'authed_weekly_digest' %}" class="btn-quiet">Latest digest</a>
         <a href="{% url 'settings' %}" class="btn-quiet">Settings</a>
         {% if user.is_staff %}
         <a href="{% url 'admin-panel' %}" class="btn-quiet">Admin</a>
@@ -137,7 +136,6 @@
 
         <div class="mt-4 grid gap-2 border-t border-zinc-200 pt-4">
           {% if user.is_authenticated %}
-          <a href="{% url 'authed_weekly_digest' %}" class="btn-secondary">Latest digest</a>
           <a href="{% url 'settings' %}" class="btn-secondary">Settings</a>
           {% if user.is_staff %}
           <a href="{% url 'admin-panel' %}" class="btn-secondary">Admin</a>
@@ -176,7 +174,7 @@
       "@context": "https://schema.org",
       "@type": "WebSite",
       "name": "Tech Job Alerts",
-      "description": "Search technology jobs from Hacker News and create alerts for the stacks you care about.",
+      "description": "Search technology jobs from Hacker News and remote job sources.",
       "thumbnailUrl": "{{ SITE_URL }}{% static 'vendors/images/logo.png' %}",
       "url": "{{ SITE_URL }}/",
       "author": {
