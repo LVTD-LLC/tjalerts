@@ -4,7 +4,8 @@ from unittest.mock import patch
 from uuid import UUID
 
 import posthog
-from django.test import SimpleTestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
+from django.utils import timezone
 
 from hn_jobs.middleware import SentryMetricsMiddleware
 from hn_jobs.settings.logging_utils import (
@@ -20,19 +21,54 @@ from hn_jobs.settings.observability import (
     configure_posthog_ai_observability,
     configure_posthog_client,
 )
-from hn_jobs.sitemaps import HighestPaidJobsListicleSitemap
+from hn_jobs.sitemaps import (
+    CanonicalHostSitemap,
+    CompaniesJobsListicleSitemap,
+    HighestPaidJobsListicleSitemap,
+    TechnologiesJobsListicleSitemap,
+    TitlesJobsListicleSitemap,
+)
+from jobs.models import Company, Post
 
 
 class SitemapTests(SimpleTestCase):
-    def test_highest_paid_jobs_lastmod_returns_none_without_posts(self):
-        technology = object()
+    @override_settings(SITE_URL="https://jobs.lvtd.dev")
+    def test_sitemaps_ignore_stale_django_site_domain(self):
+        stale_site = SimpleNamespace(domain="gettjalerts.com")
 
+        with patch("django.contrib.sitemaps.Sitemap.get_urls", return_value=[]) as get_urls_mock:
+            CanonicalHostSitemap().get_urls(site=stale_site)
+
+        assert get_urls_mock.call_args.kwargs["site"].domain == "jobs.lvtd.dev"
+
+    def test_highest_paid_jobs_lastmod_returns_none_without_posts(self):
         with patch("hn_jobs.sitemaps.Post.objects.filter") as filter_mock:
             filter_mock.return_value.aggregate.return_value = {"latest_date": None}
 
-            assert HighestPaidJobsListicleSitemap().lastmod(technology) is None
+            assert HighestPaidJobsListicleSitemap().lastmod("python") is None
 
-        filter_mock.assert_called_once_with(technologies=technology)
+        filter_mock.assert_called_once_with(technologies__slug="python")
+
+    def test_slug_sitemaps_build_one_canonical_path_per_slug(self):
+        cases = [
+            (HighestPaidJobsListicleSitemap(), "python", "/jobs/python/highest-paid/"),
+            (CompaniesJobsListicleSitemap(), "acme", "/jobs/company/acme/"),
+            (TechnologiesJobsListicleSitemap(), "python", "/jobs/technology/python/"),
+            (TitlesJobsListicleSitemap(), "backend-engineer", "/jobs/title/backend-engineer/"),
+        ]
+
+        for sitemap, slug, expected_path in cases:
+            with self.subTest(sitemap=sitemap.__class__.__name__):
+                assert sitemap.location(slug) == expected_path
+
+
+class SitemapDatabaseTests(TestCase):
+    def test_company_sitemap_excludes_blank_names_even_when_slug_exists(self):
+        company = Company.objects.create(name="Temporary name")
+        Company.objects.filter(pk=company.pk).update(name="")
+        Post.objects.create(company=company, submitted_datetime=timezone.now())
+
+        assert list(CompaniesJobsListicleSitemap().items()) == []
 
 
 class ObservabilityTests(SimpleTestCase):

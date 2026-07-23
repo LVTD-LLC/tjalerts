@@ -49,7 +49,7 @@ env = environ.Env(
 )
 
 ENVIRONMENT = env("ENVIRONMENT")
-SITE_URL = env("SITE_URL", default="https://gettjalerts.com").rstrip("/")
+SITE_URL = env("SITE_URL", default="https://jobs.lvtd.dev").rstrip("/")
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 

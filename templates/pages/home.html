@@ -3,24 +3,23 @@
 {% load webpack_loader static %}
 
 {% block meta %}
-<title>Tech Job Alerts | Search the job database</title>
-<meta name="description" content="Search and filter jobs from Hacker News and remote job sources." />
-<meta name="keywords" content="jobs, tech jobs, Hacker News jobs" />
+<title>Tech Jobs Database | Search Developer and Startup Jobs</title>
+<meta name="description" content="Search developer and startup jobs from Hacker News, Remote OK, and other sources by stack, role, company, salary, location, and work mode." />
 <meta name="robots" content="index, follow" />
 <link rel="canonical" href="{{ SITE_URL }}/" />
 
 <meta property="og:type" content="website" />
-<meta property="og:title" content="Tech Job Alerts" />
+<meta property="og:title" content="Tech Jobs Database" />
 <meta property="og:url" content="{{ SITE_URL }}/" />
-<meta property="og:description" content="Search and filter jobs from Hacker News and remote job sources." />
+<meta property="og:description" content="Search developer and startup jobs from Hacker News, Remote OK, and other sources by stack, role, company, salary, location, and work mode." />
 <meta property="og:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
 <meta property="og:locale" content="en_US" />
 
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:creator" content="@rasulkireev" />
 <meta name="twitter:site" content="@rasulkireev" />
-<meta name="twitter:title" content="Tech Job Alerts" />
-<meta name="twitter:description" content="Search and filter jobs from Hacker News and remote job sources." />
+<meta name="twitter:title" content="Tech Jobs Database" />
+<meta name="twitter:description" content="Search developer and startup jobs from Hacker News, Remote OK, and other sources by stack, role, company, salary, location, and work mode." />
 <meta name="twitter:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
 {% endblock meta %}
 
@@ -30,10 +29,10 @@
     <div class="max-w-4xl">
       <p class="home-eyebrow">Hacker News and remote startup jobs</p>
       <h1 class="home-title">
-        Search the current job database.
+        Search a structured database of tech jobs.
       </h1>
       <p class="home-copy">
-        Explore roles from Hacker News, Remote OK, and We Work Remotely. Filter by stack, title, location, source, work mode, compensation, and recency.
+        Browse developer and startup jobs by stack, role, company, salary, location, work mode, and source. Every post is normalized into data you can compare and filter.
       </p>
       <div class="mt-7 flex flex-wrap gap-2">
         <a href="{% url 'posts' %}" class="btn-primary">Browse database</a>

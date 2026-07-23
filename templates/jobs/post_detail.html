@@ -55,13 +55,13 @@
                         </div>
                         <div class="flex flex-wrap gap-2">
                             {% if object.company_job_application_link %}
-                                <a href="{{ object.split_application_links.0 }}?utm_source=gettjalerts.com"
+                                <a href="{{ object.split_application_links.0 }}?utm_source=jobs.lvtd.dev"
                                    target="_blank"
                                    rel="noopener noreferrer"
                                    class="btn-primary">Apply</a>
                             {% endif %}
                             {% if object.source == "Hacker News" %}
-                                <a href="https://news.ycombinator.com/item?id={{ object.who_is_hiring_comment_id }}&utm_source=gettjalerts.com"
+                                <a href="https://news.ycombinator.com/item?id={{ object.who_is_hiring_comment_id }}&utm_source=jobs.lvtd.dev"
                                    target="_blank"
                                    rel="noopener noreferrer"
                                    class="btn-secondary gap-2">
