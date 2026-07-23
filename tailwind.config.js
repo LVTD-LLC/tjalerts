@@ -4,7 +4,11 @@ module.exports = {
     './frontend/src/controllers/*.js',
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        sans: ['InterVariable', 'Inter', 'sans-serif'],
+      },
+    },
   },
   plugins: [
     require('@tailwindcss/typography'),

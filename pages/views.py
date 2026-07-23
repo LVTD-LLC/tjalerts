@@ -23,8 +23,7 @@ class HomeView(TemplateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
 
-        context["latest_job_submissions"] = get_latest_submissions(9, for_homepage=True)
-        context["popular_technologies"] = get_most_popular_technologies(number_of=12, min_count=2)
+        context["latest_job_submissions"] = get_latest_submissions(6, for_homepage=True)
         if user.is_authenticated:
             alias_request_user(self.request)
 

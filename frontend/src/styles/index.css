@@ -47,7 +47,8 @@
 
     background-color: var(--color-canvas);
     color: var(--color-text);
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-family: "InterVariable", "Inter", sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01", "ss03";
   }
 
   ::selection {
@@ -85,7 +86,7 @@
 
 @layer components {
   .app-shell {
-    @apply flex min-h-screen flex-col;
+    @apply flex min-h-dvh flex-col;
 
     background-color: var(--color-canvas);
     color: var(--color-text);
@@ -502,79 +503,33 @@
   }
 
   .home-hero {
-    @apply overflow-hidden border-b;
+    @apply border-b;
 
     background-color: var(--color-surface);
-    border-color: var(--color-border);
+    border-color: color-mix(in oklch, var(--color-text) 10%, transparent);
   }
 
   .home-eyebrow {
-    @apply text-sm font-semibold;
+    @apply mt-6 text-base font-semibold sm:text-sm;
 
     color: var(--color-accent-text);
   }
 
   .home-title {
-    @apply mt-3 max-w-4xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl lg:text-6xl;
+    @apply mt-4 max-w-[24ch] text-4xl font-semibold tracking-tight text-balance sm:text-5xl lg:text-6xl;
 
     color: var(--color-text);
-    text-wrap: balance;
   }
 
   .home-copy {
-    @apply mt-5 max-w-2xl text-base leading-7 sm:text-lg;
+    @apply mt-5 max-w-[48ch] text-base leading-7 text-pretty sm:text-lg;
 
     color: var(--color-text-muted);
-    text-wrap: pretty;
   }
 
-  .home-alert-composer {
-    @apply rounded-lg border p-4 sm:p-5;
-
-    background-color: var(--color-surface-muted);
-    border-color: var(--color-border);
-    border-radius: var(--radius-panel);
-  }
-
-  .home-intent-input {
-    @apply mt-2 block min-h-[190px] w-full rounded-lg border-0 px-4 py-4 text-base leading-7;
-    @apply ring-1 ring-inset focus:ring-2 focus:ring-inset;
-
-    --tw-ring-color: var(--color-field-border);
-
+  .home-job-card {
+    @apply rounded-lg p-5 ring-1 ring-zinc-950/10 sm:p-6;
     background-color: var(--color-surface);
-    color: var(--color-text);
-  }
-
-  .home-intent-input:focus {
-    --tw-ring-color: var(--color-focus);
-  }
-
-  .home-intent-input:disabled {
-    --tw-ring-color: var(--color-border);
-
-    background-color: var(--color-surface-muted);
-    color: var(--color-text-muted);
-  }
-
-  .home-stat {
-    @apply rounded-lg border p-4;
-
-    background-color: var(--color-surface-muted);
-    border-color: var(--color-border);
-    border-radius: var(--radius-panel);
-  }
-
-  .home-stat-label {
-    @apply text-sm font-medium;
-
-    color: var(--color-text-muted);
-  }
-
-  .home-stat-value {
-    @apply mt-2 text-2xl font-semibold tracking-tight;
-
-    color: var(--color-text);
   }
 
   .dynamic-title {
