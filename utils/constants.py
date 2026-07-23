@@ -1,3 +1,6 @@
+ALERT_DELIVERY_DISABLED_MESSAGE = "Alert email delivery is disabled."
+
+
 HIRABLE_TECH_LIST_SLUGS = [
     # sorted by popularity
     "react",  # mapped

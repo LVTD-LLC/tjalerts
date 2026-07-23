@@ -4,16 +4,13 @@ from email.utils import parsedate_to_datetime
 from html import unescape
 
 import httpx
-import requests
 from defusedxml import ElementTree
 from django.conf import settings
-from django.contrib.sites.models import Site
 from django.core.exceptions import ValidationError
-from django.core.mail import EmailMultiAlternatives, send_mail
+from django.core.mail import send_mail
 from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
 from django.db.models import Count
-from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.html import strip_tags
@@ -30,7 +27,6 @@ from hn_jobs.posthog_events import (
     ai_span,
     capture_event,
     company_group,
-    distinct_id_for_email,
     identify_company,
     model_from_feature_flag,
 )
@@ -44,8 +40,7 @@ from jobs.enrichment import (
     extract_first_url,
     normalize_job_details,
 )
-from jobs.filters import PostFilter
-from jobs.models import Alert, AlertEmailSend, Company, Email, Post, Title
+from jobs.models import Company, Email, Post, Title
 from jobs.technology_normalization import get_or_create_canonical_technologies
 from jobs.utils import (
     clean_job_json_object,
@@ -55,6 +50,7 @@ from jobs.utils import (
     is_generic,
     is_probably_non_hiring_hn_comment,
 )
+from utils.constants import ALERT_DELIVERY_DISABLED_MESSAGE
 
 logger = get_tjalerts_logger(__name__)
 
@@ -1226,154 +1222,24 @@ def backfill_vector_data(job):
     return f"Job {job.id} has been updated."
 
 
-def send_confirmation_email(instance, confirmation_url):
-    message = f"""
-      Hey there,
-
-      Thanks a ton for the alert subscription for {instance["technology_selected"]} jobs.
-
-      To make sure you start receving weekly alerts,
-      please confirm your subscription by clicking the link below:
-
-      {confirmation_url}
-    """
-    send_mail(
-        "Confirm Your Job Alert Subscription",
-        message,
-        settings.DEFAULT_FROM_EMAIL,
-        [instance["email"]],
-        fail_silently=False,
-    )
-    capture_event(
-        "alert confirmation email sent",
-        distinct_id=distinct_id_for_email(instance["email"]),
-        properties={
-            "technology_selected": instance.get("technology_selected", ""),
-        },
-    )
+def send_alerts(*args, **kwargs):
+    """Safely drain alert-delivery jobs queued before the feature was retired."""
+    return ALERT_DELIVERY_DISABLED_MESSAGE
 
 
-def find_users_to_alert():
-    seven_days_ago = timezone.now() - timedelta(days=7)
-
-    alert_emails = (
-        Alert.objects.filter(confirmed=True, unsubscribed=False, email__isnull=False)
-        .values_list("email", flat=True)
-        .distinct()
-    )
-
-    recent_alert_emails = AlertEmailSend.objects.filter(created__gte=seven_days_ago).values_list("email", flat=True)
-    emails_to_send_to = alert_emails.difference(recent_alert_emails)
-
-    count = 0
-    for email in emails_to_send_to:
-        async_task(
-            send_alerts,
-            email,
-            Alert.objects.filter(email=email, unsubscribed=False, confirmed=True),
-            hook="jobs.hooks.print_result",
-            group="Send Alert",
-        )
-        count += 1
-
-    capture_event(
-        "alert digest queued",
-        properties={
-            "queued_count": count,
-            "eligible_email_count": alert_emails.count(),
-            "recent_email_count": recent_alert_emails.count(),
-        },
-    )
-
-    return f"{count} alerts have been sent."
+def find_users_to_alert(*args, **kwargs):
+    """Safely drain alert-discovery jobs queued before the feature was retired."""
+    return ALERT_DELIVERY_DISABLED_MESSAGE
 
 
-def send_alerts(email, alerts):
-    current_date = timezone.now()
-    week_number = (current_date.day - 1) // 7 + 1
-    formatted_date = current_date.strftime("%B %Y, Week {}".format(week_number))
-    subject = f"Job Alerts for {formatted_date}"
-
-    context = {
-        "alerts": [],
-        "new_jobs_count": 0,
-        "site_url": Site.objects.get_current().domain,
-        "formatted_date": formatted_date,
-    }
-
-    for idx, alert in enumerate(alerts):
-        name = alert.name if alert.name else idx
-        context["alerts"].append(name)
-        context["new_jobs_count"] += (
-            PostFilter(alert.filter).qs.filter(submitted_datetime__gte=timezone.now() - timedelta(days=7)).count()
-        )
-
-    if context["new_jobs_count"] == 0:
-        capture_event(
-            "alert digest skipped",
-            distinct_id=distinct_id_for_email(email),
-            properties={
-                "reason": "no_new_jobs",
-                "alert_count": len(context["alerts"]),
-                "user_status": "unknown",
-            },
-        )
-        return f"{email} has no new jobs"
-
-    if CustomUser.objects.filter(email=email).exists():
-        user_status = "free"
-        alert_email_send = AlertEmailSend.objects.create(email=email, user=CustomUser.objects.get(email=email))
-    else:
-        user_status = "guest"
-        alert_email_send = AlertEmailSend.objects.create(email=email)
-
-    context["alert_email_send"] = alert_email_send
-    context["user_status"] = user_status
-
-    html_content = render_to_string("jobs/alert-email.html", context)
-    text_content = strip_tags(html_content)
-
-    letter = EmailMultiAlternatives(
-        subject,
-        text_content,
-        settings.DEFAULT_FROM_EMAIL,
-        [email],
-    )
-    letter.attach_alternative(html_content, "text/html")
-    letter.send()
-
-    capture_event(
-        "alert digest sent",
-        distinct_id=distinct_id_for_email(email),
-        properties={
-            "alert_count": len(context["alerts"]),
-            "new_jobs_count": context["new_jobs_count"],
-            "user_status": user_status,
-            "alert_email_send_id": str(alert_email_send.id),
-        },
-    )
-
-    return f"{email} is sent"
+def send_confirmation_email(*args, **kwargs):
+    """Safely drain alert-confirmation jobs queued before the feature was retired."""
+    return ALERT_DELIVERY_DISABLED_MESSAGE
 
 
-def add_email_to_buttondown(email, tag):
-    data = {
-        "email": str(email),
-        "metadata": {"source": tag},
-        "tags": [tag],
-        "referrer_url": "https://jobs.lvtd.dev",
-        "subscriber_type": "unactivated",
-    }
-    if tag == "user":
-        data["subscriber_type"] = "regular"
-
-    r = requests.post(
-        "https://api.buttondown.email/v1/subscribers",
-        headers={"Authorization": f"Token {settings.BUTTONDOWN_API_TOKEN}"},
-        json=data,
-    )
-
-    return r.json()
+def add_email_to_buttondown(*args, **kwargs):
+    """Safely drain newsletter jobs queued before alert confirmation was retired."""
+    return ALERT_DELIVERY_DISABLED_MESSAGE
 
 
 def send_daily_new_contacts_email():

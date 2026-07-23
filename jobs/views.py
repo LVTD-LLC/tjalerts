@@ -1,51 +1,38 @@
-import json
 from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 from uuid import UUID
 
-from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.messages.views import SuccessMessageMixin
-from django.core.exceptions import ValidationError
-from django.db import IntegrityError, models, transaction
+from django.db import models
 from django.db.models import Count, Exists, Max, OuterRef, Subquery
-from django.http import HttpResponseRedirect, QueryDict
-from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse, reverse_lazy
+from django.http import HttpResponseRedirect
+from django.shortcuts import redirect
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
-from django.views.generic import CreateView, DetailView, FormView, ListView, TemplateView, UpdateView
+from django.views.generic import DetailView, ListView, TemplateView
 from django_filters.views import FilterView
 from django_q.tasks import async_task
 
-from hn_jobs.posthog_events import capture_event, capture_request_event, distinct_id_for_email
-from hn_jobs.utils import add_users_context, build_absolute_site_url, get_tjalerts_logger, validate_technology_selected
+from hn_jobs.posthog_events import alias_request_user, capture_request_event
+from hn_jobs.utils import build_absolute_site_url, get_tjalerts_logger
 from jobs.choices import PostSource
 from jobs.constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
 from jobs.filters import POSTED_WITHIN_CHOICES, WORK_MODE_CHOICES, PostFilter
-from jobs.forms import ConfirmAlertForm, CreateAlertForm, CreateCustomAlertForm, CreateIntentAlertForm
-from jobs.models import Alert, AlertEmailSend, Company, Post, Technology, Title
+from jobs.models import Company, Post, Technology, Title
 from jobs.tasks import (
-    add_email_to_buttondown,
     create_backfill_vector_data_jobs,
     create_update_min_and_max_salary_jobs,
     find_bad_submitted_dates,
-    find_users_to_alert,
     import_remote_ok_jobs,
     import_we_work_remotely_jobs,
-    send_confirmation_email,
 )
 from jobs.technology_normalization import get_related_technology_ids
 from jobs.utils import (
     MAX_ADDED_WITHIN_DAYS,
-    build_intent_alert_suggestions,
     day_count_label,
-    default_alert_name,
     generate_job_search_keywords,
     generate_job_search_title,
-    is_email_confirmed,
     parse_positive_day_count,
 )
 from utils.constants import HIRABLE_TECH_LIST_SLUGS
@@ -73,26 +60,6 @@ def valid_uuid_values(values):
         valid_values.append(value)
 
     return valid_values
-
-
-def build_serializable_filter_params(query_params):
-    params = {}
-
-    for key in query_params.keys():
-        if key in {"o", "page"}:
-            continue
-
-        values = [value for value in query_params.getlist(key) if value not in ["", "unknown"]]
-        if key == "salary_floor":
-            values = [value for value in values if parse_positive_salary_floor(value) is not None]
-        if key == "added_within_days":
-            values = [value for value in values if parse_positive_day_count(value) is not None]
-        if not values:
-            continue
-
-        params[key] = values if len(values) > 1 or key in {"technologies", "titles"} else values[0]
-
-    return params
 
 
 def parse_positive_salary_floor(value):
@@ -250,14 +217,10 @@ class PostListView(FilterView):
 
         user = self.request.user
         if user.is_authenticated:
-            add_users_context(context, user, self)
+            alias_request_user(self.request)
 
-        params = build_serializable_filter_params(self.request.GET)
         active_filters = active_filter_summary(self.request.GET)
 
-        context["CustomAlertForm"] = CreateCustomAlertForm
-        context["custom_alert_filters"] = json.dumps(params)
-        context["has_custom_alert_filters"] = bool(params)
         context["active_filters"] = active_filters
         context["active_filter_count"] = len(active_filters)
         context["result_count"] = page.paginator.count
@@ -283,9 +246,8 @@ class PostDetailView(DetailView):
 
         user = self.request.user
         if user.is_authenticated:
-            add_users_context(context, user, self)
+            alias_request_user(self.request)
 
-        context["create_alert_form"] = CreateAlertForm
         context["is_old"] = self.object.created < timezone.now() - timedelta(days=60)
 
         return context
@@ -324,7 +286,6 @@ class HighestPaidJobsView(ListView):
         context["tech_id"] = tech.id
         context["canonical_url"] = build_absolute_site_url(self.request.path)
         context["latest_date"] = latest_date
-        context["create_alert_form"] = CreateAlertForm
 
         return context
 
@@ -411,395 +372,6 @@ def import_we_work_remotely_jobs_view(request):
     return redirect("admin-panel")
 
 
-class CreateCustomAlertView(SuccessMessageMixin, CreateView):
-    template_name = "jobs/create-custom-alert.html"
-    model = Alert
-    form_class = CreateCustomAlertForm
-    success_url = reverse_lazy("home")
-
-    def form_valid(self, form):
-        user = self.request.user
-        if user.is_authenticated:
-            form.instance.user = user
-
-        # if user.is_authenticated and existing_alerts.count() >= 3:
-        #     messages.add_message(self.request, messages.WARNING, "Free users can only have 3 alerts.")
-        #     return redirect("home")
-        existing_alerts = Alert.objects.filter(email=form.instance.email)
-        existing_alert_count = existing_alerts.count()
-        if not user.is_authenticated and existing_alert_count:
-            messages.add_message(self.request, messages.WARNING, "Sign up to create multiple alerts.")
-            return redirect("home")
-
-        if user.is_authenticated and existing_alert_count:
-            if existing_alerts.latest("modified").confirmed is True or is_email_confirmed(user):
-                form.instance.confirmed = True
-                messages.add_message(
-                    self.request, messages.SUCCESS, "Alert has been added, you will start getting jobs soon!"
-                )
-        else:
-            confirmation_url = self.request.build_absolute_uri(reverse("confirm_subscription", args=[form.instance.id]))
-            async_task(send_confirmation_email, form.cleaned_data, confirmation_url, group="Send Confirmation Email")
-            messages.add_message(
-                self.request, messages.SUCCESS, "Thank for creating an alert! Check your emails to confirm!"
-            )
-
-        async_task(find_users_to_alert, group="Find Users to Alert")
-
-        response = super(CreateCustomAlertView, self).form_valid(form)
-        capture_request_event(
-            self.request,
-            "alert created",
-            properties={
-                "alert_id": str(self.object.id),
-                "alert_type": "custom",
-                "confirmed": self.object.confirmed,
-                "authenticated": user.is_authenticated,
-                "existing_alert_count": existing_alert_count,
-                "filter_keys": sorted(self.object.filter.keys()),
-            },
-        )
-
-        return response
-
-
-class CreateIntentAlertsView(LoginRequiredMixin, FormView):
-    form_class = CreateIntentAlertForm
-    login_url = "account_login"
-    success_url = reverse_lazy("settings")
-
-    def get(self, request, *args, **kwargs):
-        return redirect("home")
-
-    def form_invalid(self, form):
-        messages.add_message(
-            self.request,
-            messages.WARNING,
-            "Describe the kind of role you want in a little more detail.",
-        )
-        return redirect("home")
-
-    def form_valid(self, form):
-        user = self.request.user
-        if not is_email_confirmed(user):
-            messages.add_message(self.request, messages.WARNING, "Confirm your email before creating alerts.")
-            capture_request_event(
-                self.request,
-                "intent alerts creation blocked",
-                properties={"reason": "email_unverified", "authenticated": True},
-            )
-            return redirect("settings")
-
-        suggestions = build_intent_alert_suggestions(form.cleaned_data["intent"])
-        created_alerts = []
-        refreshed_alerts = []
-        reactivated_alerts = []
-
-        with transaction.atomic():
-            user.__class__.objects.select_for_update().get(pk=user.pk)
-
-            for suggestion in suggestions:
-                existing_alert = (
-                    Alert.objects.select_for_update().filter(email=user.email, filter=suggestion["filter"]).first()
-                )
-                if existing_alert:
-                    changed = False
-                    was_inactive = existing_alert.unsubscribed or not existing_alert.confirmed
-                    if existing_alert.user_id != user.id:
-                        existing_alert.user = user
-                        changed = True
-                    if not existing_alert.confirmed:
-                        existing_alert.confirmed = True
-                        changed = True
-                    if existing_alert.unsubscribed:
-                        existing_alert.unsubscribed = False
-                        changed = True
-                    if not existing_alert.name:
-                        existing_alert.name = suggestion["name"]
-                        changed = True
-
-                    if changed:
-                        existing_alert.save()
-                    if was_inactive:
-                        reactivated_alerts.append(existing_alert)
-                    refreshed_alerts.append(existing_alert)
-                    continue
-
-                created_alerts.append(
-                    Alert.objects.create(
-                        user=user,
-                        email=user.email,
-                        confirmed=True,
-                        name=suggestion["name"],
-                        filter=suggestion["filter"],
-                    )
-                )
-
-        if created_alerts:
-            alert_label = "alert" if len(created_alerts) == 1 else "alerts"
-            messages.add_message(
-                self.request,
-                messages.SUCCESS,
-                f"Created {len(created_alerts)} {alert_label} from your job brief.",
-            )
-        elif refreshed_alerts:
-            messages.add_message(self.request, messages.SUCCESS, "Your matching alerts are active.")
-        else:
-            messages.add_message(self.request, messages.WARNING, "We could not create alerts from that brief.")
-
-        if created_alerts or reactivated_alerts:
-            async_task(find_users_to_alert, group="Find Users to Alert")
-
-        capture_request_event(
-            self.request,
-            "intent alerts created",
-            properties={
-                "created_count": len(created_alerts),
-                "refreshed_count": len(refreshed_alerts),
-                "reactivated_count": len(reactivated_alerts),
-                "suggestion_count": len(suggestions),
-                "authenticated": True,
-            },
-        )
-
-        return super().form_valid(form)
-
-
-class AlertCreateView(SuccessMessageMixin, CreateView):
-    template_name = "jobs/create-alert.html"
-    model = Alert
-    form_class = CreateAlertForm
-    success_url = reverse_lazy("home")
-
-    def form_valid(self, form):
-        try:
-            user = self.request.user
-            existing_alerts = Alert.objects.filter(email=form.instance.email)
-            existing_alert_count = existing_alerts.count()
-
-            if user.is_authenticated:
-                form.instance.user = user
-
-            technology = Technology.objects.filter(name=form.cleaned_data["technology_selected"]).first()
-            if not technology:
-                messages.add_message(self.request, messages.WARNING, "Invalid technology selected.")
-                return redirect("home")
-
-            form.instance.filter = {"technologies": [str(technology.id)]}
-
-            try:
-                validate_technology_selected(form.cleaned_data["technology_selected"])
-            except ValidationError:
-                messages.add_message(self.request, messages.WARNING, "Please use a Technology from the dropdown list.")
-                return redirect("home")
-
-            if not user.is_authenticated and existing_alert_count:
-                messages.add_message(self.request, messages.WARNING, "Sign up to create multiple alerts.")
-                return redirect("home")
-
-            if user.is_authenticated and existing_alert_count:
-                if existing_alerts.latest("modified").confirmed is True:
-                    form.instance.confirmed = True
-                    messages.add_message(
-                        self.request, messages.SUCCESS, "Alert has been added, you will start getting jobs soon!"
-                    )
-            else:
-                confirmation_url = self.request.build_absolute_uri(
-                    reverse("confirm_subscription", args=[form.instance.id])
-                )
-                async_task(
-                    send_confirmation_email, form.cleaned_data, confirmation_url, group="Send Confirmation Email"
-                )
-                messages.add_message(
-                    self.request, messages.SUCCESS, "Thank for creating an alert! Check your emails to confirm!"
-                )
-
-            async_task(find_users_to_alert, group="Find Users to Alert")
-
-            response = super(AlertCreateView, self).form_valid(form)
-            capture_request_event(
-                self.request,
-                "alert created",
-                properties={
-                    "alert_id": str(self.object.id),
-                    "alert_type": "technology",
-                    "confirmed": self.object.confirmed,
-                    "authenticated": user.is_authenticated,
-                    "existing_alert_count": existing_alert_count,
-                    "technology_id": str(technology.id),
-                    "technology_name": technology.name,
-                },
-            )
-
-            return response
-
-        except IntegrityError as e:
-            logger.error("IntegrityError in AlertCreateView", error=str(e))
-            capture_request_event(
-                self.request,
-                "alert creation failed",
-                properties={"error_type": type(e).__name__},
-            )
-            messages.add_message(self.request, messages.ERROR, f"An error occurred: {str(e)}")
-            return redirect("home")
-        except Exception as e:
-            messages.add_message(self.request, messages.ERROR, "An unexpected error occurred. Please try again.")
-            logger.error("Exception in AlertCreateView", error=str(e))
-            capture_request_event(
-                self.request,
-                "alert creation failed",
-                properties={"error_type": type(e).__name__},
-            )
-            return redirect("home")
-
-
-class ConfirmAlertView(SuccessMessageMixin, UpdateView):
-    model = Alert
-    form_class = ConfirmAlertForm
-    template_name = "jobs/subscription-confirmation.html"
-    success_url = reverse_lazy("home")
-    success_message = "Thanks for confirming :) You will receive your alerts soon!"
-
-    def form_valid(self, form):
-        response = super(ConfirmAlertView, self).form_valid(form)
-        async_task(add_email_to_buttondown, self.object.email, tag="user", group="Add Email to Buttondown")
-        async_task(find_users_to_alert, group="Find Users to Alert")
-        capture_event(
-            "alert confirmed",
-            distinct_id=distinct_id_for_email(self.object.email),
-            properties={
-                "alert_id": str(self.object.id),
-                "alert_type": "custom" if self.object.name else "technology",
-                "authenticated": bool(self.object.user_id),
-            },
-        )
-
-        return response
-
-
-def unauthed_weekly_digest_view(request, alert_email_send_id):
-    template_name = "jobs/unauthed_weekly_digest.html"
-
-    alert_email_send = get_object_or_404(AlertEmailSend, id=alert_email_send_id)
-    alert = Alert.objects.get(email=alert_email_send.email, user__isnull=True)
-
-    post_filter = PostFilter(alert.filter)
-    queryset = post_filter.qs.filter(submitted_datetime__gte=alert_email_send.created - timedelta(days=7))
-    name = f"{Technology.objects.get(id=alert.filter['technologies'][0]).name} Alert"
-
-    context = {"alert": alert, "queryset": queryset, "name": name}
-    capture_event(
-        "alert digest viewed",
-        distinct_id=distinct_id_for_email(alert.email),
-        properties={
-            "alert_email_send_id": str(alert_email_send.id),
-            "alert_id": str(alert.id),
-            "authenticated": False,
-            "job_count": queryset.count(),
-        },
-    )
-    return render(request, template_name, context)
-
-
-def unsubscribe_from_unauthed_alert(request, alert_email_send_id):
-    alert_email_send = get_object_or_404(AlertEmailSend, id=alert_email_send_id)
-    alert = Alert.objects.get(email=alert_email_send.email, user__isnull=True)
-
-    if request.method == "POST":
-        alert.unsubscribed = True
-        alert.save()
-        capture_event(
-            "alert unsubscribed",
-            distinct_id=distinct_id_for_email(alert.email),
-            properties={
-                "alert_id": str(alert.id),
-                "alert_email_send_id": str(alert_email_send.id),
-                "authenticated": False,
-            },
-        )
-        messages.success(request, "You have been unsubscribed from the alert successfully.")
-        return redirect(reverse("home"))
-
-    return render(request, "jobs/unsubscribe_from_unauthed_alert.html", {"alert_email_send": alert_email_send})
-
-
-@login_required(login_url="account_login")
-def toggle_subscription_from_authed_alert(request, alert_id):
-    alert = get_object_or_404(Alert, id=alert_id)
-
-    if request.method == "POST":
-        alert.unsubscribed = not alert.unsubscribed
-        alert.save()
-        capture_request_event(
-            request,
-            "alert subscription toggled",
-            properties={
-                "alert_id": str(alert.id),
-                "unsubscribed": alert.unsubscribed,
-                "authenticated": True,
-            },
-        )
-
-        custom_message = (
-            "You have been unsubscribed from the alert successfully."
-            if alert.unsubscribed
-            else "You have been subscribed to the alert successfully."
-        )
-        messages.success(request, custom_message)
-        return redirect(reverse("settings"))
-
-    return render(request, "jobs/toggle_subscription_from_authed_alert.html", {"alert": alert})
-
-
-@login_required(login_url="account_login")
-def authed_weekly_digest_view(request):
-    template_name = "jobs/authed_weekly_digest.html"
-
-    user = request.user
-
-    email_send = AlertEmailSend.objects.filter(user=user).latest("created")
-    alerts = Alert.objects.filter(email=user.email, unsubscribed=False)
-
-    context = {
-        "alerts": [],
-    }
-
-    for idx, alert in enumerate(alerts):
-
-        # passing a plain dict won't work. It has to be a QueryDict
-        query_dict = QueryDict("", mutable=True)
-        for key, value in alert.filter.items():
-            if isinstance(value, list):
-                query_dict.setlist(key, value)
-            else:
-                query_dict[key] = value
-
-        post_filter = PostFilter(query_dict)
-        queryset = post_filter.qs.filter(submitted_datetime__gte=email_send.created - timedelta(days=7))
-
-        name = default_alert_name(alert, idx)
-
-        if queryset.count() > 0:
-            context["alerts"].append(
-                {
-                    "name": name,
-                    "queryset": queryset,
-                }
-            )
-
-    capture_request_event(
-        request,
-        "alert digest viewed",
-        properties={
-            "authenticated": True,
-            "alert_count": len(context["alerts"]),
-            "alert_email_send_id": str(email_send.id),
-        },
-    )
-
-    return render(request, template_name, context)
-
-
 class CompanyJobsView(ListView):
     template_name = "jobs/company-jobs.html"
     model = Post
@@ -855,7 +427,6 @@ class TechnologyJobsView(ListView):
         context["tech_slug"] = tech.slug if tech else ""
         context["canonical_url"] = build_absolute_site_url(self.request.path)
         context["latest_date"] = latest_date
-        context["create_alert_form"] = CreateAlertForm
 
         return context
 
@@ -968,6 +539,5 @@ class TitleJobsView(ListView):
         context["title_slug"] = title.slug
         context["canonical_url"] = build_absolute_site_url(self.request.path)
         context["latest_date"] = latest_date
-        context["create_alert_form"] = CreateAlertForm
 
         return context

@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% load markdown_extras %}
 {% load webpack_loader static %}
-{% load widget_tweaks %}
 
 {% block meta %}
 <title>Tech Jobs Database | Search Developer and Startup Jobs</title>
@@ -27,86 +26,37 @@
 {% block content %}
 <section class="home-hero">
   <div class="app-container py-10 sm:py-14 lg:py-16">
-    <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(380px,520px)] lg:items-center">
-      <div>
-        <p class="home-eyebrow">Hacker News and remote startup jobs</p>
-        <h1 class="home-title">
-          Search a structured database of tech jobs.
-        </h1>
-        <p class="home-copy">
-          Browse developer and startup jobs by stack, role, company, salary, location, work mode, and source. Every post is normalized into data you can compare and filter.
-        </p>
-        <div class="mt-7 flex flex-wrap gap-2">
-          <a href="{% url 'posts' %}" class="btn-primary">Browse database</a>
-          <a href="{% url 'technologies' %}" class="btn-secondary">Explore stacks</a>
-        </div>
-      </div>
-
-      <div class="home-alert-composer">
-        {% if request.user.is_authenticated and email_verified %}
-        <form action="{% url 'create-intent-alerts' %}" method="post" class="space-y-4">
-          {% csrf_token %}
-          <div>
-            <label for="intent" class="app-label">What should we watch for?</label>
-            {% render_field create_intent_alert_form.intent id="intent" name="intent" placeholder="Senior backend or platform roles using Python, Django, Postgres, or infrastructure work. Remote in Europe or async-friendly teams. Prefer product companies with salary info." required="True" class="home-intent-input resize-y" %}
-          </div>
-          <div class="filter-section flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p class="app-help">Alerts will be sent to <span class="font-medium text-zinc-950">{{ request.user.email }}</span>.</p>
-            <button type="submit" class="btn-primary shrink-0">Create alerts</button>
-          </div>
-        </form>
-        {% elif request.user.is_authenticated %}
-        <div class="space-y-4">
-          <div>
-            <label for="disabled-intent" class="app-label">What should we watch for?</label>
-            <textarea id="disabled-intent" disabled class="home-intent-input resize-none">Senior backend roles with Python, infrastructure work, remote-friendly teams, and salary info.</textarea>
-          </div>
-          <div class="filter-section">
-            <h2 class="text-base font-semibold text-zinc-950">Confirm your email first</h2>
-            <p class="app-help mt-1">Alert creation is available after your email address is verified.</p>
-            <div class="mt-4 flex flex-wrap gap-2">
-              <a href="{% url 'resend_email_confirmation_email' %}" class="btn-primary">Send confirmation</a>
-              <a href="{% url 'posts' %}" class="btn-secondary">Browse database</a>
-            </div>
-          </div>
-        </div>
-        {% else %}
-        <div class="space-y-4">
-          <div>
-            <label for="signed-out-intent" class="app-label">What should we watch for?</label>
-            <textarea id="signed-out-intent" disabled class="home-intent-input resize-none">Senior backend roles with Python, infrastructure work, remote-friendly teams, and salary info.</textarea>
-          </div>
-          <div class="filter-section">
-            <h2 class="text-base font-semibold text-zinc-950">Alerts are for confirmed accounts</h2>
-            <p class="app-help mt-1">The job database stays open. Sign in when you want us to watch it for you.</p>
-            <div class="mt-4 flex flex-wrap gap-2">
-              <a href="{% url 'account_signup' %}" class="btn-primary">Create account</a>
-              <a href="{% url 'account_login' %}" class="btn-secondary">Log in</a>
-              <a href="{% url 'posts' %}" class="btn-quiet">Browse database</a>
-            </div>
-          </div>
-        </div>
-        {% endif %}
+    <div class="max-w-4xl">
+      <p class="home-eyebrow">Hacker News and remote startup jobs</p>
+      <h1 class="home-title">
+        Search a structured database of tech jobs.
+      </h1>
+      <p class="home-copy">
+        Browse developer and startup jobs by stack, role, company, salary, location, work mode, and source. Every post is normalized into data you can compare and filter.
+      </p>
+      <div class="mt-7 flex flex-wrap gap-2">
+        <a href="{% url 'posts' %}" class="btn-primary">Browse database</a>
+        <a href="{% url 'technologies' %}" class="btn-secondary">Explore stacks</a>
+        <a href="{% url 'titles' %}" class="btn-quiet">Explore titles</a>
       </div>
     </div>
 
     <dl class="mt-10 grid gap-3 sm:grid-cols-3">
       <div class="home-stat">
         <dt class="home-stat-label">Sources</dt>
-        <dd class="home-stat-value">HN + Remote OK</dd>
+        <dd class="home-stat-value">3 feeds</dd>
       </div>
       <div class="home-stat">
         <dt class="home-stat-label">Access</dt>
-        <dd class="home-stat-value">UI + API</dd>
+        <dd class="home-stat-value">Open database</dd>
       </div>
       <div class="home-stat">
-        <dt class="home-stat-label">Browsing</dt>
-        <dd class="home-stat-value">Open database</dd>
+        <dt class="home-stat-label">Updates</dt>
+        <dd class="home-stat-value">Continuous</dd>
       </div>
     </dl>
   </div>
 </section>
-
 <section class="app-container py-8 sm:py-10">
   <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
     <div>

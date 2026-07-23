@@ -246,7 +246,7 @@
     </div>
   </form>
 
-  <div class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-stretch">
+  <div class="mt-4">
     <div class="space-y-3">
       <div class="result-toolbar">
         <div class="flex flex-col gap-1">
@@ -278,34 +278,6 @@
       {% endif %}
     </div>
 
-    <div data-controller="textarea" class="app-muted-panel">
-      <h2 class="text-base font-semibold text-zinc-950">Save this search</h2>
-      <p class="mt-1 text-sm leading-6 text-zinc-600">Turn the current filters into an email alert.</p>
-      <div class="mt-4">
-        {% if request.user.is_authenticated %}
-          {% if not has_custom_alert_filters %}
-            <p class="app-help">Apply at least one filter before saving an alert.</p>
-          {% else %}
-            <form action="{% url 'create-custom-alert' %}" method="post" enctype="multipart/form-data" class="space-y-3">
-            {% csrf_token %}
-              <div>
-                <label for="name" class="app-label">Alert name</label>
-                {% render_field CustomAlertForm.name id="name" name="name" type="text" required="True" class="app-input mt-1" %}
-              </div>
-              {% render_field CustomAlertForm.email id="email" name="email" type="email" value=request.user.email autocomplete="email" readonly="True" required="True" class="hidden" %}
-              {% render_field CustomAlertForm.filter value=custom_alert_filters required="True" class="hidden" %}
-              <button type="submit" class="btn-primary w-full">Save alert</button>
-            </form>
-          {% endif %}
-        {% else %}
-          <p class="app-help">Log in to save filtered searches as alerts.</p>
-          <div class="mt-4 grid gap-2">
-            <a href="{% url 'account_login' %}" class="btn-primary">Log in</a>
-            <a href="{% url 'account_signup' %}" class="btn-secondary">Create account</a>
-          </div>
-        {% endif %}
-      </div>
-    </div>
   </div>
 
   <section aria-label="Job results" class="mt-4">
@@ -315,7 +287,7 @@
       {% empty %}
       <li class="empty-state">
         <h2 class="text-lg font-semibold text-zinc-950">No jobs match these filters</h2>
-        <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-600">Try removing one filter or broadening the search terms. Saved alerts work best with a few high-signal filters.</p>
+        <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-600">Try removing one filter or broadening the search terms.</p>
         <a href="{% url 'posts' %}" class="btn-secondary mt-5">Clear filters</a>
       </li>
     {% endfor %}
