@@ -78,7 +78,8 @@ class CompaniesJobsListicleSitemap(CanonicalHostSitemap):
         return (
             Company.objects.annotate(has_recent_posts=Exists(recent_posts.filter(company=OuterRef("pk"))))
             .filter(has_recent_posts=True)
-            .exclude(name="", slug="")
+            .exclude(name="")
+            .exclude(slug="")
             .order_by("slug")
             .values_list("slug", flat=True)
             .distinct()

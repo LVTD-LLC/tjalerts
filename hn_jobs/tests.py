@@ -4,7 +4,8 @@ from unittest.mock import patch
 from uuid import UUID
 
 import posthog
-from django.test import SimpleTestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
+from django.utils import timezone
 
 from hn_jobs.middleware import SentryMetricsMiddleware
 from hn_jobs.settings.logging_utils import (
@@ -27,6 +28,7 @@ from hn_jobs.sitemaps import (
     TechnologiesJobsListicleSitemap,
     TitlesJobsListicleSitemap,
 )
+from jobs.models import Company, Post
 
 
 class SitemapTests(SimpleTestCase):
@@ -58,6 +60,15 @@ class SitemapTests(SimpleTestCase):
         for sitemap, slug, expected_path in cases:
             with self.subTest(sitemap=sitemap.__class__.__name__):
                 assert sitemap.location(slug) == expected_path
+
+
+class SitemapDatabaseTests(TestCase):
+    def test_company_sitemap_excludes_blank_names_even_when_slug_exists(self):
+        company = Company.objects.create(name="Temporary name")
+        Company.objects.filter(pk=company.pk).update(name="")
+        Post.objects.create(company=company, submitted_datetime=timezone.now())
+
+        assert list(CompaniesJobsListicleSitemap().items()) == []
 
 
 class ObservabilityTests(SimpleTestCase):
