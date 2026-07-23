@@ -2,6 +2,8 @@
 
 Last updated: 2026-07-23
 
+> Historical technical pass. The canonical measured-data sprint plan now lives in [`docs/seo-sprint.md`](seo-sprint.md), with persistent research and state under `.seo/`.
+
 ## Product thesis
 
 `jobs.lvtd.dev` is a structured jobs database for people and AI agents. The same normalized job records should be discoverable through the web UI and reusable through the API, CLI, and MCP. Email digests are being retired and should not anchor acquisition, page copy, or new SEO work.

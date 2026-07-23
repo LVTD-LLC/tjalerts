@@ -1,0 +1,510 @@
+{
+  "generated_at": "2026-07-23",
+  "market": {
+    "location": "United States",
+    "language": "English"
+  },
+  "cache_note": "Compact decision-ready cache derived from successful API responses; secrets and full provider envelopes are intentionally excluded.",
+  "baseline": {
+    "authority": {
+      "source": "dataforseo",
+      "as_of": "2026-07-23",
+      "confidence": "measured",
+      "target": "jobs.lvtd.dev",
+      "rank": 0,
+      "backlinks": 2561,
+      "referring_domains": 46,
+      "referring_main_domains": 44,
+      "redirect_backlinks": 2484,
+      "notes": "Most backlink volume is the legacy-domain redirect, so use a conservative KD cap of 30."
+    },
+    "gsc": {
+      "source": "gsc",
+      "as_of": "2026-07-22",
+      "confidence": "measured",
+      "date_range": [
+        "2026-04-24",
+        "2026-07-22"
+      ],
+      "new_domain": {
+        "property": "sc-domain:lvtd.dev",
+        "page_filter": "https://jobs.lvtd.dev/",
+        "query_page_rows": 290,
+        "clicks": 15,
+        "impressions": 629,
+        "submitted_sitemap": false
+      },
+      "legacy_domain": {
+        "property": "sc-domain:gettjalerts.com",
+        "query_page_rows": 8,
+        "clicks": 0,
+        "impressions": 15,
+        "submitted_sitemap": "https://gettjalerts.com/sitemap.xml"
+      },
+      "top_rows": [
+        {
+          "query": "rhodia vagas",
+          "page": "https://jobs.lvtd.dev/jobs/ac57690b-6acf-43dd-a8f3-a10c919e2216",
+          "clicks": 4,
+          "impressions": 17,
+          "ctr": 0.2353,
+          "position": 7.47
+        },
+        {
+          "query": "pathway communications careers",
+          "page": "https://jobs.lvtd.dev/jobs/c9d92cfe-cb16-4f03-8a33-39f64478b9c0",
+          "clicks": 3,
+          "impressions": 7,
+          "ctr": 0.4286,
+          "position": 5.14
+        },
+        {
+          "query": "moda health careers",
+          "page": "https://jobs.lvtd.dev/jobs/0696082d-fe87-4b0a-a8a5-8cfa567ace28",
+          "clicks": 1,
+          "impressions": 13,
+          "ctr": 0.0769,
+          "position": 6.0
+        },
+        {
+          "query": "loomis careers",
+          "page": "https://jobs.lvtd.dev/jobs/c5986a85-1b70-4555-8d01-6960a1a91dba",
+          "clicks": 1,
+          "impressions": 12,
+          "ctr": 0.0833,
+          "position": 6.33
+        }
+      ]
+    },
+    "dataforseo_ranked_keywords": {
+      "source": "dataforseo",
+      "as_of": "2026-07-23",
+      "confidence": "measured",
+      "count": 9,
+      "rows": [
+        {
+          "keyword": "crown affair careers",
+          "volume": 170,
+          "kd": 0,
+          "position": 27,
+          "url": "/jobs/company/crown-affair/"
+        },
+        {
+          "keyword": "video teleconference jobs",
+          "volume": 170,
+          "kd": 0,
+          "position": 28,
+          "url": "/jobs/technology/video-conferencing/"
+        },
+        {
+          "keyword": "tiktok shop jobs",
+          "volume": 210,
+          "kd": 14,
+          "position": 30,
+          "url": "/jobs/technology/tiktok-shop/"
+        },
+        {
+          "keyword": "hootsuite career",
+          "volume": 390,
+          "kd": 4,
+          "position": 36,
+          "url": "/jobs/technology/hootsuite/"
+        }
+      ]
+    }
+  },
+  "analytics": {
+    "plausible": {
+      "source": "plausible",
+      "as_of": "2026-07-23",
+      "confidence": "measured",
+      "date_range": [
+        "2026-04-24",
+        "2026-07-23"
+      ],
+      "site_id": "gettjalerts.com",
+      "desired_site_id_status": "jobs.lvtd.dev returned invalid site ID",
+      "visitors": 108804,
+      "visits": 133521,
+      "pageviews": 139537,
+      "goals": [],
+      "search_sources": {
+        "Google": 43,
+        "Bing": 19,
+        "DuckDuckGo": 14,
+        "google_jobs_apply": 13
+      },
+      "top_pages": [
+        {
+          "path": "/jobs/",
+          "visitors": 29801,
+          "visits": 32565,
+          "pageviews": 33238
+        },
+        {
+          "path": "/",
+          "visitors": 1102,
+          "visits": 1119,
+          "pageviews": 1253
+        }
+      ],
+      "notes": "Traffic is dominated by Direct / None and likely includes automation; use search-source rows, GSC, and PostHog together."
+    },
+    "posthog": {
+      "source": "posthog",
+      "as_of": "2026-07-23",
+      "confidence": "measured",
+      "project_id": 31589,
+      "date_range_days": 90,
+      "pageviews": 22029,
+      "organic_search_sessions": 80,
+      "organic_search_pageviews": 159,
+      "hosts": {
+        "gettjalerts.com": 14542,
+        "jobs.lvtd.dev": 7468
+      },
+      "custom_conversion_events": [],
+      "notes": "No application-click, search, signup, API activation, CLI, or MCP conversion events were found."
+    }
+  },
+  "keyword_candidates": {
+    "source": "dataforseo",
+    "as_of": "2026-07-23",
+    "confidence": "measured",
+    "rows": [
+      {
+        "keyword": "highest paying tech jobs",
+        "volume": 2900,
+        "kd": 0,
+        "cpc": 19.54,
+        "intent": "informational",
+        "recommended_surface": "highest-paying hub plus technology salary pages"
+      },
+      {
+        "keyword": "python jobs",
+        "volume": 1900,
+        "kd": 19,
+        "cpc": 2.47,
+        "intent": "informational",
+        "recommended_surface": "/jobs/technology/python/"
+      },
+      {
+        "keyword": "rust jobs",
+        "volume": 720,
+        "kd": 0,
+        "cpc": 6.83,
+        "intent": "informational",
+        "recommended_surface": "/jobs/technology/rust/"
+      },
+      {
+        "keyword": "golang jobs",
+        "volume": 590,
+        "kd": 10,
+        "cpc": 1.66,
+        "intent": "informational",
+        "recommended_surface": "/jobs/technology/golang/"
+      },
+      {
+        "keyword": "jobs api",
+        "volume": 590,
+        "kd": 26,
+        "cpc": 12.0,
+        "intent": "informational",
+        "recommended_surface": "public API landing/docs after interface stabilization"
+      },
+      {
+        "keyword": "hacker news jobs",
+        "volume": 260,
+        "kd": 29,
+        "cpc": 0.34,
+        "intent": "informational",
+        "recommended_surface": "curated HN source landing page"
+      },
+      {
+        "keyword": "django jobs",
+        "volume": 210,
+        "kd": 11,
+        "cpc": 0.64,
+        "intent": "informational",
+        "recommended_surface": "/jobs/technology/django/"
+      },
+      {
+        "keyword": "jobs mcp",
+        "volume": 140,
+        "kd": 0,
+        "cpc": null,
+        "intent": "navigational",
+        "recommended_surface": "MCP landing/docs after launch; SERP intent is ambiguous"
+      },
+      {
+        "keyword": "job search api",
+        "volume": 110,
+        "kd": 27,
+        "cpc": 7.76,
+        "intent": "informational",
+        "recommended_surface": "public API landing/docs"
+      },
+      {
+        "keyword": "job board api",
+        "volume": 50,
+        "kd": 3,
+        "cpc": 14.48,
+        "intent": "navigational",
+        "recommended_surface": "public API landing/docs"
+      },
+      {
+        "keyword": "job data api",
+        "volume": 50,
+        "kd": 17,
+        "cpc": 17.04,
+        "intent": "informational",
+        "recommended_surface": "public API landing/docs"
+      },
+      {
+        "keyword": "hn jobs",
+        "volume": 40,
+        "kd": 15,
+        "cpc": null,
+        "intent": "navigational",
+        "recommended_surface": "curated HN source landing page"
+      },
+      {
+        "keyword": "job listings api",
+        "volume": 40,
+        "kd": 9,
+        "cpc": 17.26,
+        "intent": "informational",
+        "recommended_surface": "public API landing/docs"
+      }
+    ]
+  },
+  "broad_terms": [
+    {
+      "keyword": "remote software engineer jobs",
+      "volume": 49500,
+      "kd": 0,
+      "cpc": 4.21,
+      "decision": "defer until a durable remote-role landing template exists; live SERP is dominated by large job boards"
+    },
+    {
+      "keyword": "software engineer jobs",
+      "volume": 40500,
+      "kd": 9,
+      "cpc": 5.94,
+      "decision": "defer; improve existing role page first and validate inventory depth"
+    },
+    {
+      "keyword": "ai jobs",
+      "volume": 22200,
+      "kd": 25,
+      "cpc": 5.78,
+      "decision": "later data-led landing page after inventory and SERP validation"
+    },
+    {
+      "keyword": "remote developer jobs",
+      "volume": 22200,
+      "kd": 4,
+      "cpc": 4.13,
+      "decision": "later data-led landing page; strong brands dominate the SERP despite low KD"
+    },
+    {
+      "keyword": "jobs database",
+      "volume": 6600,
+      "kd": 100,
+      "cpc": 8.58,
+      "decision": "positioning phrase only; do not target as the primary keyword"
+    },
+    {
+      "keyword": "remote tech jobs",
+      "volume": 4400,
+      "kd": 4,
+      "cpc": 3.73,
+      "decision": "later remote-tech inventory page"
+    }
+  ],
+  "competitors": {
+    "source": "blended",
+    "sources": [
+      "dataforseo",
+      "exa",
+      "firecrawl"
+    ],
+    "as_of": "2026-07-23",
+    "confidence": "measured",
+    "brands": [
+      {
+        "name": "Remote OK",
+        "domain": "remoteok.com",
+        "brand_volume": 12100,
+        "brand_kd": 26,
+        "notable_keyword": {
+          "keyword": "remote developer jobs",
+          "volume": 22200,
+          "kd": 4,
+          "position": 5
+        }
+      },
+      {
+        "name": "We Work Remotely",
+        "domain": "weworkremotely.com",
+        "brand_volume": 33100,
+        "brand_kd": 25,
+        "notable_pattern": "role, contract, and work-arrangement category pages"
+      },
+      {
+        "name": "Himalayas",
+        "domain": "himalayas.app",
+        "brand_volume": 1900,
+        "brand_kd": 37,
+        "notable_pattern": "company, salary, career-guide, job-description, and interview-question pages"
+      },
+      {
+        "name": "TheirStack",
+        "domain": "theirstack.com",
+        "brand_volume": 720,
+        "brand_kd": 0,
+        "notable_pattern": "technology/company data pages and job-data documentation"
+      },
+      {
+        "name": "JobsPipe",
+        "domain": "jobspipe.dev",
+        "notable_keywords": [
+          {
+            "keyword": "jobs api",
+            "volume": 590,
+            "kd": 26,
+            "position": 43
+          },
+          {
+            "keyword": "adzuna api",
+            "volume": 390,
+            "kd": 26,
+            "position": 14
+          },
+          {
+            "keyword": "jsearch api",
+            "volume": 170,
+            "kd": 0,
+            "position": 32
+          }
+        ],
+        "notable_pattern": "source pages, API alternatives, guides, and MCP"
+      },
+      {
+        "name": "Trackly",
+        "domain": "usetrackly.app",
+        "brand_volume": 210,
+        "brand_kd": 0,
+        "notable_pattern": "CLI, local MCP, remote MCP, and application tracking"
+      }
+    ],
+    "alternatives_terms": [
+      {
+        "keyword": "we work remotely alternatives",
+        "volume": 10,
+        "kd": null
+      },
+      {
+        "keyword": "remote ok alternatives",
+        "volume": 0,
+        "kd": null
+      }
+    ],
+    "comparison_terms": {
+      "measured_rows": 0,
+      "decision": "Do not prioritize comparison pages until machine interfaces are public and a real switching story exists."
+    }
+  },
+  "serp_snapshots": {
+    "source": "dataforseo",
+    "as_of": "2026-07-23",
+    "confidence": "measured",
+    "jobs_api": {
+      "top_domains": [
+        "docs.databricks.com",
+        "coresignal.com",
+        "serpapi.com",
+        "reddit.com",
+        "docs.indeed.com"
+      ],
+      "notes": "Mixed intent; the future page must disambiguate job-posting data from Databricks Jobs."
+    },
+    "jobs_mcp": {
+      "top_domains": [
+        "github.com",
+        "mcp.ski",
+        "indeed.com",
+        "themcpgroup.com"
+      ],
+      "notes": "Ambiguous acronym SERP, but a purpose-built public MCP page can still own the job-search interpretation."
+    },
+    "hacker_news_jobs": {
+      "top_domains": [
+        "news.ycombinator.com",
+        "hnhiring.com",
+        "reddit.com"
+      ],
+      "notes": "A current, structured HN-specific landing page is a plausible differentiated result."
+    },
+    "python_jobs": {
+      "top_domains": [
+        "python.org",
+        "indeed.com",
+        "linkedin.com",
+        "builtinnyc.com"
+      ],
+      "notes": "Existing technology page needs meaningful live-data summaries and links, not a thin list."
+    },
+    "rust_jobs": {
+      "top_domains": [
+        "rustjobs.dev",
+        "jobs.letsgetrusty.com",
+        "reddit.com",
+        "readytotouch.com",
+        "arc.dev"
+      ],
+      "notes": "Niche specialist competitors make this more attainable than broad software-engineer terms."
+    }
+  },
+  "striking_distance": {
+    "source": "gsc",
+    "as_of": "2026-07-22",
+    "confidence": "measured",
+    "threshold": "position 5-20 and at least 20 impressions",
+    "rows": [],
+    "notes": "Several job-detail queries sit at positions 5-10 but remain below the 20-impression phase threshold."
+  },
+  "technical_audit": {
+    "source": "webfetch",
+    "as_of": "2026-07-23",
+    "confidence": "measured",
+    "sitemap": {
+      "status": 200,
+      "content_type": "application/xml",
+      "bytes": 1526689,
+      "response_seconds": 17.01,
+      "urls": 9485,
+      "unique_urls": 9485,
+      "legacy_host_urls": 0
+    },
+    "robots": {
+      "status": 200,
+      "sitemap": "https://jobs.lvtd.dev/sitemap.xml",
+      "api_disallowed": true
+    },
+    "homepage": {
+      "canonical": "https://jobs.lvtd.dev/",
+      "title": "Tech Jobs Database | Search Developer and Startup Jobs",
+      "description": "Search developer and startup jobs from Hacker News, Remote OK, and other sources by stack, role, company, salary, location, and work mode.",
+      "h1_count": 1,
+      "schema": [
+        "WebSite"
+      ]
+    },
+    "jobs_index": {
+      "title": "Available Jobs - July 2026",
+      "description": "Jobs that match these keywords: . From July 2026.",
+      "schema": "invalid JSON-LD: unescaped control characters in job descriptions"
+    }
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "source": "blended",
+  "sources": [
+    "dataforseo",
+    "exa",
+    "firecrawl"
+  ],
+  "as_of": "2026-07-23",
+  "confidence": "derived",
+  "notes": "Prospects require human qualification before outreach. DataForSEO reported 46 referring domains for jobs.lvtd.dev, but most backlink volume comes from legacy-domain redirects.",
+  "targets": [
+    {
+      "domain": "saashub.com",
+      "type": "directory",
+      "status": "existing-link-review",
+      "reason": "Already links to the site; update the listing to jobs.lvtd.dev and database-first positioning."
+    },
+    {
+      "domain": "builtwithdjango.com",
+      "type": "portfolio-listing",
+      "status": "existing-link-review",
+      "reason": "Existing relevant Django project profile and meaningful referral traffic."
+    },
+    {
+      "domain": "djangoproject.com",
+      "type": "community-showcase",
+      "status": "existing-link-review",
+      "reason": "Existing relevant backlinks; verify canonical domain and current description."
+    },
+    {
+      "domain": "arc.dev",
+      "type": "remote-work-listicle",
+      "status": "prospect",
+      "reason": "Ranks and links in the remote-work category; pitch the structured HN and developer-job database angle."
+    },
+    {
+      "domain": "publicapis.dev",
+      "type": "api-directory",
+      "status": "gated",
+      "reason": "SERP competitor for jobs APIs; submit only after the public API contract and docs are stable."
+    },
+    {
+      "domain": "mcpservers.org",
+      "type": "mcp-directory",
+      "status": "gated",
+      "reason": "Visible for job-related MCP searches; submit only after the MCP server is public."
+    },
+    {
+      "domain": "webmcp.com",
+      "type": "mcp-directory",
+      "status": "gated",
+      "reason": "Links to JobsPipe and is relevant to a future public jobs MCP."
+    },
+    {
+      "domain": "remote.co",
+      "type": "remote-work-resource",
+      "status": "prospect",
+      "reason": "Ranks for remote developer jobs; a data/source partnership is more realistic than a generic link request."
+    },
+    {
+      "domain": "remotework.fyi",
+      "type": "remote-work-resource",
+      "status": "prospect",
+      "reason": "Links to multiple remote-job competitors and may accept useful database/resource additions."
+    },
+    {
+      "domain": "findwork.dev",
+      "type": "developer-jobs-resource",
+      "status": "prospect",
+      "reason": "Developer-job audience and competitor-link overlap."
+    }
+  ]
+}
