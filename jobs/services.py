@@ -60,8 +60,10 @@ class JobNotFoundError(LookupError):
     """Raised when a requested job does not exist."""
 
 
-def _job_queryset() -> QuerySet[Post]:
-    return Post.objects.select_related("company").prefetch_related("technologies", "titles")
+def _public_job_queryset() -> QuerySet[Post]:
+    return (
+        Post.objects.exclude(description__exact="").select_related("company").prefetch_related("technologies", "titles")
+    )
 
 
 def _serialize_job_summary(post: Post) -> JobSummary:
@@ -116,7 +118,7 @@ def search_jobs(
     if technologies and len(technologies) > MAX_TECHNOLOGY_FILTERS:
         raise JobQueryError(f"Use at most {MAX_TECHNOLOGY_FILTERS} technology filters")
 
-    posts = _job_queryset().exclude(description__exact="")
+    posts = _public_job_queryset()
 
     if query and (query := query.strip()):
         if len(query) > MAX_JOB_QUERY_LENGTH:
@@ -174,7 +176,7 @@ def search_jobs(
 def get_job(job_id: str | UUID) -> JobDetail:
     """Return one serialized public job."""
     try:
-        post = _job_queryset().get(id=job_id)
+        post = _public_job_queryset().get(id=job_id)
     except (Post.DoesNotExist, ValidationError, ValueError) as exc:
         raise JobNotFoundError(f"Job not found: {job_id}") from exc
 

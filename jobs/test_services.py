@@ -3,7 +3,7 @@ from django.utils import timezone
 
 from jobs.choices import PostSource
 from jobs.models import Company, Post, Technology, Title
-from jobs.services import JobQueryError, get_job, search_jobs
+from jobs.services import JobNotFoundError, JobQueryError, get_job, search_jobs
 
 
 class JobQueryServiceTests(TestCase):
@@ -99,6 +99,17 @@ class JobQueryServiceTests(TestCase):
         self.assertEqual(result["id"], str(self.remote_post.id))
         self.assertEqual(result["technologies"], ["Django", "Python"])
         self.assertEqual(result["titles"], ["Backend Engineer"])
+
+    def test_get_job_rejects_an_incomplete_post(self):
+        incomplete_post = Post.objects.create(
+            company=self.remote_post.company,
+            submitted_datetime=timezone.now(),
+            description="",
+            source=PostSource.REMOTE_OK,
+        )
+
+        with self.assertRaisesMessage(JobNotFoundError, f"Job not found: {incomplete_post.id}"):
+            get_job(incomplete_post.id)
 
     def test_search_jobs_rejects_invalid_source(self):
         with self.assertRaisesMessage(JobQueryError, "Unsupported job source"):
