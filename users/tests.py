@@ -138,33 +138,9 @@ class EmailAddressSchemaRepairMigrationTests(SimpleTestCase):
     def test_repair_runs_only_for_postgresql(self):
         migration = import_module("users.migrations.0007_restore_account_emailaddress_id_default")
 
-        class Cursor:
-            def __init__(self, is_identity):
-                self.is_identity = is_identity
-
-            def __enter__(self):
-                return self
-
-            def __exit__(self, exc_type, exc_value, traceback):
-                return False
-
-            def execute(self, sql):
-                pass
-
-            def fetchone(self):
-                return (self.is_identity,)
-
-        class Connection:
-            def __init__(self, vendor, is_identity="NO"):
-                self.vendor = vendor
-                self.is_identity = is_identity
-
-            def cursor(self):
-                return Cursor(self.is_identity)
-
         class SchemaEditor:
-            def __init__(self, vendor, is_identity="NO"):
-                self.connection = Connection(vendor, is_identity)
+            def __init__(self, vendor):
+                self.connection = type("Connection", (), {"vendor": vendor})()
                 self.statements = []
 
             def execute(self, sql):
@@ -180,10 +156,6 @@ class EmailAddressSchemaRepairMigrationTests(SimpleTestCase):
         sqlite_editor = SchemaEditor("sqlite")
         migration.restore_account_emailaddress_id_default(None, sqlite_editor)
         assert sqlite_editor.statements == []
-
-        identity_editor = SchemaEditor("postgresql", is_identity="YES")
-        migration.restore_account_emailaddress_id_default(None, identity_editor)
-        assert identity_editor.statements == []
 
 
 @skipUnless(connection.vendor == "postgresql", "Sequence defaults are PostgreSQL-specific")

@@ -7,21 +7,6 @@ def restore_account_emailaddress_id_default(apps, schema_editor):
     if schema_editor.connection.vendor != "postgresql":
         return
 
-    with schema_editor.connection.cursor() as cursor:
-        cursor.execute(
-            """
-            SELECT is_identity
-            FROM information_schema.columns
-            WHERE table_schema = current_schema()
-              AND table_name = 'account_emailaddress'
-              AND column_name = 'id'
-            """
-        )
-        column = cursor.fetchone()
-
-    if column and column[0] == "YES":
-        return
-
     schema_editor.execute(
         """
         DO $$
