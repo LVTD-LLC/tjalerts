@@ -149,11 +149,18 @@ POSTHOG_LOGS_CONFIGURED = configure_posthog_logs(
 
 
 def posthog_middleware_extra_tags(request):
-    user = getattr(request, "user", None)
+    # PostHog invokes this synchronous callback from both its WSGI and ASGI
+    # middleware. Evaluating request.user here can perform a synchronous
+    # database query and raise SynchronousOnlyOperation in the ASGI path.
+    user = getattr(request, "_cached_user", None)
+    if user is None:
+        user = getattr(request, "_acached_user", None)
+
+    is_authenticated = bool(user and user.is_authenticated)
     return {
         "environment": ENVIRONMENT,
-        "authenticated": bool(user and user.is_authenticated),
-        "user_is_staff": bool(user and user.is_authenticated and user.is_staff),
+        "authenticated": is_authenticated,
+        "user_is_staff": bool(is_authenticated and user.is_staff),
     }
 
 

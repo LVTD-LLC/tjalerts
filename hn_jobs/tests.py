@@ -8,6 +8,7 @@ from django.test import SimpleTestCase, TestCase, override_settings
 from django.utils import timezone
 
 from hn_jobs.middleware import SentryMetricsMiddleware
+from hn_jobs.settings.base import ENVIRONMENT, posthog_middleware_extra_tags
 from hn_jobs.settings.logging_utils import (
     enrich_sentry_log,
     enrich_sentry_metric,
@@ -72,6 +73,29 @@ class SitemapDatabaseTests(TestCase):
 
 
 class ObservabilityTests(SimpleTestCase):
+    def test_posthog_extra_tags_use_cached_users_without_evaluating_lazy_user(self):
+        class UnevaluatedLazyUser:
+            def __bool__(self):
+                raise AssertionError("request.user must not be evaluated by the synchronous PostHog callback")
+
+        for cache_attribute in ("_cached_user", "_acached_user"):
+            with self.subTest(cache_attribute=cache_attribute):
+                request = SimpleNamespace(
+                    user=UnevaluatedLazyUser(),
+                    **{
+                        cache_attribute: SimpleNamespace(
+                            is_authenticated=True,
+                            is_staff=True,
+                        )
+                    },
+                )
+
+                assert posthog_middleware_extra_tags(request) == {
+                    "environment": ENVIRONMENT,
+                    "authenticated": True,
+                    "user_is_staff": True,
+                }
+
     def test_posthog_client_configures_sdk_global_api_key(self):
         original_api_key = posthog.api_key
         original_disabled = posthog.disabled
