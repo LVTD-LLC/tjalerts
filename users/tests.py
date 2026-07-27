@@ -98,11 +98,32 @@ class UserSettingsTests(TestCase):
         _, previous_api_key = rotate_user_api_key(user)
         self.client.force_login(user)
 
-        with patch("users.views.render", side_effect=RuntimeError("render failed")):
+        with (
+            patch("users.views.capture_user_event") as capture_event,
+            patch("users.views.render", side_effect=RuntimeError("render failed")),
+        ):
             with self.assertRaises(RuntimeError):
                 self.client.post(reverse("generate_api_key"))
 
+        capture_event.assert_not_called()
         assert authenticate_api_key(previous_api_key) == user
+
+    def test_api_key_rotation_event_is_sent_after_commit(self):
+        user = get_user_model().objects.create_user(
+            username="agent-user",
+            email="agent@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        with (
+            patch("users.views.capture_user_event") as capture_event,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            response = self.client.post(reverse("generate_api_key"))
+
+        assert response.status_code == 200
+        capture_event.assert_called_once_with(user, "api key rotated")
 
 
 class APIKeyTests(TestCase):

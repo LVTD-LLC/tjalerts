@@ -12,9 +12,16 @@ from jobs.lookups import (
 from jobs.models import Post
 
 
+def get_lookup_query(request):
+    query = request.GET.get("query")
+    if not query or len(query.strip()) < 2:
+        return None
+    return query
+
+
 @require_GET
 def technology_search(request):
-    return JsonResponse(search_technology_options(request.GET.get("query")), safe=False)
+    return JsonResponse(search_technology_options(get_lookup_query(request)), safe=False)
 
 
 @require_GET
@@ -27,7 +34,7 @@ def technology_detail(request, pk):
 
 @require_GET
 def title_search(request):
-    return JsonResponse(search_title_options(request.GET.get("query")), safe=False)
+    return JsonResponse(search_title_options(get_lookup_query(request)), safe=False)
 
 
 @require_GET

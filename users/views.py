@@ -54,7 +54,7 @@ class UserSettingsView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
 def generate_api_key(request):
     with transaction.atomic():
         key_record, api_key = rotate_user_api_key(request.user)
-        capture_user_event(request.user, "api key rotated")
+        transaction.on_commit(lambda: capture_user_event(request.user, "api key rotated"))
 
         context = {
             "form": UserSettingsForm(instance=request.user),

@@ -21,6 +21,18 @@ class PublicJobLookupTests(TestCase):
             }
         ]
 
+    def test_public_filter_searches_require_two_characters(self):
+        Technology.objects.create(name="Django")
+        Title.objects.create(name="Developer")
+
+        technology_response = self.client.get(reverse("job-technology-search"), {"query": "d"})
+        title_response = self.client.get(reverse("job-title-search"), {"query": "d"})
+
+        assert technology_response.status_code == 200
+        assert technology_response.json() == []
+        assert title_response.status_code == 200
+        assert title_response.json() == []
+
     def test_anonymous_user_can_load_similar_jobs(self):
         company = Company.objects.create(name="Acme")
         post = Post.objects.create(
