@@ -2,23 +2,23 @@
 {% load static %}
 
 {% block meta %}
-<title>Tech Jobs Database | Search Developer and Startup Jobs</title>
-<meta name="description" content="Browse developer and startup jobs from Hacker News and remote job boards. Filter by role, stack, company, salary, location, or work style." />
+<title>Developer Jobs Database | Search Tech &amp; Startup Jobs</title>
+<meta name="description" content="Search current developer and startup jobs gathered from across the web. Filter by role, tech stack, company, salary, location, and work style." />
 <meta name="robots" content="index, follow" />
 <link rel="canonical" href="{{ SITE_URL }}/" />
 
 <meta property="og:type" content="website" />
-<meta property="og:title" content="Tech Jobs Database" />
+<meta property="og:title" content="Developer Jobs Database" />
 <meta property="og:url" content="{{ SITE_URL }}/" />
-<meta property="og:description" content="Browse developer and startup jobs from Hacker News and remote job boards. Filter by role, stack, company, salary, location, or work style." />
+<meta property="og:description" content="Search current developer and startup jobs gathered from across the web. Filter by role, tech stack, company, salary, location, and work style." />
 <meta property="og:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
 <meta property="og:locale" content="en_US" />
 
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:creator" content="@rasulkireev" />
 <meta name="twitter:site" content="@rasulkireev" />
-<meta name="twitter:title" content="Tech Jobs Database" />
-<meta name="twitter:description" content="Browse developer and startup jobs from Hacker News and remote job boards. Filter by role, stack, company, salary, location, or work style." />
+<meta name="twitter:title" content="Developer Jobs Database" />
+<meta name="twitter:description" content="Search current developer and startup jobs gathered from across the web. Filter by role, tech stack, company, salary, location, and work style." />
 <meta name="twitter:image" content="{{ SITE_URL }}{% static 'vendors/images/logo.png' %}" />
 {% endblock meta %}
 
@@ -26,10 +26,10 @@
 <section class="home-hero py-16 sm:py-20 lg:py-24">
   <div class="app-container text-center">
     <img class="mx-auto size-12 sm:size-14" src="{% static 'vendors/images/logo.png' %}" alt="" />
-    <p class="home-eyebrow">Tech jobs, organized.</p>
+    <p class="home-eyebrow">Developer jobs, organized.</p>
     <h1 class="home-title mx-auto">Find the right tech job faster</h1>
     <p class="home-copy mx-auto">
-      Search jobs from Hacker News and remote job boards. Filter by role, stack, company, salary, location, or work style.
+      Search current developer and startup jobs gathered from across the web. Filter by role, tech stack, company, salary, location, or work style.
     </p>
     <div class="mt-8">
       <a href="{% url 'posts' %}" class="btn-primary px-5 py-3">Browse database</a>
@@ -39,13 +39,18 @@
 
 <section class="py-12 sm:py-16">
   <div class="app-container">
-    <div>
-      <h2 class="max-w-[40ch] text-2xl font-semibold tracking-tight text-zinc-950 text-balance sm:text-3xl">
-        Six recent jobs
-      </h2>
-      <p class="mt-3 max-w-[56ch] text-base leading-7 text-zinc-600 text-pretty sm:text-sm sm:leading-6">
-        A quick look at the latest roles added to the database.
-      </p>
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <h2 class="max-w-[40ch] text-2xl font-semibold tracking-tight text-zinc-950 text-balance sm:text-3xl">
+          Latest jobs
+        </h2>
+        <p class="mt-3 max-w-[56ch] text-base leading-7 text-zinc-600 text-pretty sm:text-sm sm:leading-6">
+          Explore the newest developer roles added to the database.
+        </p>
+      </div>
+      <a href="{% url 'posts' %}" class="hidden text-sm font-semibold text-emerald-800 hover:text-emerald-950 sm:inline-flex">
+        View every job <span class="ml-2" aria-hidden="true">&rarr;</span>
+      </a>
     </div>
 
     <ul role="list" class="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -53,7 +58,9 @@
       <li class="home-job-card">
         <div class="flex items-start justify-between gap-4">
           <h3 class="min-w-0 text-lg font-semibold text-zinc-950 text-balance">
-            {% if object.company.name %}{{ object.company.name }}{% else %}Stealth company{% endif %}
+            <a href="{{ object.get_absolute_url }}" class="home-job-link">
+              {% if object.company.name %}{{ object.company.name }}{% else %}Stealth company{% endif %}
+            </a>
           </h3>
           <p class="shrink-0 whitespace-nowrap text-base text-zinc-500 tabular-nums sm:text-sm">
             {{ object.submitted_datetime|timesince }} ago
@@ -66,14 +73,18 @@
         <dl class="mt-6 grid gap-4 border-t border-zinc-950/10 pt-5">
           <div>
             <dt class="text-base font-medium text-zinc-950 sm:text-sm">Roles</dt>
-            <dd class="mt-1 text-base leading-7 text-zinc-600 sm:text-sm sm:leading-6">
-              {% for title in object.titles.all %}{{ title.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+            <dd class="relative z-10 mt-1 flex flex-wrap gap-1.5 text-base leading-7 text-zinc-600 sm:text-sm sm:leading-6">
+              {% for title in object.titles.all %}
+                {% include "components/title-link.html" with title=title %}
+              {% endfor %}
             </dd>
           </div>
           <div>
-            <dt class="text-base font-medium text-zinc-950 sm:text-sm">Stack</dt>
-            <dd class="mt-1 text-base leading-7 text-zinc-600 sm:text-sm sm:leading-6">
-              {% for technology in object.technologies.all %}{{ technology.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+            <dt class="text-base font-medium text-zinc-950 sm:text-sm">Tech stack</dt>
+            <dd class="relative z-10 mt-1 flex flex-wrap gap-1.5 text-base leading-7 text-zinc-600 sm:text-sm sm:leading-6">
+              {% for technology in object.technologies.all %}
+                {% include "components/technology-link.html" with technology=technology %}
+              {% endfor %}
             </dd>
           </div>
         </dl>
@@ -87,7 +98,8 @@
       </li>
       {% endfor %}
     </ul>
+
+    <a href="{% url 'posts' %}" class="btn-secondary mt-6 w-full sm:hidden">View every job</a>
   </div>
 </section>
-
 {% endblock content %}

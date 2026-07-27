@@ -72,6 +72,29 @@ class SitemapDatabaseTests(TestCase):
 
 
 class ObservabilityTests(SimpleTestCase):
+    def test_posthog_client_configures_sdk_global_api_key(self):
+        original_api_key = posthog.api_key
+        original_disabled = posthog.disabled
+        original_host = posthog.host
+        original_debug = posthog.debug
+
+        try:
+            with patch("hn_jobs.settings.observability.posthog.enable_keep_alive"):
+                configure_posthog_client(
+                    api_key="  phc_test_project_key  ",
+                    host="https://us.i.posthog.com",
+                    enabled=True,
+                    debug=False,
+                )
+
+            assert posthog.api_key == "phc_test_project_key"
+            assert posthog.disabled is False
+        finally:
+            posthog.api_key = original_api_key
+            posthog.disabled = original_disabled
+            posthog.host = original_host
+            posthog.debug = original_debug
+
     def test_normalize_telemetry_attribute_handles_exporter_unsafe_values(self):
         error = ValueError("broken")
         request_id = UUID("946539af-c999-421e-9ecb-65d47934c45c")
@@ -126,7 +149,7 @@ class ObservabilityTests(SimpleTestCase):
         assert metric["attributes"]["item_id"] == "946539af-c999-421e-9ecb-65d47934c45c"
 
     def test_posthog_client_treats_whitespace_api_key_as_disabled(self):
-        original_api_key = posthog.project_api_key
+        original_api_key = posthog.api_key
         original_disabled = posthog.disabled
         original_host = posthog.host
         original_debug = posthog.debug
@@ -134,10 +157,10 @@ class ObservabilityTests(SimpleTestCase):
         try:
             configure_posthog_client(api_key="   ", host="https://us.i.posthog.com", enabled=True, debug=False)
 
-            assert posthog.project_api_key == ""
+            assert posthog.api_key == ""
             assert posthog.disabled is True
         finally:
-            posthog.project_api_key = original_api_key
+            posthog.api_key = original_api_key
             posthog.disabled = original_disabled
             posthog.host = original_host
             posthog.debug = original_debug

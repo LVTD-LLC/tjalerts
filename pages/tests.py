@@ -4,21 +4,52 @@ from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
+
+from jobs.models import Company, Post, Technology, Title
 
 
 class HomePageRenderTests(TestCase):
     @patch("pages.views.get_latest_submissions")
-    def test_home_has_one_database_cta_and_requests_six_jobs(self, get_latest_submissions):
+    def test_home_has_search_focused_copy_and_requests_six_jobs(self, get_latest_submissions):
         get_latest_submissions.return_value = []
 
         response = self.client.get(reverse("home"))
 
         assert response.status_code == 200
+        self.assertContains(
+            response, "<title>Developer Jobs Database | Search Tech &amp; Startup Jobs</title>", html=True
+        )
         self.assertContains(response, "Find the right tech job faster")
+        self.assertContains(response, "Search current developer and startup jobs gathered from across the web.")
         self.assertContains(response, "Browse database", count=1)
-        self.assertContains(response, f'href="{reverse("posts")}"', count=1)
+        self.assertContains(response, "Latest jobs")
+        self.assertNotContains(response, "Six recent jobs")
+        self.assertNotContains(response, "Hacker News")
+        self.assertNotContains(response, "Remote OK")
+        self.assertNotContains(response, "data-uidotsh-pick")
+        self.assertNotContains(response, "https://ui.sh/ui-picker.js")
         self.assertNotContains(response, 'aria-label="Global"')
         get_latest_submissions.assert_called_once_with(6, for_homepage=True)
+
+    def test_home_job_cards_link_to_job_role_and_technology_results(self):
+        company = Company.objects.create(name="Northstar Labs")
+        title = Title.objects.create(name="Backend Engineer")
+        technology = Technology.objects.create(name="Django")
+        post = Post.objects.create(
+            company=company,
+            submitted_datetime=timezone.now(),
+            description="Build reliable data services.",
+        )
+        post.titles.add(title)
+        post.technologies.add(technology)
+
+        response = self.client.get(reverse("home"))
+
+        assert response.status_code == 200
+        self.assertContains(response, f'href="{reverse("post", args=[post.id])}"', count=1)
+        self.assertContains(response, f'href="{reverse("title-jobs", args=[title.slug])}"', count=1)
+        self.assertContains(response, f'href="{reverse("technology-jobs", args=[technology.slug])}"', count=1)
 
     def test_non_home_pages_keep_global_navigation(self):
         response = self.client.get(reverse("posts"))

@@ -10,7 +10,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ("users", "0006_subscriber_owner"),
+        ("users", "0007_restore_account_emailaddress_id_default"),
     ]
 
     operations = [

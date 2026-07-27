@@ -28,6 +28,8 @@ and this project tries to adhere to [Semantic Versioning](https://semver.org/spe
 
 ### Fixed
 - Sanitized Sentry/PostHog/OTel telemetry attributes and disabled PostHog integrations for blank API keys to prevent observability exporters from raising runtime errors.
+- Configured the PostHog SDK's global API key correctly so server-side analytics events are captured instead of initializing a disabled client.
+- Restored the missing PostgreSQL sequence default for `account_emailaddress.id` so email and social signups can create email-address records again.
 
 ### Security
 - Required user API-key authentication for API and MCP requests and store only hashed key material.
