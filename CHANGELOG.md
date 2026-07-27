@@ -30,6 +30,7 @@ and this project tries to adhere to [Semantic Versioning](https://semver.org/spe
 - Removed the unsafe btree index on `Company.emails` and bounded the denormalized company email summary to prevent oversized index-row errors during HN job analysis.
 
 ### Fixed
+- Made PostHog request tags use Django's cached authenticated user so logged-in ASGI requests no longer fail with `SynchronousOnlyOperation`.
 - Sanitized Sentry/PostHog/OTel telemetry attributes and disabled PostHog integrations for blank API keys to prevent observability exporters from raising runtime errors.
 - Configured the PostHog SDK's global API key correctly so server-side analytics events are captured instead of initializing a disabled client.
 - Restored the missing PostgreSQL sequence default for `account_emailaddress.id` so email and social signups can create email-address records again.
