@@ -77,6 +77,21 @@ class JobsApiTests(TestCase):
 
         assert response.status_code == 401
 
+    def test_api_documentation_requires_api_key(self):
+        for path in ("/api/docs", "/api/openapi.json"):
+            with self.subTest(path=path):
+                response = self.client.get(path)
+
+                assert response.status_code == 401
+                assert response.headers["WWW-Authenticate"] == "Bearer"
+
+    def test_api_documentation_accepts_api_key(self):
+        for path in ("/api/docs", "/api/openapi.json"):
+            with self.subTest(path=path):
+                response = self.client.get(path, **self.api_headers)
+
+                assert response.status_code == 200
+
 
 class TechnologySearchTests(TestCase):
     def test_search_technologies_matches_builtin_alias_without_alias_row(self):

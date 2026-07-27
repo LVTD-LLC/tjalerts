@@ -22,7 +22,7 @@ from jobs.models import Company, Email, Post, Technology
 from jobs.tasks import create_valid_emails
 from users.models import CustomUser
 
-from .auth import APIKeyAuth
+from .auth import APIKeyAuth, api_key_required
 from .schemas import (
     BlogPostCreateSchema,
     JobsResponse,
@@ -36,7 +36,7 @@ from .schemas import (
 logger = get_tjalerts_logger(__name__)
 
 
-api = NinjaAPI(auth=APIKeyAuth())
+api = NinjaAPI(auth=APIKeyAuth(), docs_decorator=api_key_required)
 
 SOURCE_QUERY_DESCRIPTION = "Filter jobs by source. Valid values: Hacker News, Remote OK, We Work Remotely."
 

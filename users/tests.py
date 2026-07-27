@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -83,6 +85,21 @@ class UserSettingsTests(TestCase):
         assert authenticate_api_key(first_api_key) is None
         assert authenticate_api_key(second_api_key) == user
         assert UserAPIKey.objects.filter(user=user).count() == 1
+
+    def test_failed_response_render_preserves_the_previous_key(self):
+        user = get_user_model().objects.create_user(
+            username="agent-user",
+            email="agent@example.com",
+            password="password",
+        )
+        _, previous_api_key = rotate_user_api_key(user)
+        self.client.force_login(user)
+
+        with patch("users.views.render", side_effect=RuntimeError("render failed")):
+            with self.assertRaises(RuntimeError):
+                self.client.post(reverse("generate_api_key"))
+
+        assert authenticate_api_key(previous_api_key) == user
 
 
 class APIKeyTests(TestCase):

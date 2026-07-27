@@ -128,6 +128,28 @@ class MCPServerTests(TransactionTestCase):
         self.assertEqual(payload["result"]["serverInfo"]["name"], "Tech Job Alerts")
         self.assertNotIn("Mcp-Session-Id", response.headers)
 
+    def test_mounted_mcp_tools_list_accepts_api_key(self):
+        request = {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "tools/list",
+            "params": {},
+        }
+
+        with TestClient(application) as client:
+            response = client.post(
+                "/mcp/",
+                headers=self.mcp_headers,
+                json=request,
+            )
+
+        self.assertEqual(response.status_code, 200)
+        payload = json.loads(response.content)
+        self.assertEqual(
+            {tool["name"] for tool in payload["result"]["tools"]},
+            {"get_job", "search_jobs"},
+        )
+
     @override_settings(
         SENTRY_DSN="https://public@example.com/1",
         SENTRY_ENABLE_METRICS=True,

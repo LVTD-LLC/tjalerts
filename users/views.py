@@ -3,6 +3,7 @@ from allauth.account.models import EmailAddress
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
+from django.db import transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.views.decorators.cache import never_cache
@@ -51,16 +52,17 @@ class UserSettingsView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
 @require_POST
 @login_required(login_url="account_login")
 def generate_api_key(request):
-    key_record, api_key = rotate_user_api_key(request.user)
-    capture_user_event(request.user, "api key rotated")
+    with transaction.atomic():
+        key_record, api_key = rotate_user_api_key(request.user)
+        capture_user_event(request.user, "api key rotated")
 
-    context = {
-        "form": UserSettingsForm(instance=request.user),
-        "api_key_record": key_record,
-        "generated_api_key": api_key,
-    }
-    add_users_context(context, request.user)
-    return render(request, "account/settings.html", context)
+        context = {
+            "form": UserSettingsForm(instance=request.user),
+            "api_key_record": key_record,
+            "generated_api_key": api_key,
+        }
+        add_users_context(context, request.user)
+        return render(request, "account/settings.html", context)
 
 
 def resend_email_confirmation_email(request):
