@@ -4,7 +4,9 @@ from io import StringIO
 from unittest.mock import Mock, patch
 
 import httpx
+from allauth.account.models import EmailAddress
 from django.apps import apps
+from django.contrib.auth import get_user_model
 from django.core import mail
 from django.core.cache import cache
 from django.core.management import call_command
@@ -61,6 +63,22 @@ from jobs.utils import (
     normalize_hn_comment_text,
 )
 from jobs.views import active_filter_summary
+
+
+def create_user_with_email(*, username, verified):
+    user = get_user_model().objects.create_user(
+        username=username,
+        email=f"{username}@example.com",
+        password="password",
+    )
+    EmailAddress.objects.create(user=user, email=user.email, primary=True, verified=verified)
+    return user
+
+
+def create_user_with_verified_old_email(*, username):
+    user = create_user_with_email(username=username, verified=False)
+    EmailAddress.objects.create(user=user, email=f"old-{username}@example.com", verified=True)
+    return user
 
 
 class RetiredAlertDeliveryTests(TestCase):
@@ -901,6 +919,15 @@ class PostFilterTests(TestCase):
 
 
 class PostListViewTests(TestCase):
+    def setUp(self):
+        company = Company.objects.create(name="Access Test Company")
+        for index in range(7):
+            Post.objects.create(
+                company=company,
+                submitted_datetime=timezone.now() - timedelta(minutes=index),
+                description=f"Private job description {index}",
+            )
+
     def test_invalid_added_within_days_redirects_to_clean_url(self):
         for value in ("1000000000", "NaN"):
             response = self.client.get(f"{reverse('posts')}?added_within_days={value}&q=python")
@@ -916,6 +943,117 @@ class PostListViewTests(TestCase):
 
         assert response.status_code == 200
         assert list(response.context["source_choices"]) == list(PostSource.choices)
+
+    def test_anonymous_user_can_view_first_page(self):
+        response = self.client.get(reverse("posts"))
+
+        assert response.status_code == 200
+        assert response.context["page_obj"].number == 1
+        assert len(response.context["page_obj"]) == 6
+
+    def test_anonymous_user_requesting_another_page_returns_to_first_page_with_signup_modal(self):
+        response = self.client.get(f"{reverse('posts')}?page=2", follow=True)
+
+        assert response.redirect_chain == [(f"{reverse('posts')}?access=restricted", 302)]
+        assert response.context["page_obj"].number == 1
+        self.assertContains(response, "Create a free account to browse every job")
+        self.assertContains(response, f'href="{reverse("account_signup")}')
+        self.assertNotContains(response, "Private job description 6")
+
+    def test_user_with_unverified_email_cannot_view_another_page(self):
+        self.client.force_login(create_user_with_email(username="list-unverified", verified=False))
+
+        response = self.client.get(f"{reverse('posts')}?page=2", follow=True)
+
+        assert response.redirect_chain == [(f"{reverse('posts')}?access=restricted", 302)]
+        assert response.context["page_obj"].number == 1
+        self.assertContains(response, "Confirm your email to browse every job")
+        self.assertContains(response, f'href="{reverse("resend_email_confirmation_email")}"')
+
+    def test_verified_old_email_does_not_unlock_list_for_unverified_current_email(self):
+        self.client.force_login(create_user_with_verified_old_email(username="list-current-unverified"))
+
+        response = self.client.get(f"{reverse('posts')}?page=2", follow=True)
+
+        assert response.redirect_chain == [(f"{reverse('posts')}?access=restricted", 302)]
+        assert response.context["page_obj"].number == 1
+        self.assertContains(response, "Confirm your email to browse every job")
+
+    def test_user_with_verified_email_can_view_another_page(self):
+        self.client.force_login(create_user_with_email(username="list-verified", verified=True))
+
+        response = self.client.get(f"{reverse('posts')}?page=2")
+
+        assert response.status_code == 200
+        assert response.context["page_obj"].number == 2
+        self.assertContains(response, "Private job description 6")
+        self.assertNotContains(response, "Confirm your email to browse every job")
+
+
+class PostDetailAccessTests(TestCase):
+    def setUp(self):
+        self.company = Company.objects.create(name="Private Company")
+        self.post = Post.objects.create(
+            company=self.company,
+            submitted_datetime=timezone.now(),
+            description="Sensitive role details",
+        )
+
+    def test_anonymous_user_sees_signup_modal_without_job_details(self):
+        response = self.client.get(reverse("post", kwargs={"pk": self.post.id}))
+
+        assert response.status_code == 200
+        self.assertContains(response, "Create a free account to view job details")
+        self.assertContains(response, f'href="{reverse("account_signup")}')
+        self.assertNotContains(response, self.company.name)
+        self.assertNotContains(response, self.post.description)
+
+    def test_user_with_unverified_email_sees_confirmation_modal_without_job_details(self):
+        self.client.force_login(create_user_with_email(username="detail-unverified", verified=False))
+
+        response = self.client.get(reverse("post", kwargs={"pk": self.post.id}))
+
+        assert response.status_code == 200
+        self.assertContains(response, "Confirm your email to view job details")
+        self.assertContains(response, f'href="{reverse("resend_email_confirmation_email")}"')
+        self.assertNotContains(response, self.company.name)
+        self.assertNotContains(response, self.post.description)
+
+    def test_user_without_an_email_record_sees_email_management_modal_without_job_details(self):
+        user = get_user_model().objects.create_user(
+            username="detail-missing-email",
+            email="detail-missing-email@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("post", kwargs={"pk": self.post.id}))
+
+        assert response.status_code == 200
+        self.assertContains(response, "Add and confirm your email to view job details")
+        self.assertContains(response, f'href="{reverse("account_email")}"')
+        self.assertNotContains(response, f'href="{reverse("resend_email_confirmation_email")}"')
+        self.assertNotContains(response, self.company.name)
+        self.assertNotContains(response, self.post.description)
+
+    def test_verified_old_email_does_not_unlock_details_for_unverified_current_email(self):
+        self.client.force_login(create_user_with_verified_old_email(username="detail-current-unverified"))
+
+        response = self.client.get(reverse("post", kwargs={"pk": self.post.id}))
+
+        assert response.status_code == 200
+        self.assertContains(response, "Confirm your email to view job details")
+        self.assertNotContains(response, self.company.name)
+        self.assertNotContains(response, self.post.description)
+
+    def test_user_with_verified_email_can_view_job_details(self):
+        self.client.force_login(create_user_with_email(username="detail-verified", verified=True))
+
+        response = self.client.get(reverse("post", kwargs={"pk": self.post.id}))
+
+        assert response.status_code == 200
+        self.assertContains(response, self.company.name)
+        self.assertContains(response, self.post.description)
 
 
 class RemoteOkImportTests(TestCase):

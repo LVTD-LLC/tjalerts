@@ -1,0 +1,53 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+  <div class="absolute inset-0 bg-zinc-950/50 backdrop-blur-sm" aria-hidden="true"></div>
+  <section
+    class="relative w-full max-w-lg rounded-xl border border-zinc-200 bg-white p-6 shadow-2xl sm:p-8"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="job-access-title"
+    aria-describedby="job-access-description"
+  >
+    <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-800">
+      <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V7.75a4.5 4.5 0 0 0-9 0v2.75m-.75 0h10.5A1.75 1.75 0 0 1 19 12.25v7A1.75 1.75 0 0 1 17.25 21H6.75A1.75 1.75 0 0 1 5 19.25v-7a1.75 1.75 0 0 1 1.75-1.75Z" />
+      </svg>
+    </div>
+
+    <div class="mt-5 text-center">
+      {% if job_access_status == "email_unverified" %}
+        <h1 id="job-access-title" class="text-xl font-semibold tracking-tight text-zinc-950">
+          Confirm your email to {{ access_action }}
+        </h1>
+        <p id="job-access-description" class="mt-2 text-sm leading-6 text-zinc-600">
+          Open the confirmation link we sent to {{ user.email }}. You can request another email if it has expired or did not arrive.
+        </p>
+        <div class="mt-6 grid gap-3 sm:grid-cols-2">
+          <a href="{% url 'posts' %}" class="btn-secondary">Back to jobs</a>
+          <a href="{% url 'resend_email_confirmation_email' %}" class="btn-primary">Resend confirmation</a>
+        </div>
+      {% elif job_access_status == "email_missing" %}
+        <h1 id="job-access-title" class="text-xl font-semibold tracking-tight text-zinc-950">
+          Add and confirm your email to {{ access_action }}
+        </h1>
+        <p id="job-access-description" class="mt-2 text-sm leading-6 text-zinc-600">
+          Add your email, then confirm it to unlock the complete job database.
+        </p>
+        <div class="mt-6 grid gap-3 sm:grid-cols-2">
+          <a href="{% url 'posts' %}" class="btn-secondary">Back to jobs</a>
+          <a href="{% url 'account_email' %}" class="btn-primary">Manage email</a>
+        </div>
+      {% elif job_access_status == "anonymous" %}
+        <h1 id="job-access-title" class="text-xl font-semibold tracking-tight text-zinc-950">
+          Create a free account to {{ access_action }}
+        </h1>
+        <p id="job-access-description" class="mt-2 text-sm leading-6 text-zinc-600">
+          Sign up and confirm your email to unlock the complete job database.
+        </p>
+        <div class="mt-6 grid gap-3 sm:grid-cols-2">
+          <a href="{% url 'account_login' %}?next={{ request.get_full_path|urlencode }}" class="btn-secondary">Log in</a>
+          <a href="{% url 'account_signup' %}?next={{ request.get_full_path|urlencode }}" class="btn-primary">Create account</a>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+</div>
