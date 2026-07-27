@@ -40,7 +40,7 @@ def configure_posthog_client(*, api_key, host, enabled, debug):
     api_key = normalize_api_key(api_key)
     enabled = bool(enabled and api_key)
 
-    posthog.project_api_key = api_key
+    posthog.api_key = api_key
     posthog.host = host
     posthog.disabled = not enabled
     posthog.debug = debug

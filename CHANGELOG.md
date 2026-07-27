@@ -27,6 +27,7 @@ and this project tries to adhere to [Semantic Versioning](https://semver.org/spe
 
 ### Fixed
 - Sanitized Sentry/PostHog/OTel telemetry attributes and disabled PostHog integrations for blank API keys to prevent observability exporters from raising runtime errors.
+- Configured the PostHog SDK's global API key correctly so server-side analytics events are captured instead of initializing a disabled client.
 
 ## [0.0.3] - 2024-06-25
 ### Added
