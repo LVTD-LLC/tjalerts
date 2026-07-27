@@ -2,11 +2,12 @@ from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 from uuid import UUID
 
+from allauth.account.models import EmailAddress
 from django.contrib.admin.views.decorators import staff_member_required
 from django.db import models
 from django.db.models import Count, Exists, Max, OuterRef, Subquery
 from django.http import HttpResponseRedirect
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -47,6 +48,26 @@ HAS_FIELD_LABELS = {"yes": "Listed", "no": "Missing"}
 POSTED_WITHIN_LABELS = dict(POSTED_WITHIN_CHOICES)
 SOURCE_LABELS = dict(PostSource.choices)
 WORK_MODE_LABELS = dict(WORK_MODE_CHOICES)
+
+JOB_ACCESS_ALLOWED = "allowed"
+JOB_ACCESS_ANONYMOUS = "anonymous"
+JOB_ACCESS_EMAIL_MISSING = "email_missing"
+JOB_ACCESS_EMAIL_UNVERIFIED = "email_unverified"
+
+
+def job_access_status(user):
+    if not user.is_authenticated:
+        return JOB_ACCESS_ANONYMOUS
+
+    if not user.email:
+        return JOB_ACCESS_EMAIL_MISSING
+
+    try:
+        email_address = EmailAddress.objects.get_for_user(user, user.email)
+    except EmailAddress.DoesNotExist:
+        return JOB_ACCESS_EMAIL_MISSING
+
+    return JOB_ACCESS_ALLOWED if email_address.verified else JOB_ACCESS_EMAIL_UNVERIFIED
 
 
 def valid_uuid_values(values):
@@ -193,6 +214,12 @@ class PostListView(FilterView):
             del query_params["added_within_days"]
             needs_redirect = True
 
+        if query_params.get("page") not in (None, "1"):
+            if job_access_status(request.user) != JOB_ACCESS_ALLOWED:
+                del query_params["page"]
+                query_params["access"] = "restricted"
+                needs_redirect = True
+
         if needs_redirect:
             clean_url = f"{reverse('posts')}?{query_params.urlencode()}"
             return HttpResponseRedirect(clean_url)
@@ -230,6 +257,9 @@ class PostListView(FilterView):
         context["date"] = date
         context["keywords"] = ", ".join(map(str, keywords))
         context["canonical_url"] = build_absolute_site_url(self.request.path)
+        if self.request.GET.get("access") == "restricted":
+            context["job_access_status"] = job_access_status(self.request.user)
+            context["show_access_modal"] = context["job_access_status"] != JOB_ACCESS_ALLOWED
 
         return context
 
@@ -237,6 +267,22 @@ class PostListView(FilterView):
 class PostDetailView(DetailView):
     model = Post
     template_name = "jobs/post_detail.html"
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        access_status = job_access_status(request.user)
+        if access_status != JOB_ACCESS_ALLOWED:
+            return render(
+                request,
+                "jobs/post_access_required.html",
+                {
+                    "access_action": "view job details",
+                    "job_access_status": access_status,
+                },
+            )
+
+        context = self.get_context_data(object=self.object)
+        return self.render_to_response(context)
 
     def get_queryset(self):
         return super().get_queryset().select_related("company").prefetch_related("titles", "technologies")

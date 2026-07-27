@@ -308,6 +308,10 @@
     </nav>
   </section>
 </div>
+
+{% if show_access_modal %}
+  {% include "components/job-access-modal.html" with access_action="browse every job" %}
+{% endif %}
 {% endblock content %}
 
 {% block schema %}
