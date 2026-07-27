@@ -528,8 +528,34 @@
   }
 
   .home-job-card {
-    @apply rounded-lg p-5 ring-1 ring-zinc-950/10 sm:p-6;
+    @apply relative border p-5 transition-colors sm:p-6;
+
     background-color: var(--color-surface);
+    border-color: var(--color-border);
+    border-radius: var(--radius-panel);
+  }
+
+  .home-job-link::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-panel);
+  }
+
+  .home-job-link:focus-visible {
+    outline: none;
+  }
+
+  .home-job-link:focus-visible::after {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  @media (hover: hover) {
+    .home-job-card:hover {
+      background-color: var(--color-surface-hover);
+      border-color: var(--color-border-strong);
+    }
   }
 
   .dynamic-title {
