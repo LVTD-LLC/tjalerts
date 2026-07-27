@@ -24,18 +24,30 @@ def restore_account_emailaddress_id_default(apps, schema_editor):
 
     schema_editor.execute(
         """
-        LOCK TABLE account_emailaddress IN ACCESS EXCLUSIVE MODE;
-
-        CREATE SEQUENCE IF NOT EXISTS account_emailaddress_id_seq AS integer;
-        ALTER SEQUENCE account_emailaddress_id_seq
-            OWNED BY account_emailaddress.id;
-
         DO $$
         DECLARE
+            column_is_identity boolean;
             maximum_id bigint;
             sequence_last_value bigint;
             sequence_is_called boolean;
         BEGIN
+            SELECT is_identity = 'YES'
+            INTO column_is_identity
+            FROM information_schema.columns
+            WHERE table_schema = current_schema()
+              AND table_name = 'account_emailaddress'
+              AND column_name = 'id';
+
+            IF column_is_identity THEN
+                RETURN;
+            END IF;
+
+            LOCK TABLE account_emailaddress IN ACCESS EXCLUSIVE MODE;
+
+            CREATE SEQUENCE IF NOT EXISTS account_emailaddress_id_seq AS integer;
+            ALTER SEQUENCE account_emailaddress_id_seq
+                OWNED BY account_emailaddress.id;
+
             SELECT MAX(id)
             INTO maximum_id
             FROM account_emailaddress;
@@ -57,12 +69,12 @@ def restore_account_emailaddress_id_default(apps, schema_editor):
                     true
                 );
             END IF;
+
+            ALTER TABLE account_emailaddress
+                ALTER COLUMN id
+                SET DEFAULT nextval('account_emailaddress_id_seq'::regclass);
         END
         $$;
-
-        ALTER TABLE account_emailaddress
-            ALTER COLUMN id
-            SET DEFAULT nextval('account_emailaddress_id_seq'::regclass);
         """
     )
 

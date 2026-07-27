@@ -174,6 +174,7 @@ class EmailAddressSchemaRepairMigrationTests(SimpleTestCase):
         migration.restore_account_emailaddress_id_default(None, postgresql_editor)
         assert len(postgresql_editor.statements) == 1
         normalized_sql = " ".join(postgresql_editor.statements[0].split())
+        assert "IF column_is_identity THEN RETURN" in normalized_sql
         assert "ALTER COLUMN id SET DEFAULT" in normalized_sql
 
         sqlite_editor = SchemaEditor("sqlite")
@@ -187,22 +188,44 @@ class EmailAddressSchemaRepairMigrationTests(SimpleTestCase):
 
 @skipUnless(connection.vendor == "postgresql", "Sequence defaults are PostgreSQL-specific")
 class EmailAddressSchemaRepairTests(TestCase):
+    def test_repair_leaves_a_working_identity_column_unchanged(self):
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT is_identity
+                FROM information_schema.columns
+                WHERE table_schema = current_schema()
+                  AND table_name = 'account_emailaddress'
+                  AND column_name = 'id'
+                """
+            )
+            if cursor.fetchone()[0] != "YES":
+                self.skipTest("Test database does not use an identity column")
+
+        migration = import_module("users.migrations.0007_restore_account_emailaddress_id_default")
+        migration.restore_account_emailaddress_id_default(None, self.SchemaEditor(connection))
+
+        user = get_user_model().objects.create_user(
+            username="identity-schema-test",
+            email="identity-schema-test@example.com",
+            password="password",
+        )
+        email_address = EmailAddress.objects.create(
+            user=user,
+            email=user.email,
+            primary=True,
+            verified=False,
+        )
+
+        assert email_address.id is not None
+
     def test_repair_migration_restores_missing_email_address_id_default(self):
         with connection.cursor() as cursor:
             cursor.execute("ALTER TABLE account_emailaddress ALTER COLUMN id DROP IDENTITY IF EXISTS")
             cursor.execute("ALTER TABLE account_emailaddress ALTER COLUMN id DROP DEFAULT")
 
         migration = import_module("users.migrations.0007_restore_account_emailaddress_id_default")
-
-        class SchemaEditor:
-            def __init__(self, database_connection):
-                self.connection = database_connection
-
-            def execute(self, sql):
-                with self.connection.cursor() as cursor:
-                    cursor.execute(sql)
-
-        migration.restore_account_emailaddress_id_default(None, SchemaEditor(connection))
+        migration.restore_account_emailaddress_id_default(None, self.SchemaEditor(connection))
 
         user = get_user_model().objects.create_user(
             username="signup-schema-test",
@@ -229,3 +252,11 @@ class EmailAddressSchemaRepairTests(TestCase):
             )
             column_default = cursor.fetchone()[0]
         assert "nextval" in column_default
+
+    class SchemaEditor:
+        def __init__(self, database_connection):
+            self.connection = database_connection
+
+        def execute(self, sql):
+            with self.connection.cursor() as cursor:
+                cursor.execute(sql)
