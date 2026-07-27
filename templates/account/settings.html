@@ -10,7 +10,7 @@
 <div class="app-page-header">
   <div class="app-container py-8">
     <h1 class="app-title">Settings</h1>
-    <p class="app-subtitle">Manage your profile and account email.</p>
+    <p class="app-subtitle">Manage your profile, account email, and API access.</p>
   </div>
 </div>
 
@@ -24,6 +24,14 @@
         <p class="mt-1 text-sm leading-6 text-zinc-600">Used for account communication.</p>
       </div>
       {% include "account/components/personal-information-form.html" with form=form %}
+    </section>
+
+    <section class="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
+      <div>
+        <h2 class="text-base font-semibold text-zinc-950">API key</h2>
+        <p class="mt-1 text-sm leading-6 text-zinc-600">Authenticate API and MCP requests from your tools and agents.</p>
+      </div>
+      {% include "account/components/api-key.html" %}
     </section>
 
   </div>

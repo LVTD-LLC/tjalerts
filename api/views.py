@@ -1,9 +1,8 @@
 import time
 from typing import List, Optional
 
-from django.http import HttpRequest
 from django.conf import settings
-from django.db.models import Count, Exists, OuterRef, Q
+from django.http import HttpRequest
 from django_q.tasks import async_task
 from ninja import NinjaAPI, Query
 from ninja.errors import HttpError
@@ -12,12 +11,18 @@ from blog.models import BlogPost
 from hn_jobs.posthog_events import capture_request_event
 from hn_jobs.utils import get_tjalerts_logger
 from jobs.choices import PostSource
-from jobs.models import Company, Email, Post, Technology, TechnologyAlias, TechnologyMapping, Title
-from jobs.queries import get_similar_posts_from_db
+from jobs.lookups import (
+    get_similar_post_options,
+    get_technology_option,
+    get_title_option,
+    search_technology_options,
+    search_title_options,
+)
+from jobs.models import Company, Email, Post, Technology
 from jobs.tasks import create_valid_emails
-from jobs.technology_names import DEFAULT_TECHNOLOGY_ALIAS_MAP, normalize_technology_key
 from users.models import CustomUser
 
+from .auth import APIKeyAuth
 from .schemas import (
     BlogPostCreateSchema,
     JobsResponse,
@@ -31,7 +36,7 @@ from .schemas import (
 logger = get_tjalerts_logger(__name__)
 
 
-api = NinjaAPI()
+api = NinjaAPI(auth=APIKeyAuth())
 
 SOURCE_QUERY_DESCRIPTION = "Filter jobs by source. Valid values: Hacker News, Remote OK, We Work Remotely."
 
@@ -167,53 +172,13 @@ def get_jobs(
 
 @api.get("/technologies/search", response=List[TechnologySchema])
 def search_technologies(request, query: Optional[str] = Query(None, min_length=2)):
-    if query:
-        normalized_query = normalize_technology_key(query)
-        builtin_canonical_name = DEFAULT_TECHNOLOGY_ALIAS_MAP.get(normalized_query)
-        alias_technology_ids = TechnologyAlias.objects.filter(
-            Q(alias__icontains=query) | Q(normalized_alias__icontains=normalized_query)
-        ).values("technology_id")
-        builtin_alias_query = Q()
-        if builtin_canonical_name:
-            builtin_alias_query = Q(name__iexact=builtin_canonical_name)
-
-        technologies = (
-            Technology.objects.filter(
-                Q(name__icontains=query)
-                | Q(slug__icontains=query)
-                | Q(id__in=alias_technology_ids)
-                | builtin_alias_query
-            )
-            .annotate(
-                post_count=Count("posttechnology"),
-                is_child=Exists(TechnologyMapping.objects.filter(child=OuterRef("pk"))),
-            )
-            .filter(is_child=False)
-            .distinct()
-            .order_by("-post_count")[:10]
-        )
-    else:
-        technologies = Technology.objects.none()
-
-    return [
-        TechnologySchema(id=str(tech.id), name=tech.name, slug=tech.slug, post_count=tech.post_count)
-        for tech in technologies
-    ]
+    return search_technology_options(query)
 
 
 @api.get("/technology/{id}", response=TechnologySchema)
 def get_technologies_details(request, id: str):
     start_time = time.time()
-
-    technology = (
-        Technology.objects.filter(id=id)
-        .annotate(post_count=Count("posttechnology"))
-        .values("id", "name", "slug", "post_count")
-        .first()
-    )
-
-    if technology:
-        technology["id"] = str(technology["id"])
+    technology = get_technology_option(id)
 
     logger.info("get_technologies_details", duration=round(time.time() - start_time, 2))
 
@@ -222,35 +187,13 @@ def get_technologies_details(request, id: str):
 
 @api.get("/title/search", response=List[TitleSchema])
 def search_title(request, query: Optional[str] = Query(None, min_length=2)):
-    if query:
-        titles = (
-            Title.objects.filter(Q(name__icontains=query) | Q(slug__icontains=query))
-            .annotate(
-                post_count=Count("posttitle"),
-            )
-            .order_by("-post_count")[:10]
-        )
-    else:
-        titles = Title.objects.none()
-
-    return [
-        TitleSchema(id=str(title.id), name=title.name, slug=title.slug, post_count=title.post_count) for title in titles
-    ]
+    return search_title_options(query)
 
 
 @api.get("/title/{id}", response=TitleSchema)
 def get_title_details(request, id: str):
     start_time = time.time()
-
-    title = (
-        Title.objects.filter(id=id)
-        .annotate(post_count=Count("posttitle"))
-        .values("id", "name", "slug", "post_count")
-        .first()
-    )
-
-    if title:
-        title["id"] = str(title["id"])
+    title = get_title_option(id)
 
     logger.info("get_title_details", duration=round(time.time() - start_time, 2))
 
@@ -260,19 +203,7 @@ def get_title_details(request, id: str):
 @api.get("/posts/similar/{id}", response=SimilarPostsResponse)
 def get_similar_posts(request, id: str):
     post = Post.objects.get(id=id)
-    similar_posts = get_similar_posts_from_db(post, limit=5)
-
-    similar_posts_data = [
-        {
-            "id": str(post.id),
-            "description": post.description,
-            "created_at": post.created,
-            "company": {"id": str(post.company.id), "name": post.company.name},
-        }
-        for post in similar_posts
-    ]
-
-    return {"similar_posts": similar_posts_data}
+    return {"similar_posts": get_similar_post_options(post)}
 
 
 @api.post("/blog/create", response={201: dict, 403: dict, 404: dict, 500: dict})

@@ -2,6 +2,7 @@ import json
 from unittest.mock import patch
 
 import anyio
+from django.contrib.auth import get_user_model
 from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
 from fastmcp import Client
@@ -12,10 +13,21 @@ from hn_jobs.asgi import application
 from jobs.choices import PostSource
 from jobs.models import Company, Post
 from mcp_server.server import mcp
+from users.api_keys import rotate_user_api_key
 
 MCP_HEADERS = {
     "accept": "application/json, text/event-stream",
     "content-type": "application/json",
+}
+MCP_INITIALIZE_REQUEST = {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+        "protocolVersion": "2025-06-18",
+        "capabilities": {},
+        "clientInfo": {"name": "tjalerts-test", "version": "0.1"},
+    },
 }
 
 
@@ -29,6 +41,33 @@ class MCPServerTests(TransactionTestCase):
             source=PostSource.REMOTE_OK,
             is_remote=True,
         )
+        user = get_user_model().objects.create_user(username="mcp-user")
+        _, api_key = rotate_user_api_key(user)
+        self.mcp_headers = {
+            **MCP_HEADERS,
+            "authorization": f"Bearer {api_key}",
+        }
+
+    def test_mcp_rejects_missing_api_key(self):
+        with TestClient(application) as client:
+            response = client.post(
+                "/mcp/",
+                headers=MCP_HEADERS,
+                json=MCP_INITIALIZE_REQUEST,
+            )
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.headers["WWW-Authenticate"], "Bearer")
+
+    def test_mcp_rejects_invalid_api_key(self):
+        with TestClient(application) as client:
+            response = client.post(
+                "/mcp/",
+                headers={**MCP_HEADERS, "authorization": "Bearer tja_invalid"},
+                json=MCP_INITIALIZE_REQUEST,
+            )
+
+        self.assertEqual(response.status_code, 401)
 
     def test_server_exposes_only_read_only_job_tools(self):
         async def run():
@@ -80,17 +119,8 @@ class MCPServerTests(TransactionTestCase):
         with TestClient(application) as client:
             response = client.post(
                 "/mcp/",
-                headers=MCP_HEADERS,
-                json={
-                    "jsonrpc": "2.0",
-                    "id": 1,
-                    "method": "initialize",
-                    "params": {
-                        "protocolVersion": "2025-06-18",
-                        "capabilities": {},
-                        "clientInfo": {"name": "tjalerts-test", "version": "0.1"},
-                    },
-                },
+                headers=self.mcp_headers,
+                json=MCP_INITIALIZE_REQUEST,
             )
 
         self.assertEqual(response.status_code, 200)
@@ -108,17 +138,8 @@ class MCPServerTests(TransactionTestCase):
             with TestClient(application) as client:
                 response = client.post(
                     "/mcp/",
-                    headers=MCP_HEADERS,
-                    json={
-                        "jsonrpc": "2.0",
-                        "id": 1,
-                        "method": "initialize",
-                        "params": {
-                            "protocolVersion": "2025-06-18",
-                            "capabilities": {},
-                            "clientInfo": {"name": "tjalerts-test", "version": "0.1"},
-                        },
-                    },
+                    headers=self.mcp_headers,
+                    json=MCP_INITIALIZE_REQUEST,
                 )
 
         self.assertEqual(response.status_code, 200)

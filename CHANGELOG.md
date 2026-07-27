@@ -17,6 +17,7 @@ and this project tries to adhere to [Semantic Versioning](https://semver.org/spe
 ### Added
 - Added a database-first SEO roadmap for the `jobs.lvtd.dev` migration and future UI, API, CLI, and MCP discovery surfaces.
 - Added the canonical measured-data SEO sprint workspace under `.seo/` plus `docs/seo-sprint.md`, including brand context, keyword and analytics baselines, link inventory, backlink prospects, phase gates, and persistent tool evidence.
+- Added rotatable user API keys managed from the account settings screen.
 
 ### Changed
 - Repositioned homepage and default metadata around the structured tech jobs database instead of email delivery, and moved analytics attribution to `jobs.lvtd.dev`.
@@ -27,6 +28,9 @@ and this project tries to adhere to [Semantic Versioning](https://semver.org/spe
 
 ### Fixed
 - Sanitized Sentry/PostHog/OTel telemetry attributes and disabled PostHog integrations for blank API keys to prevent observability exporters from raising runtime errors.
+
+### Security
+- Required user API-key authentication for API and MCP requests and store only hashed key material.
 
 ## [0.0.3] - 2024-06-25
 ### Added

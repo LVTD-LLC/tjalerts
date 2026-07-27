@@ -78,8 +78,8 @@
     <div class="filter-section grid gap-4 lg:grid-cols-2">
       <div
         data-controller="search-and-select"
-        data-search-and-select-search-url-value="/api/technologies/search"
-        data-search-and-select-detail-url-value="/api/technology"
+        data-search-and-select-search-url-value="{% url 'job-technology-search' %}"
+        data-search-and-select-detail-url-value="/jobs/lookups/technologies"
         data-search-and-select-type-value="technologies"
       >
         <label for="technology-search" class="app-label">Tech stack</label>
@@ -106,8 +106,8 @@
 
       <div
         data-controller="search-and-select"
-        data-search-and-select-search-url-value="/api/title/search"
-        data-search-and-select-detail-url-value="/api/title"
+        data-search-and-select-search-url-value="{% url 'job-title-search' %}"
+        data-search-and-select-detail-url-value="/jobs/lookups/titles"
         data-search-and-select-type-value="titles"
       >
         <label for="title-search" class="app-label">Role</label>
