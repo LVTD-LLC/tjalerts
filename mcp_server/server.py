@@ -7,6 +7,7 @@ from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from jobs.choices import PostSource
+from jobs.semantic_search import SemanticSearchUnavailableError
 from jobs.services import (
     DEFAULT_JOB_PAGE_SIZE,
     MAX_JOB_PAGE,
@@ -49,7 +50,8 @@ mcp = FastMCP(
     name="search_jobs",
     description=(
         "Search public developer jobs by text, technologies, source, remote status, "
-        "and salary. Returns a bounded page ordered newest first."
+        "and salary. Keyword and filter searches are newest first; semantic searches "
+        "are ordered by embedding similarity."
     ),
     annotations=READ_ONLY_ANNOTATIONS,
 )
@@ -60,6 +62,14 @@ def search_jobs(
             default=None,
             max_length=MAX_JOB_QUERY_LENGTH,
             description="Text to match across job, company, role, technology, and location data.",
+        ),
+    ] = None,
+    semantic_query: Annotated[
+        str | None,
+        Field(
+            default=None,
+            max_length=MAX_JOB_QUERY_LENGTH,
+            description="Natural-language intent used to rank jobs by embedding similarity.",
         ),
     ] = None,
     technologies: Annotated[
@@ -100,6 +110,7 @@ def search_jobs(
     try:
         return search_jobs_data(
             query=query,
+            semantic_query=semantic_query,
             technologies=technologies,
             source=source,
             remote=remote,
@@ -108,6 +119,8 @@ def search_jobs(
             page_size=page_size,
         )
     except JobQueryError as exc:
+        raise ToolError(str(exc)) from exc
+    except SemanticSearchUnavailableError as exc:
         raise ToolError(str(exc)) from exc
     finally:
         close_old_connections()

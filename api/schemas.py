@@ -111,3 +111,37 @@ class JobsResponse(Schema):
     page_size: int
     total_pages: int
     jobs: List[JobSchema]
+
+
+class AgentJobSummarySchema(Schema):
+    id: str
+    company_name: str
+    compensation_summary: Optional[str]
+    min_salary: Optional[int]
+    max_salary: Optional[int]
+    currency: str
+    is_remote: bool
+    is_onsite: bool
+    locations: str
+    technologies: List[str]
+    titles: List[str]
+    source: str
+    source_url: str
+    submitted_datetime: datetime
+
+
+class AgentJobDetailSchema(AgentJobSummarySchema):
+    company_url: str
+    description: str
+    job_details: Dict[str, Any]
+    source_external_id: str
+    application_url: str
+
+
+class AgentJobsResponseSchema(Schema):
+    count: int
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    jobs: List[AgentJobSummarySchema]

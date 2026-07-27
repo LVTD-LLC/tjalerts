@@ -6,12 +6,14 @@ from django.contrib.auth import get_user_model
 from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
 from fastmcp import Client
+from fastmcp.exceptions import ToolError
 from mcp.types import ToolAnnotations
 from starlette.testclient import TestClient
 
 from hn_jobs.asgi import application
 from jobs.choices import PostSource
 from jobs.models import Company, Post
+from jobs.semantic_search import SemanticSearchUnavailableError
 from mcp_server.server import mcp
 from users.api_keys import rotate_user_api_key
 
@@ -88,6 +90,8 @@ class MCPServerTests(TransactionTestCase):
             search_tool = tools_by_name["search_jobs"]
             self.assertEqual(search_tool.output_schema["type"], "object")
             self.assertIn("jobs", search_tool.output_schema["properties"])
+            self.assertIn("semantic_query", search_tool.parameters["properties"])
+            self.assertIn("similarity", search_tool.description)
             self.assertEqual(
                 search_tool.parameters["properties"]["source"]["anyOf"][0]["enum"],
                 ["Hacker News", "Remote OK", "We Work Remotely"],
@@ -112,6 +116,21 @@ class MCPServerTests(TransactionTestCase):
                 result.structured_content["jobs"][0]["id"],
                 str(self.post.id),
             )
+
+        anyio.run(run)
+
+    def test_search_jobs_tool_reports_semantic_provider_outage(self):
+        async def run():
+            with patch(
+                "mcp_server.server.search_jobs_data",
+                side_effect=SemanticSearchUnavailableError("Semantic search is temporarily unavailable"),
+            ):
+                async with Client(mcp) as client:
+                    with self.assertRaisesRegex(ToolError, "Semantic search is temporarily unavailable"):
+                        await client.call_tool(
+                            "search_jobs",
+                            {"semantic_query": "distributed systems"},
+                        )
 
         anyio.run(run)
 

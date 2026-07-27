@@ -6,7 +6,7 @@ from allauth.account.models import EmailAddress
 from django.contrib.admin.views.decorators import staff_member_required
 from django.db import models
 from django.db.models import Count, Exists, Max, OuterRef, Subquery
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -21,6 +21,7 @@ from jobs.choices import PostSource
 from jobs.constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
 from jobs.filters import POSTED_WITHIN_CHOICES, WORK_MODE_CHOICES, PostFilter
 from jobs.models import Company, Post, Technology, Title
+from jobs.semantic_search import SemanticSearchUnavailableError
 from jobs.tasks import (
     create_backfill_vector_data_jobs,
     create_update_min_and_max_salary_jobs,
@@ -224,7 +225,13 @@ class PostListView(FilterView):
             clean_url = f"{reverse('posts')}?{query_params.urlencode()}"
             return HttpResponseRedirect(clean_url)
 
-        return super().get(request, *args, **kwargs)
+        try:
+            return super().get(request, *args, **kwargs)
+        except SemanticSearchUnavailableError as exc:
+            logger.warning("Web semantic search unavailable.", error=str(exc))
+            response = HttpResponse(str(exc), status=503, content_type="text/plain")
+            response["Retry-After"] = "30"
+            return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

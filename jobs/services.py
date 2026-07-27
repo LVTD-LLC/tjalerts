@@ -7,6 +7,7 @@ from django.db.models import Q, QuerySet
 
 from jobs.choices import PostSource
 from jobs.models import Post
+from jobs.semantic_search import apply_semantic_search
 
 DEFAULT_JOB_PAGE_SIZE = 20
 MAX_JOB_PAGE_SIZE = 100
@@ -99,6 +100,7 @@ def _serialize_job(post: Post) -> JobDetail:
 def search_jobs(
     *,
     query: str | None = None,
+    semantic_query: str | None = None,
     technologies: list[str] | None = None,
     source: JobSource | None = None,
     remote: bool | None = None,
@@ -146,6 +148,11 @@ def search_jobs(
                 normalized_technologies.append(technology)
                 seen_technologies.add(normalized_name)
 
+    if semantic_query and (semantic_query := semantic_query.strip()):
+        if len(semantic_query) > MAX_JOB_QUERY_LENGTH:
+            raise JobQueryError(f"semantic_query cannot exceed {MAX_JOB_QUERY_LENGTH} characters")
+        posts = apply_semantic_search(posts, semantic_query)
+
     for technology in normalized_technologies:
         posts = posts.filter(technologies__name__iexact=technology)
 
@@ -156,7 +163,10 @@ def search_jobs(
     if minimum_salary is not None:
         posts = posts.filter(max_salary__gte=minimum_salary)
 
-    posts = posts.distinct().order_by("-submitted_datetime", "id")
+    if semantic_query:
+        posts = posts.distinct().order_by("distance", "id")
+    else:
+        posts = posts.distinct().order_by("-submitted_datetime", "id")
     count = posts.count()
     start = (page - 1) * page_size
     jobs = []

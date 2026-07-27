@@ -944,6 +944,15 @@ class PostListViewTests(TestCase):
         assert response.status_code == 200
         assert list(response.context["source_choices"]) == list(PostSource.choices)
 
+    @patch("jobs.semantic_search.get_embedding", side_effect=TimeoutError("provider timeout"))
+    def test_semantic_search_provider_failure_returns_service_unavailable(self, get_embedding):
+        response = self.client.get(reverse("posts"), {"vector": "distributed systems"})
+
+        assert response.status_code == 503
+        assert response["Retry-After"] == "30"
+        self.assertContains(response, "Semantic search is temporarily unavailable", status_code=503)
+        get_embedding.assert_called_once_with("distributed systems")
+
     def test_anonymous_user_can_view_first_page(self):
         response = self.client.get(reverse("posts"))
 

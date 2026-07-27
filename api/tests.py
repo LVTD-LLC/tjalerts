@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -6,6 +8,7 @@ from django.utils import timezone
 from api.views import search_technologies
 from jobs.choices import PostSource
 from jobs.models import Company, Post, Technology
+from jobs.semantic_search import SemanticSearchUnavailableError
 from users.api_keys import rotate_user_api_key
 
 
@@ -76,6 +79,82 @@ class JobsApiTests(TestCase):
         )
 
         assert response.status_code == 401
+
+    def test_agent_search_endpoint_uses_shared_search_contract(self):
+        response = self.client.get(
+            "/api/jobs/search",
+            {
+                "query": "HN",
+                "source": PostSource.HACKER_NEWS,
+                "remote": "false",
+                "page": 1,
+                "page_size": 10,
+            },
+            **self.api_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["count"] == 1
+        assert data["jobs"][0]["id"] == str(self.hacker_news_post.id)
+
+    def test_agent_search_endpoint_accepts_semantic_query(self):
+        with patch("api.views.search_jobs_data") as search_jobs:
+            search_jobs.return_value = {
+                "count": 0,
+                "total": 0,
+                "page": 1,
+                "page_size": 20,
+                "total_pages": 0,
+                "jobs": [],
+            }
+
+            response = self.client.get(
+                "/api/jobs/search",
+                {"semantic_query": "distributed systems"},
+                **self.api_headers,
+            )
+
+        assert response.status_code == 200
+        assert search_jobs.call_args.kwargs["semantic_query"] == "distributed systems"
+
+    def test_job_detail_endpoint_returns_complete_job(self):
+        response = self.client.get(
+            f"/api/jobs/{self.hacker_news_post.id}",
+            **self.api_headers,
+        )
+
+        assert response.status_code == 200
+        assert response.json()["id"] == str(self.hacker_news_post.id)
+
+    def test_job_detail_endpoint_returns_not_found(self):
+        response = self.client.get(
+            "/api/jobs/00000000-0000-0000-0000-000000000000",
+            **self.api_headers,
+        )
+
+        assert response.status_code == 404
+
+    def test_agent_job_endpoints_require_api_key(self):
+        for path in ("/api/jobs/search", f"/api/jobs/{self.hacker_news_post.id}"):
+            with self.subTest(path=path):
+                response = self.client.get(path)
+
+                assert response.status_code == 401
+
+    def test_agent_search_endpoint_reports_semantic_provider_outage(self):
+        with patch(
+            "api.views.search_jobs_data",
+            side_effect=SemanticSearchUnavailableError("Semantic search is temporarily unavailable"),
+        ):
+            response = self.client.get(
+                "/api/jobs/search",
+                {"semantic_query": "distributed systems"},
+                **self.api_headers,
+            )
+
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Semantic search is temporarily unavailable"
 
     def test_api_documentation_requires_api_key(self):
         for path in ("/api/docs", "/api/openapi.json"):

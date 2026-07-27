@@ -152,6 +152,8 @@ invalidates the previous key.
 Common endpoints include:
 
 - `GET /api/jobs`
+- `GET /api/jobs/search`
+- `GET /api/jobs/{id}`
 - `GET /api/companies`
 - `GET /api/technologies/search?query=django`
 - `GET /api/technology/{id}`
@@ -159,10 +161,12 @@ Common endpoints include:
 - `GET /api/title/{id}`
 - `GET /api/posts/similar/{id}`
 
-The jobs endpoint supports pagination and filtering by technologies and source:
+The agent-facing search endpoint supports keyword or semantic search, repeatable
+technology requirements, source, remote status, minimum salary, and pagination:
 
 ```text
-/api/jobs?technologies=Python,Django&source=Hacker%20News&page=1&page_size=20
+/api/jobs/search?query=backend&technologies=Python,Django&remote=true&page=1&page_size=20
+/api/jobs/search?semantic_query=distributed%20systems%20engineer&remote=true
 ```
 
 Internal and admin-oriented routes are intentionally omitted from this endpoint list.
@@ -171,11 +175,11 @@ Internal and admin-oriented routes are intentionally omitted from this endpoint 
 
 The read-only MCP server is served over streamable HTTP at `/mcp/`. It exposes:
 
-- `search_jobs` for bounded text, technology, source, remote, and salary searches
+- `search_jobs` for bounded keyword or semantic, technology, source, remote, and salary searches
 - `get_job` for fetching one public job by UUID
 
 Both tools call `jobs.services`, the transport-neutral query layer intended for reuse by
-future API and CLI surfaces. The MCP app does not expose import, enrichment, admin, or
+the API and CLI surfaces. The MCP app does not expose import, enrichment, admin, or
 other mutation operations.
 
 MCP clients must send the same user API key in the `Authorization` header:
@@ -183,6 +187,45 @@ MCP clients must send the same user API key in the `Authorization` header:
 ```text
 Authorization: Bearer tja_your_api_key
 ```
+
+## CLI
+
+The `tjalerts` CLI is a dependency-free Go client intended for people and agents. Install
+the latest version with:
+
+```bash
+go install github.com/rasulkireev/hn-jobs/cmd/tjalerts@latest
+```
+
+Generate an API key from **Settings**, then export it:
+
+```bash
+export TJALERTS_API_KEY=tja_your_api_key
+```
+
+Every successful command writes JSON to standard output:
+
+```bash
+# Search with filters
+tjalerts search \
+  --query backend \
+  --technology Go \
+  --technology PostgreSQL \
+  --source "Hacker News" \
+  --remote=true \
+  --minimum-salary 150000
+
+# Search by natural-language intent
+tjalerts semantic-search "distributed systems engineer" --remote=true
+
+# Fetch a complete job record
+tjalerts get 88dd2d09-3939-4431-905d-46f1ec5be75c
+```
+
+Set `TJALERTS_API_URL` to override the default `https://jobs.lvtd.dev/api` base URL,
+for example when using a local or staging server. Overrides must use HTTPS; plain HTTP
+is accepted only for loopback development servers such as `localhost`. Run
+`tjalerts help` for the command reference.
 
 ## Frontend
 

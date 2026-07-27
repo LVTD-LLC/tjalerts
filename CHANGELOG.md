@@ -15,11 +15,14 @@ and this project tries to adhere to [Semantic Versioning](https://semver.org/spe
 
 ## Unreleased
 ### Added
+- Added an installable Go CLI with authenticated filtered search, semantic search, and JSON job details.
+- Added shared-service-backed API endpoints for agent job search and complete job records.
 - Added a database-first SEO roadmap for the `jobs.lvtd.dev` migration and future UI, API, CLI, and MCP discovery surfaces.
 - Added the canonical measured-data SEO sprint workspace under `.seo/` plus `docs/seo-sprint.md`, including brand context, keyword and analytics baselines, link inventory, backlink prospects, phase gates, and persistent tool evidence.
 - Added rotatable user API keys managed from the account settings screen.
 
 ### Changed
+- Added semantic intent search to the shared API and MCP job-search contract.
 - Repositioned homepage and default metadata around the structured tech jobs database instead of email delivery, and moved analytics attribution to `jobs.lvtd.dev`.
 - Deduplicated company, technology, title, and highest-paid sitemap URLs by canonical slug and made sitemap hosts follow `SITE_URL` instead of a stale Django Site record.
 - Changed the default public site URL from `gettjalerts.com` to `jobs.lvtd.dev`.
