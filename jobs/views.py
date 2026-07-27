@@ -268,7 +268,8 @@ class PostDetailView(DetailView):
     model = Post
     template_name = "jobs/post_detail.html"
 
-    def dispatch(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
         access_status = job_access_status(request.user)
         if access_status != JOB_ACCESS_ALLOWED:
             return render(
@@ -280,7 +281,8 @@ class PostDetailView(DetailView):
                 },
             )
 
-        return super().dispatch(request, *args, **kwargs)
+        context = self.get_context_data(object=self.object)
+        return self.render_to_response(context)
 
     def get_queryset(self):
         return super().get_queryset().select_related("company").prefetch_related("titles", "technologies")

@@ -1008,6 +1008,11 @@ class PostDetailAccessTests(TestCase):
         self.assertNotContains(response, self.company.name)
         self.assertNotContains(response, self.post.description)
 
+    def test_anonymous_user_gets_not_found_for_missing_job(self):
+        response = self.client.get(reverse("post", kwargs={"pk": "00000000-0000-0000-0000-000000000000"}))
+
+        assert response.status_code == 404
+
     def test_user_with_unverified_email_sees_confirmation_modal_without_job_details(self):
         self.client.force_login(create_user_with_email(username="detail-unverified", verified=False))
 
@@ -1018,6 +1023,13 @@ class PostDetailAccessTests(TestCase):
         self.assertContains(response, f'href="{reverse("resend_email_confirmation_email")}"')
         self.assertNotContains(response, self.company.name)
         self.assertNotContains(response, self.post.description)
+
+    def test_user_with_unverified_email_gets_not_found_for_missing_job(self):
+        self.client.force_login(create_user_with_email(username="missing-unverified", verified=False))
+
+        response = self.client.get(reverse("post", kwargs={"pk": "00000000-0000-0000-0000-000000000000"}))
+
+        assert response.status_code == 404
 
     def test_user_without_an_email_record_sees_email_management_modal_without_job_details(self):
         user = get_user_model().objects.create_user(
