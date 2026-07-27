@@ -19,11 +19,22 @@ from jobs.lookups import (
     search_title_options,
 )
 from jobs.models import Company, Email, Post, Technology
+from jobs.semantic_search import SemanticSearchUnavailableError
+from jobs.services import (
+    DEFAULT_JOB_PAGE_SIZE,
+    MAX_JOB_PAGE_SIZE,
+    JobNotFoundError,
+    JobQueryError,
+    get_job as get_job_data,
+    search_jobs as search_jobs_data,
+)
 from jobs.tasks import create_valid_emails
 from users.models import CustomUser
 
 from .auth import APIKeyAuth, api_key_required
 from .schemas import (
+    AgentJobDetailSchema,
+    AgentJobsResponseSchema,
     BlogPostCreateSchema,
     JobsResponse,
     ReadCompany,
@@ -168,6 +179,43 @@ def get_jobs(
         "total_pages": total_pages,
         "jobs": posts_list,
     }
+
+
+@api.get("/jobs/search", response=AgentJobsResponseSchema)
+def search_jobs(
+    request,
+    query: Optional[str] = Query(None),
+    semantic_query: Optional[str] = Query(None),
+    technologies: Optional[str] = Query(None),
+    source: Optional[str] = Query(None, description=SOURCE_QUERY_DESCRIPTION),
+    remote: Optional[bool] = Query(None),
+    minimum_salary: Optional[int] = Query(None, ge=0),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(DEFAULT_JOB_PAGE_SIZE, ge=1, le=MAX_JOB_PAGE_SIZE),
+):
+    try:
+        return search_jobs_data(
+            query=query,
+            semantic_query=semantic_query,
+            technologies=technologies.split(",") if technologies else None,
+            source=source,
+            remote=remote,
+            minimum_salary=minimum_salary,
+            page=page,
+            page_size=page_size,
+        )
+    except JobQueryError as exc:
+        raise HttpError(400, str(exc)) from exc
+    except SemanticSearchUnavailableError as exc:
+        raise HttpError(503, str(exc)) from exc
+
+
+@api.get("/jobs/{job_id}", response=AgentJobDetailSchema)
+def get_job(request, job_id: str):
+    try:
+        return get_job_data(job_id)
+    except JobNotFoundError as exc:
+        raise HttpError(404, str(exc)) from exc
 
 
 @api.get("/technologies/search", response=List[TechnologySchema])

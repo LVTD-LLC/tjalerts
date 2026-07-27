@@ -16,15 +16,14 @@ from django_filters import (
     NumberFilter,
     OrderingFilter,
 )
-from pgvector.django import L2Distance
-
 from hn_jobs.utils import get_tjalerts_logger
 
 from .choices import PostSource
 from .models import Post
 from .queries import get_most_popular_technologies, get_most_popular_titles
+from .semantic_search import apply_semantic_search
 from .technology_normalization import get_related_technology_ids
-from .utils import get_embedding, parse_positive_day_count
+from .utils import parse_positive_day_count
 
 logger = get_tjalerts_logger(__name__)
 
@@ -34,11 +33,7 @@ class VectorEmbeddingFilter(Filter):
         if not value:
             return qs
 
-        return (
-            qs.annotate(distance=L2Distance("vector", get_embedding(value)))
-            .filter(distance__lt=1.25)
-            .order_by("distance")
-        )
+        return apply_semantic_search(qs, value)
 
 
 class EmptyStringFilter(BooleanFilter):

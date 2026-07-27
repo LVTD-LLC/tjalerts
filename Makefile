@@ -17,6 +17,9 @@ migrate:
 test:
 	docker compose run --rm backend pytest
 
+test-cli:
+	go test ./...
+
 restart-worker:
 	docker compose up -d workers --force-recreate
 

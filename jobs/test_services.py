@@ -1,8 +1,12 @@
+from datetime import timedelta
+from unittest.mock import patch
+
 from django.test import TestCase
 from django.utils import timezone
 
 from jobs.choices import PostSource
 from jobs.models import Company, Post, Technology, Title
+from jobs.semantic_search import SemanticSearchUnavailableError
 from jobs.services import JobNotFoundError, JobQueryError, get_job, search_jobs
 
 
@@ -32,7 +36,7 @@ class JobQueryServiceTests(TestCase):
         self.remote_post.technologies.add(python, django)
         self.remote_post.titles.add(backend)
 
-        Post.objects.create(
+        self.onsite_post = Post.objects.create(
             company=company,
             submitted_datetime=timezone.now(),
             description="Onsite Go role.",
@@ -93,6 +97,31 @@ class JobQueryServiceTests(TestCase):
         self.assertEqual(result["count"], 2)
         self.assertNotIn(str(incomplete_post.id), [job["id"] for job in result["jobs"]])
 
+    @patch("jobs.semantic_search.get_embedding", return_value=[0.0] * 1536)
+    def test_search_jobs_semantic_query_orders_jobs_by_vector_distance(self, get_embedding):
+        self.remote_post.vector = [0.0] * 1536
+        self.remote_post.submitted_datetime = timezone.now() - timedelta(days=1)
+        self.remote_post.save(update_fields=["vector", "submitted_datetime"])
+        self.onsite_post.vector = [0.01] * 1536
+        self.onsite_post.submitted_datetime = timezone.now()
+        self.onsite_post.save(update_fields=["vector", "submitted_datetime"])
+
+        result = search_jobs(semantic_query="distributed systems")
+
+        get_embedding.assert_called_once_with("distributed systems")
+        self.assertEqual(
+            [job["id"] for job in result["jobs"]],
+            [str(self.remote_post.id), str(self.onsite_post.id)],
+        )
+
+    @patch("jobs.semantic_search.get_embedding", side_effect=TimeoutError("provider timeout"))
+    def test_search_jobs_translates_embedding_provider_failure(self, _get_embedding):
+        with self.assertRaisesMessage(
+            SemanticSearchUnavailableError,
+            "Semantic search is temporarily unavailable",
+        ):
+            search_jobs(semantic_query="distributed systems")
+
     def test_get_job_returns_one_serialized_job(self):
         result = get_job(self.remote_post.id)
 
@@ -129,6 +158,16 @@ class JobQueryServiceTests(TestCase):
 
         with self.assertRaisesMessage(JobQueryError, "technology names cannot exceed 100 characters"):
             search_jobs(technologies=["x" * 101])
+
+    @patch("jobs.semantic_search.get_embedding")
+    def test_search_jobs_validates_filters_before_generating_embedding(self, get_embedding):
+        with self.assertRaisesMessage(JobQueryError, "technology names cannot exceed 100 characters"):
+            search_jobs(
+                semantic_query="distributed systems",
+                technologies=["x" * 101],
+            )
+
+        get_embedding.assert_not_called()
 
     def test_search_jobs_rejects_an_excessive_page(self):
         with self.assertRaisesMessage(JobQueryError, "page must be between 1 and 10000"):
