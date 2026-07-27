@@ -4,6 +4,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from model_utils.models import TimeStampedModel
 
+from users.api_key_constants import API_KEY_VISIBLE_PREFIX_LENGTH
 from utils.models import BaseModel
 
 
@@ -13,6 +14,15 @@ class CustomUser(AbstractUser):
 
     class Meta:
         db_table = "auth_user"
+
+
+class UserAPIKey(TimeStampedModel):
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name="api_key")
+    key_hash = models.CharField(max_length=64, unique=True)
+    key_prefix = models.CharField(max_length=API_KEY_VISIBLE_PREFIX_LENGTH)
+
+    class Meta:
+        db_table = "users_api_key"
 
 
 class Subscriber(TimeStampedModel):

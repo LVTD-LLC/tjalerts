@@ -1,0 +1,40 @@
+<div id="api-key-panel" class="app-panel" hx-history="false">
+  {% if generated_api_key %}
+  <div class="rounded-md border border-emerald-200 bg-emerald-50 p-4" role="status">
+    <p class="text-sm font-semibold text-emerald-950">Copy your API key now</p>
+    <p class="mt-1 text-sm leading-6 text-emerald-900">For security, it will not be shown again.</p>
+    <label for="generated-api-key" class="app-label mt-4">API key</label>
+    <input
+      id="generated-api-key"
+      class="app-input mt-1 font-mono"
+      type="text"
+      value="{{ generated_api_key }}"
+      readonly
+      autocomplete="off"
+      spellcheck="false"
+    />
+  </div>
+  {% elif api_key_record %}
+  <p class="text-sm text-zinc-700">
+    Active key: <code class="font-mono">{{ api_key_record.key_prefix }}…</code>
+  </p>
+  <p class="mt-1 text-sm text-zinc-600">Last rotated {{ api_key_record.modified|date:"M j, Y" }}.</p>
+  {% else %}
+  <p class="text-sm leading-6 text-zinc-600">You do not have an API key yet.</p>
+  {% endif %}
+
+  <form action="{% url 'generate_api_key' %}" method="post" class="mt-5">
+    {% csrf_token %}
+    <button type="submit" class="btn-primary">
+      {% if api_key_record %}Rotate API key{% else %}Generate API key{% endif %}
+    </button>
+  </form>
+
+  {% if api_key_record %}
+  <div class="mt-5 border-t border-zinc-200 pt-5">
+    <p class="text-sm font-medium text-zinc-950">Use the key in the Authorization header:</p>
+    <pre class="mt-2 overflow-x-auto rounded-md bg-zinc-950 p-3 text-sm text-zinc-100"><code>Authorization: Bearer YOUR_API_KEY</code></pre>
+    <p class="mt-2 text-sm text-zinc-600">Rotating the key immediately invalidates the previous key.</p>
+  </div>
+  {% endif %}
+</div>

@@ -19,6 +19,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "hn_jobs.settings.production")
 
 django_application = get_asgi_application()
 
+from mcp_server.auth import APIKeyAuthMiddleware  # noqa: E402
 from mcp_server.server import mcp  # noqa: E402
 
 mcp_http_application = mcp.http_app(
@@ -27,7 +28,7 @@ mcp_http_application = mcp.http_app(
     stateless_http=True,
 )
 mcp_application = SentryASGIMetricsMiddleware(
-    mcp_http_application,
+    APIKeyAuthMiddleware(mcp_http_application),
     route_name="mcp",
 )
 

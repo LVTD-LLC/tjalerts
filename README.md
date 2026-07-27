@@ -139,6 +139,16 @@ Staff-only admin actions in the app enqueue several of these workflows from the 
 
 The API is served under `/api/`.
 
+API requests require a user API key. Sign in, open **Settings**, and generate a key,
+then send it as a Bearer credential:
+
+```text
+Authorization: Bearer tja_your_api_key
+```
+
+The raw key is shown only when it is generated. Rotating it from Settings immediately
+invalidates the previous key.
+
 Common endpoints include:
 
 - `GET /api/jobs`
@@ -155,7 +165,7 @@ The jobs endpoint supports pagination and filtering by technologies and source:
 /api/jobs?technologies=Python,Django&source=Hacker%20News&page=1&page_size=20
 ```
 
-Internal and admin-oriented routes are intentionally omitted from this public endpoint list.
+Internal and admin-oriented routes are intentionally omitted from this endpoint list.
 
 ## MCP
 
@@ -167,6 +177,12 @@ The read-only MCP server is served over streamable HTTP at `/mcp/`. It exposes:
 Both tools call `jobs.services`, the transport-neutral query layer intended for reuse by
 future API and CLI surfaces. The MCP app does not expose import, enrichment, admin, or
 other mutation operations.
+
+MCP clients must send the same user API key in the `Authorization` header:
+
+```text
+Authorization: Bearer tja_your_api_key
+```
 
 ## Frontend
 

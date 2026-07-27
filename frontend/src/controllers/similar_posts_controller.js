@@ -20,7 +20,7 @@ export default class extends Controller {
     this.containerTarget.setAttribute('aria-busy', 'true');
 
     try {
-      const response = await fetch(`/api/posts/similar/${this.postIdValue}`, {
+      const response = await fetch(`/jobs/${this.postIdValue}/similar/`, {
         signal: controller.signal,
       });
       if (!response.ok) throw new Error('Network response was not ok');
