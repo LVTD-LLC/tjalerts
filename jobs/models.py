@@ -1,5 +1,6 @@
 import uuid
 
+from django.conf import settings
 from autoslug import AutoSlugField
 from django.contrib.postgres.indexes import GinIndex
 from django.db import models
@@ -96,6 +97,17 @@ class Post(TimeStampedModel):
                 condition=~models.Q(source_external_id=""),
                 name="unique_post_source_external_id",
             ),
+        ]
+
+
+class JobBookmark(BaseModel):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="job_bookmarks")
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="bookmarks")
+
+    class Meta:
+        ordering = ("-created",)
+        constraints = [
+            models.UniqueConstraint(fields=["user", "post"], name="unique_user_job_bookmark"),
         ]
 
 

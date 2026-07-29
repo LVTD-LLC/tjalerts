@@ -1,6 +1,7 @@
 import "../styles/index.css";
 import "../monitoring/sentry";
 
+import "htmx.org";
 import { Application } from "@hotwired/stimulus";
 import { definitionsFromContext } from "@hotwired/stimulus-webpack-helpers";
 

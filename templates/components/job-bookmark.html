@@ -1,0 +1,26 @@
+<form id="job-bookmark-{{ object.id }}"
+      action="{% url 'toggle-job-bookmark' object.id %}"
+      method="post"
+      hx-post="{% url 'toggle-job-bookmark' object.id %}"
+      hx-target="this"
+      hx-swap="outerHTML"
+      hx-disabled-elt="button">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+    {% if refresh_on_remove %}<input type="hidden" name="refresh_on_remove" value="true" />{% endif %}
+    <button type="submit"
+            class="{% if bookmark_active %}btn-primary{% else %}btn-secondary{% endif %} gap-2"
+            aria-pressed="{% if bookmark_active %}true{% else %}false{% endif %}">
+        <svg class="h-4 w-4"
+             fill="{% if bookmark_active %}currentColor{% else %}none{% endif %}"
+             viewBox="0 0 24 24"
+             stroke-width="1.8"
+             stroke="currentColor"
+             aria-hidden="true">
+            <path stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M17.6 3.8c-1.8-.2-3.7.7-4.6 2.3-.9-1.6-2.8-2.5-4.6-2.3C5.7 4.1 3.8 6.4 4 9.1c.3 4 5 7.4 9 10.1 4-2.7 8.7-6.1 9-10.1.2-2.7-1.7-5-4.4-5.3Z" />
+        </svg>
+        {% if bookmark_active %}Saved{% else %}Save{% endif %}
+    </button>
+</form>

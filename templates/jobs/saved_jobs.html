@@ -1,0 +1,50 @@
+{% extends "base_with_nav.html" %}
+
+{% block meta %}
+    <title>Saved jobs | Tech Job Alerts</title>
+    <meta name="description" content="Jobs you saved to revisit later." />
+    <meta name="robots" content="noindex, nofollow" />
+{% endblock meta %}
+
+{% block content %}
+    <div class="app-page-header">
+        <div class="app-container py-8">
+            <h1 class="app-title">Saved jobs</h1>
+            <p class="app-subtitle">Jobs you bookmarked to revisit later.</p>
+        </div>
+    </div>
+
+    <div class="app-container py-8">
+        <ul role="list" class="space-y-3">
+            {% for object in page_obj %}
+                {% include "components/job-posting.html" with object=object show_name=True refresh_on_remove=True %}
+            {% empty %}
+                <li class="empty-state">
+                    <h2 class="text-lg font-semibold text-zinc-950">No saved jobs yet</h2>
+                    <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-600">
+                        Save a promising role from the job board and it will appear here.
+                    </p>
+                    <a href="{% url 'posts' %}" class="btn-primary mt-5">Browse jobs</a>
+                </li>
+            {% endfor %}
+        </ul>
+
+        {% if page_obj.paginator.num_pages > 1 %}
+            <nav class="mt-6 flex items-center justify-between" aria-label="Saved jobs pagination">
+                <div>
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}" class="btn-secondary">Previous</a>
+                    {% endif %}
+                </div>
+                <p class="text-sm text-zinc-600">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </p>
+                <div>
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}" class="btn-primary">Next</a>
+                    {% endif %}
+                </div>
+            </nav>
+        {% endif %}
+    </div>
+{% endblock content %}

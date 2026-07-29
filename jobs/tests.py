@@ -10,9 +10,9 @@ from django.contrib.auth import get_user_model
 from django.core import mail
 from django.core.cache import cache
 from django.core.management import call_command
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.http import QueryDict
-from django.test import SimpleTestCase, TestCase, override_settings
+from django.test import Client, SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from django_q.models import Schedule
@@ -27,7 +27,17 @@ from jobs.enrichment import (
     read_url_with_jina,
 )
 from jobs.filters import PostFilter
-from jobs.models import Alert, AlertEmailSend, Company, Post, Technology, TechnologyAlias, TechnologyMapping, Title
+from jobs.models import (
+    Alert,
+    AlertEmailSend,
+    Company,
+    JobBookmark,
+    Post,
+    Technology,
+    TechnologyAlias,
+    TechnologyMapping,
+    Title,
+)
 from jobs.queries import get_most_popular_technologies, get_most_popular_titles
 from jobs.tasks import (
     MAX_COMPANY_EMAILS_LENGTH,
@@ -1075,6 +1085,193 @@ class PostDetailAccessTests(TestCase):
         assert response.status_code == 200
         self.assertContains(response, self.company.name)
         self.assertContains(response, self.post.description)
+
+
+class JobBookmarkTests(TestCase):
+    def setUp(self):
+        self.company = Company.objects.create(name="Bookmark Test Company")
+        self.post = Post.objects.create(
+            company=self.company,
+            submitted_datetime=timezone.now(),
+            description="A role worth saving",
+        )
+        self.other_post = Post.objects.create(
+            company=self.company,
+            submitted_datetime=timezone.now() - timedelta(minutes=1),
+            description="Another role",
+        )
+        self.user = create_user_with_email(username="bookmark-user", verified=True)
+
+    def toggle_url(self, post=None):
+        return reverse("toggle-job-bookmark", kwargs={"pk": (post or self.post).id})
+
+    def test_toggle_requires_login(self):
+        response = self.client.post(self.toggle_url())
+
+        assert response.status_code == 302
+        assert response.url.startswith(reverse("account_login"))
+        assert not self.post.bookmarks.exists()
+
+    def test_htmx_post_bookmarks_job_and_returns_updated_control(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(self.toggle_url(), HTTP_HX_REQUEST="true")
+
+        assert response.status_code == 200
+        assert self.post.bookmarks.filter(user=self.user).exists()
+        self.assertContains(response, f'id="job-bookmark-{self.post.id}"')
+        self.assertContains(response, f'action="{self.toggle_url()}"')
+        self.assertContains(response, 'method="post"')
+        self.assertContains(response, f'hx-post="{self.toggle_url()}"')
+        self.assertContains(response, 'hx-target="this"')
+        self.assertContains(response, 'hx-swap="outerHTML"')
+        self.assertContains(response, 'name="csrfmiddlewaretoken"')
+        self.assertContains(response, "Saved")
+        self.assertNotContains(response, "<html")
+
+    def test_second_post_removes_bookmark(self):
+        self.client.force_login(self.user)
+        self.client.post(self.toggle_url())
+
+        response = self.client.post(self.toggle_url(), HTTP_HX_REQUEST="true")
+
+        assert response.status_code == 200
+        assert not self.post.bookmarks.filter(user=self.user).exists()
+        self.assertContains(response, "Save")
+
+    def test_removing_job_from_saved_page_refreshes_the_list(self):
+        self.client.force_login(self.user)
+        self.client.post(self.toggle_url())
+
+        response = self.client.post(
+            self.toggle_url(),
+            {"refresh_on_remove": "true"},
+            HTTP_HX_REQUEST="true",
+        )
+
+        assert response.status_code == 200
+        assert response["HX-Refresh"] == "true"
+        assert response.content == b""
+        assert not self.post.bookmarks.filter(user=self.user).exists()
+
+    def test_bookmarks_are_private_to_each_user(self):
+        other_user = create_user_with_email(username="other-bookmark-user", verified=True)
+        self.client.force_login(self.user)
+        self.client.post(self.toggle_url())
+
+        self.client.force_login(other_user)
+        response = self.client.get(reverse("saved-jobs"))
+
+        assert response.status_code == 200
+        self.assertNotContains(response, self.post.description)
+
+    def test_toggle_rejects_get_requests(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.toggle_url())
+
+        assert response.status_code == 405
+        assert not self.post.bookmarks.exists()
+
+    def test_toggle_requires_csrf_token(self):
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.force_login(self.user)
+
+        response = csrf_client.post(self.toggle_url())
+
+        assert response.status_code == 403
+        assert not self.post.bookmarks.exists()
+
+    def test_normal_post_redirects_back_to_safe_next_url(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(self.toggle_url(), {"next": reverse("posts")})
+
+        assert response.status_code == 302
+        assert response.url == reverse("posts")
+        assert self.post.bookmarks.filter(user=self.user).exists()
+
+    def test_normal_second_post_removes_bookmark_and_redirects(self):
+        self.client.force_login(self.user)
+        self.client.post(self.toggle_url())
+
+        response = self.client.post(self.toggle_url(), {"next": reverse("saved-jobs")})
+
+        assert response.status_code == 302
+        assert response.url == reverse("saved-jobs")
+        assert not self.post.bookmarks.filter(user=self.user).exists()
+
+    def test_normal_post_does_not_redirect_to_external_next_url(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(self.toggle_url(), {"next": "https://example.com/phishing"})
+
+        assert response.status_code == 302
+        assert response.url == reverse("post", kwargs={"pk": self.post.id})
+
+    def test_toggle_returns_not_found_for_missing_job(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("toggle-job-bookmark", kwargs={"pk": "00000000-0000-0000-0000-000000000000"})
+        )
+
+        assert response.status_code == 404
+
+    def test_user_cannot_create_duplicate_bookmarks(self):
+        JobBookmark.objects.create(user=self.user, post=self.post)
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            JobBookmark.objects.create(user=self.user, post=self.post)
+
+    def test_saved_jobs_page_requires_login(self):
+        response = self.client.get(reverse("saved-jobs"))
+
+        assert response.status_code == 302
+        assert response.url.startswith(reverse("account_login"))
+
+    def test_saved_jobs_page_lists_only_bookmarked_jobs(self):
+        self.client.force_login(self.user)
+        self.client.post(self.toggle_url())
+
+        response = self.client.get(reverse("saved-jobs"))
+
+        assert response.status_code == 200
+        self.assertContains(response, self.post.description)
+        self.assertNotContains(response, self.other_post.description)
+        self.assertContains(response, "Saved jobs")
+        self.assertContains(response, 'name="refresh_on_remove" value="true"')
+
+    def test_saved_jobs_page_has_empty_state(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("saved-jobs"))
+
+        assert response.status_code == 200
+        self.assertContains(response, "No saved jobs yet")
+        self.assertContains(response, f'href="{reverse("posts")}"')
+
+    def test_detail_page_renders_saved_state(self):
+        self.client.force_login(self.user)
+        self.client.post(self.toggle_url())
+
+        response = self.client.get(reverse("post", kwargs={"pk": self.post.id}))
+
+        assert response.status_code == 200
+        self.assertContains(response, f'id="job-bookmark-{self.post.id}"')
+        self.assertContains(response, "Saved")
+
+    def test_anonymous_detail_page_save_link_returns_to_job_after_login(self):
+        detail_url = reverse("post", kwargs={"pk": self.post.id})
+
+        response = self.client.get(detail_url)
+
+        assert response.status_code == 200
+        self.assertContains(
+            response,
+            f'href="{reverse("account_login")}?next={detail_url}"',
+        )
+        self.assertNotContains(response, f'action="{self.toggle_url()}"')
 
 
 class RemoteOkImportTests(TestCase):

@@ -7,7 +7,12 @@ from django_q.tasks import async_task
 from hn_jobs.posthog_events import alias_request_user, capture_request_event
 from hn_jobs.utils import get_tjalerts_logger
 from jobs.forms import GenericForm
-from jobs.queries import get_latest_submissions, get_most_popular_technologies, get_most_popular_titles
+from jobs.queries import (
+    get_latest_submissions,
+    get_most_popular_technologies,
+    get_most_popular_titles,
+    with_bookmark_status,
+)
 from jobs.tasks import get_hn_pages_to_analyze
 
 from .forms import SupportForm
@@ -96,7 +101,10 @@ class ProductHuntView(TemplateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
 
-        context["latest_job_submissions"] = get_latest_submissions(9, for_homepage=True)
+        context["latest_job_submissions"] = with_bookmark_status(
+            get_latest_submissions(9, for_homepage=True),
+            user,
+        )
         context["popular_titles"] = get_most_popular_titles()
         context["popular_technologies"] = get_most_popular_technologies(number_of=12, min_count=2)
         if user.is_authenticated:

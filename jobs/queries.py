@@ -1,17 +1,25 @@
 import time
 
 from django.core.cache import cache
-from django.db.models import Case, Count, Exists, IntegerField, OuterRef, Q, When
+from django.db.models import BooleanField, Case, Count, Exists, IntegerField, OuterRef, Q, Value, When
 from pgvector.django import L2Distance
 
 from jobs.constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
-from jobs.models import Post, Technology, TechnologyMapping, Title
+from jobs.models import JobBookmark, Post, Technology, TechnologyMapping, Title
 from jobs.utils import get_tjalerts_logger
 
 logger = get_tjalerts_logger(__name__)
 
 CACHE_TTL_SECONDS = 60 * 5
 LATEST_SUBMISSIONS_CACHE_TTL_SECONDS = 60
+
+
+def with_bookmark_status(queryset, user):
+    if not user.is_authenticated:
+        return queryset.annotate(is_bookmarked=Value(False, output_field=BooleanField()))
+
+    bookmarks = JobBookmark.objects.filter(user=user, post=OuterRef("pk"))
+    return queryset.annotate(is_bookmarked=Exists(bookmarks))
 
 
 def _cache_key(name: str, *parts) -> str:
