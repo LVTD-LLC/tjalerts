@@ -32,6 +32,24 @@ class HomePageRenderTests(TestCase):
         self.assertNotContains(response, 'aria-label="Global"')
         get_latest_submissions.assert_called_once_with(6, for_homepage=True)
 
+    @patch("pages.views.get_latest_submissions")
+    def test_home_has_ai_agent_mcp_prompt_cta(self, get_latest_submissions):
+        get_latest_submissions.return_value = []
+
+        response = self.client.get(reverse("home"))
+
+        assert response.status_code == 200
+        self.assertContains(response, "Copy Prompt for AI")
+        self.assertContains(response, 'data-controller="copy-prompt"')
+        self.assertContains(response, 'data-action="copy-prompt#copy"')
+        self.assertContains(response, "https://jobs.lvtd.dev/mcp/")
+        self.assertContains(response, "https://jobs.lvtd.dev/users/settings/")
+        self.assertContains(response, "Authorization: Bearer")
+        self.assertContains(response, "search_jobs")
+        self.assertContains(response, "get_job")
+        self.assertContains(response, "Treat the key as a secret")
+        self.assertContains(response, "this MCP server is read-only")
+
     def test_home_job_cards_link_to_job_role_and_technology_results(self):
         company = Company.objects.create(name="Northstar Labs")
         title = Title.objects.create(name="Backend Engineer")
