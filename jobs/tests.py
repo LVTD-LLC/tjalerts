@@ -1261,6 +1261,18 @@ class JobBookmarkTests(TestCase):
         self.assertContains(response, f'id="job-bookmark-{self.post.id}"')
         self.assertContains(response, "Saved")
 
+    def test_anonymous_detail_page_save_link_returns_to_job_after_login(self):
+        detail_url = reverse("post", kwargs={"pk": self.post.id})
+
+        response = self.client.get(detail_url)
+
+        assert response.status_code == 200
+        self.assertContains(
+            response,
+            f'href="{reverse("account_login")}?next={detail_url}"',
+        )
+        self.assertNotContains(response, f'action="{self.toggle_url()}"')
+
 
 class RemoteOkImportTests(TestCase):
     @patch("jobs.tasks.get_embedding", return_value=[0.0] * 1536)

@@ -54,7 +54,12 @@
                             {% endif %}
                         </div>
                         <div class="flex flex-wrap gap-2">
-                            {% include "components/job-bookmark.html" with bookmark_active=object.is_bookmarked %}
+                            {% if user.is_authenticated %}
+                                {% include "components/job-bookmark.html" with bookmark_active=object.is_bookmarked %}
+                            {% else %}
+                                <a href="{% url 'account_login' %}?next={% url 'post' object.id %}"
+                                   class="btn-secondary gap-2">Save</a>
+                            {% endif %}
                             {% if object.company_job_application_link %}
                                 <a href="{{ object.split_application_links.0 }}?utm_source=jobs.lvtd.dev"
                                    target="_blank"
