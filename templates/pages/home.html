@@ -31,8 +31,33 @@
     <p class="home-copy mx-auto">
       Search current developer and startup jobs gathered from across the web. Filter by role, tech stack, company, salary, location, or work style.
     </p>
-    <div class="mt-8">
+    <div class="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
       <a href="{% url 'posts' %}" class="btn-primary px-5 py-3">Browse database</a>
+      <div data-controller="copy-prompt">
+        <textarea class="sr-only" readonly tabindex="-1" aria-hidden="true" data-copy-prompt-target="prompt">Add and configure the Tech Job Alerts MCP server in my current AI client so you can help me find developer jobs.
+
+Use this remote MCP server:
+- Name: tech-job-alerts
+- URL: {{ SITE_URL }}/mcp/
+- Transport: streamable HTTP
+- Authentication header: Authorization: Bearer &lt;TECH_JOB_ALERTS_API_KEY&gt;
+
+If I have not provided an API key, ask me to sign in or create an account and generate one at {{ SITE_URL }}{% url 'settings' %}. Treat the key as a secret: do not print it in chat, commit it, or store it in a tracked file. Use my AI client's secure credential or environment-variable mechanism when available.
+
+Install or register the server using the supported MCP configuration for my current client. After connecting, list the available tools and verify that both search_jobs and get_job are present. Run one small search_jobs request for recent developer jobs, then fetch one result with get_job to confirm job details work.
+
+Tell me what you configured, where the configuration lives, and the result of the verification. Do not modify job data; this MCP server is read-only.</textarea>
+        <button
+          type="button"
+          class="btn-secondary px-5 py-3"
+          aria-describedby="copy-prompt-status"
+          data-copy-prompt-target="button"
+          data-action="copy-prompt#copy"
+        >
+          <span data-copy-prompt-target="label">Copy Prompt for AI</span>
+        </button>
+        <p id="copy-prompt-status" class="sr-only" role="status" aria-live="polite" data-copy-prompt-target="status"></p>
+      </div>
     </div>
   </div>
 </section>
