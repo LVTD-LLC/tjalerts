@@ -7,6 +7,7 @@ from .views import (
     HighestPaidJobsView,
     PostDetailView,
     PostListView,
+    SavedJobsView,
     TechnologiesJobsView,
     TechnologyJobsView,
     TitleJobsView,
@@ -15,16 +16,19 @@ from .views import (
     find_bad_submitted_dates_view,
     import_remote_ok_jobs_view,
     import_we_work_remotely_jobs_view,
+    toggle_job_bookmark,
     update_min_and_max_salary_view,
 )
 
 urlpatterns = [
     path("", PostListView.as_view(), name="posts"),
+    path("saved/", SavedJobsView.as_view(), name="saved-jobs"),
     path("lookups/technologies/", technology_search, name="job-technology-search"),
     path("lookups/technologies/<uuid:pk>/", technology_detail, name="job-technology-detail"),
     path("lookups/titles/", title_search, name="job-title-search"),
     path("lookups/titles/<uuid:pk>/", title_detail, name="job-title-detail"),
     path("<uuid:pk>/similar/", similar_posts, name="job-similar-posts"),
+    path("<uuid:pk>/bookmark/", toggle_job_bookmark, name="toggle-job-bookmark"),
     path("<uuid:pk>", PostDetailView.as_view(), name="post"),
     path("find_bad_submitted_dates/", find_bad_submitted_dates_view, name="find-bad-submitted-dates"),
     path("update_min_and_max_salary/", update_min_and_max_salary_view, name="update_min_and_max_salary"),

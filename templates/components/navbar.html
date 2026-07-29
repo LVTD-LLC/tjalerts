@@ -11,6 +11,9 @@
       {% with current_url=request.resolver_match.url_name %}
       <div class="hidden items-center gap-1 md:flex">
         <a href="{% url 'posts' %}" class="nav-link {% if current_url == 'posts' %}nav-link-active{% endif %}">Jobs</a>
+        {% if user.is_authenticated %}
+        <a href="{% url 'saved-jobs' %}" class="nav-link {% if current_url == 'saved-jobs' %}nav-link-active{% endif %}">Saved</a>
+        {% endif %}
         <a href="{% url 'companies' %}" class="nav-link {% if current_url == 'companies' %}nav-link-active{% endif %}">Companies</a>
         <a href="{% url 'technologies' %}" class="nav-link {% if current_url == 'technologies' %}nav-link-active{% endif %}">Technologies</a>
         <a href="{% url 'titles' %}" class="nav-link {% if current_url == 'titles' %}nav-link-active{% endif %}">Titles</a>
@@ -76,6 +79,9 @@
 
       <div class="mt-4 grid gap-1 border-t border-zinc-200 pt-4">
         <a href="{% url 'posts' %}" class="nav-link">Jobs</a>
+        {% if user.is_authenticated %}
+        <a href="{% url 'saved-jobs' %}" class="nav-link">Saved jobs</a>
+        {% endif %}
         <a href="{% url 'companies' %}" class="nav-link">Companies</a>
         <a href="{% url 'technologies' %}" class="nav-link">Technologies</a>
         <a href="{% url 'titles' %}" class="nav-link">Titles</a>

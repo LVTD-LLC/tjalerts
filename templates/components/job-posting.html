@@ -85,6 +85,26 @@
                         <p class="mt-2 text-sm leading-6 text-zinc-700">{{ object.job_details.benefits|slice:":3"|join:", " }}</p>
                     </div>
                 {% endif %}
+                <div class="flex items-end sm:col-span-2">
+                    {% if user.is_authenticated %}
+                        {% include "components/job-bookmark.html" with bookmark_active=object.is_bookmarked refresh_on_remove=refresh_on_remove %}
+                    {% else %}
+                        <a href="{% url 'account_login' %}?next={% url 'post' object.id %}"
+                           class="btn-secondary gap-2">
+                            <svg class="h-4 w-4"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke-width="1.8"
+                                 stroke="currentColor"
+                                 aria-hidden="true">
+                                <path stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      d="M17.6 3.8c-1.8-.2-3.7.7-4.6 2.3-.9-1.6-2.8-2.5-4.6-2.3C5.7 4.1 3.8 6.4 4 9.1c.3 4 5 7.4 9 10.1 4-2.7 8.7-6.1 9-10.1.2-2.7-1.7-5-4.4-5.3Z" />
+                            </svg>
+                            Save
+                        </a>
+                    {% endif %}
+                </div>
             </div>
         {% endwith %}
     {% endwith %}

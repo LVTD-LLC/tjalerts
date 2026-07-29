@@ -4,11 +4,14 @@ from uuid import UUID
 
 from allauth.account.models import EmailAddress
 from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import models
 from django.db.models import Count, Exists, Max, OuterRef, Subquery
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, ListView, TemplateView
@@ -20,7 +23,8 @@ from hn_jobs.utils import build_absolute_site_url, get_tjalerts_logger
 from jobs.choices import PostSource
 from jobs.constants import EXCLUDED_TECHNOLOGIES, EXCLUDED_TITLES
 from jobs.filters import POSTED_WITHIN_CHOICES, WORK_MODE_CHOICES, PostFilter
-from jobs.models import Company, Post, Technology, Title
+from jobs.models import Company, JobBookmark, Post, Technology, Title
+from jobs.queries import with_bookmark_status
 from jobs.semantic_search import SemanticSearchUnavailableError
 from jobs.tasks import (
     create_backfill_vector_data_jobs,
@@ -193,7 +197,8 @@ class PostListView(FilterView):
     paginate_by = 6
 
     def get_queryset(self):
-        return super().get_queryset().select_related("company").prefetch_related("titles", "technologies")
+        queryset = super().get_queryset().select_related("company").prefetch_related("titles", "technologies")
+        return with_bookmark_status(queryset, self.request.user)
 
     def get(self, request, *args, **kwargs):
         query_params = request.GET.copy()
@@ -292,7 +297,8 @@ class PostDetailView(DetailView):
         return self.render_to_response(context)
 
     def get_queryset(self):
-        return super().get_queryset().select_related("company").prefetch_related("titles", "technologies")
+        queryset = super().get_queryset().select_related("company").prefetch_related("titles", "technologies")
+        return with_bookmark_status(queryset, self.request.user)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -304,6 +310,56 @@ class PostDetailView(DetailView):
         context["is_old"] = self.object.created < timezone.now() - timedelta(days=60)
 
         return context
+
+
+class SavedJobsView(LoginRequiredMixin, ListView):
+    login_url = "account_login"
+    model = Post
+    template_name = "jobs/saved_jobs.html"
+    paginate_by = 12
+
+    def get_queryset(self):
+        queryset = (
+            super()
+            .get_queryset()
+            .filter(bookmarks__user=self.request.user)
+            .select_related("company")
+            .prefetch_related("titles", "technologies")
+            .annotate(is_bookmarked=models.Value(True, output_field=models.BooleanField()))
+        )
+        return queryset
+
+
+@require_POST
+@login_required(login_url="account_login")
+def toggle_job_bookmark(request, pk):
+    post = get_object_or_404(Post.objects.only("pk"), pk=pk)
+    bookmark, created = JobBookmark.objects.get_or_create(user=request.user, post=post)
+    if not created:
+        bookmark.delete()
+
+    if request.headers.get("HX-Request") == "true":
+        if not created and request.POST.get("refresh_on_remove") == "true":
+            return HttpResponse(headers={"HX-Refresh": "true"})
+
+        return render(
+            request,
+            "components/job-bookmark.html",
+            {
+                "object": post,
+                "bookmark_active": created,
+            },
+        )
+
+    next_url = request.POST.get("next")
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+
+    return redirect("post", pk=post.pk)
 
 
 class HighestPaidBlogPostListView(TemplateView):
@@ -433,7 +489,11 @@ class CompanyJobsView(ListView):
         queryset = super().get_queryset().select_related("company").prefetch_related("titles", "technologies")
         two_months_ago = timezone.now() - timezone.timedelta(days=60)
 
-        return queryset.filter(company__slug=self.kwargs.get("slug"), submitted_datetime__gte=two_months_ago)
+        queryset = queryset.filter(
+            company__slug=self.kwargs.get("slug"),
+            submitted_datetime__gte=two_months_ago,
+        )
+        return with_bookmark_status(queryset, self.request.user)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -455,10 +515,11 @@ class TechnologyJobsView(ListView):
         two_months_ago = timezone.now() - timezone.timedelta(days=60)
         technology = Technology.objects.filter(slug=self.kwargs.get("slug")).first()
 
-        return queryset.filter(
+        queryset = queryset.filter(
             technologies__id__in=get_related_technology_ids(technology),
             submitted_datetime__gte=two_months_ago,
         ).distinct()
+        return with_bookmark_status(queryset, self.request.user)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -571,7 +632,7 @@ class TitleJobsView(ListView):
 
         queryset = queryset.filter(titles__slug=self.kwargs.get("slug"), submitted_datetime__gte=two_months_ago)
 
-        return queryset
+        return with_bookmark_status(queryset, self.request.user)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
