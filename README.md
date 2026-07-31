@@ -23,7 +23,7 @@ The app powers [jobs.lvtd.dev](https://jobs.lvtd.dev/). It imports job posts fro
 - Django Q2 and Redis for background jobs
 - Postgres with pgvector for embeddings and similarity search
 - Hotwire Turbo, Stimulus, Bootstrap, Tailwind, and webpack for frontend assets
-- Mailgun/Anymail, MailHog, MJML, Buttondown, Sentry, PostHog, Logfire, MinIO/S3, and Stripe CLI integrations
+- Mailgun/Anymail, MailHog, MJML, Buttondown, Sentry, PostHog, Logfire, and MinIO/S3 integrations
 - Docker Compose for local services
 
 ## Project Layout
@@ -79,10 +79,6 @@ SENTRY_DSN=
 SENTRY_BROWSER_DSN=
 POSTHOG_API_KEY=
 LOGFIRE_TOKEN=
-
-DJSTRIPE_WEBHOOK_SECRET=
-STRIPE_TEST_SECRET_KEY=
-WEBHOOK_UUID=dev
 ```
 
 Then start the development stack:
