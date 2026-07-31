@@ -50,6 +50,19 @@ class HomePageRenderTests(TestCase):
         self.assertContains(response, "Treat the key as a secret")
         self.assertContains(response, "this MCP server is read-only")
 
+    @patch("pages.views.get_latest_submissions")
+    def test_anonymous_home_has_public_support_checkout(self, get_latest_submissions):
+        get_latest_submissions.return_value = []
+
+        response = self.client.get(reverse("home"))
+
+        assert response.status_code == 200
+        self.assertContains(response, "Support TJ Alerts", count=2)
+        self.assertContains(response, "one-time payment")
+        self.assertContains(response, "$1 to $5,000")
+        self.assertContains(response, "doesn’t unlock additional features")
+        self.assertContains(response, "https://buy.stripe.com/5kQ00i5c1bLR7TTb6d3F602")
+
     def test_home_job_cards_link_to_job_role_and_technology_results(self):
         company = Company.objects.create(name="Northstar Labs")
         title = Title.objects.create(name="Backend Engineer")

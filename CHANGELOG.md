@@ -15,6 +15,7 @@ and this project tries to adhere to [Semantic Versioning](https://semver.org/spe
 
 ## Unreleased
 ### Added
+- Added a public, pay-what-you-want Stripe support checkout to the homepage.
 - Added an installable Go CLI with authenticated filtered search, semantic search, and JSON job details.
 - Added shared-service-backed API endpoints for agent job search and complete job records.
 - Added a database-first SEO roadmap for the `jobs.lvtd.dev` migration and future UI, API, CLI, and MCP discovery surfaces.
@@ -22,6 +23,7 @@ and this project tries to adhere to [Semantic Versioning](https://semver.org/spe
 - Added rotatable user API keys managed from the account settings screen.
 
 ### Changed
+- Updated the Python and browser Sentry SDKs to their latest releases.
 - Added semantic intent search to the shared API and MCP job-search contract.
 - Repositioned homepage and default metadata around the structured tech jobs database instead of email delivery, and moved analytics attribution to `jobs.lvtd.dev`.
 - Deduplicated company, technology, title, and highest-paid sitemap URLs by canonical slug and made sitemap hosts follow `SITE_URL` instead of a stale Django Site record.
@@ -37,6 +39,9 @@ and this project tries to adhere to [Semantic Versioning](https://semver.org/spe
 
 ### Security
 - Required user API-key authentication for API and MCP requests and store only hashed key material.
+
+### Removed
+- Removed the remaining unused dj-stripe and Stripe CLI development configuration.
 
 ## [0.0.3] - 2024-06-25
 ### Added

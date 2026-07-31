@@ -23,12 +23,5 @@ test-cli:
 restart-worker:
 	docker compose up -d workers --force-recreate
 
-test-webhook:
-	docker compose run --rm stripe trigger customer.subscription.created
-
-stripe-sync:
-	docker compose run --rm backend python ./manage.py djstripe_sync_models Product Price
-
-
 prod-shell:
 	./deployment/prod-shell.sh
