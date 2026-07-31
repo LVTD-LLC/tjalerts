@@ -6,7 +6,7 @@
 {% load url_utils %}
 
 {% block meta %}
-<title>{{ object.title }} - TJ Alerts Blog</title>
+<title>{{ object.title }} - Tech Jobs Blog</title>
 <meta name="description" content="{{ object.description }}" />
 <link rel="canonical" href="{{ SITE_URL }}{{ object.get_absolute_url }}" />
 <meta name="twitter:card" content="summary" />
@@ -89,7 +89,7 @@
   },
   "publisher": {
     "@type": "Organization",
-    "name": "TJ Alerts",
+    "name": "Tech Jobs",
     "logo": {
       "@type": "ImageObject",
       "url": "{{ SITE_URL }}{% static 'vendors/images/logo.png' %}"
