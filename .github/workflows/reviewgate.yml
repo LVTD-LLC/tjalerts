@@ -1,0 +1,66 @@
+name: ReviewGate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  issue_comment:
+    types: [created]
+
+jobs:
+  review:
+    if: >-
+      ${{
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        github.actor != 'dependabot[bot]'
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      actions: read
+      attestations: read
+      contents: read
+      pull-requests: write
+      issues: write
+      checks: write
+      statuses: read
+    concurrency:
+      group: reviewgate-${{ github.workflow }}-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: LVTD-LLC/reviewgate@v0
+        with:
+          openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }}
+          min_severity: P4
+
+  rereview:
+    if: >-
+      ${{
+        github.event_name == 'issue_comment' &&
+        github.event.action == 'created' &&
+        github.event.issue.pull_request &&
+        github.event.issue.state == 'open' &&
+        github.event.comment.body == '@reviewgate review' &&
+        contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      attestations: read
+      contents: read
+      pull-requests: write
+      issues: write
+    concurrency:
+      group: reviewgate-rereview-${{ github.event.comment.id }}
+      cancel-in-progress: false
+    steps:
+      - uses: LVTD-LLC/reviewgate@v0
+        with:
+          mode: rereview
+          review_workflow: reviewgate.yml

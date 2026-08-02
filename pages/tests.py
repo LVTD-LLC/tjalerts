@@ -17,9 +17,8 @@ class HomePageRenderTests(TestCase):
         response = self.client.get(reverse("home"))
 
         assert response.status_code == 200
-        self.assertContains(
-            response, "<title>Developer Jobs Database | Search Tech &amp; Startup Jobs</title>", html=True
-        )
+        self.assertContains(response, "<title>Tech Jobs | Search Tech &amp; Startup Jobs</title>", html=True)
+        self.assertContains(response, 'alt="Tech Jobs Logo"', count=1)
         self.assertContains(response, "Find the right tech job faster")
         self.assertContains(response, "Search current developer and startup jobs gathered from across the web.")
         self.assertContains(response, "Browse database", count=1)
@@ -57,7 +56,7 @@ class HomePageRenderTests(TestCase):
         response = self.client.get(reverse("home"))
 
         assert response.status_code == 200
-        self.assertContains(response, "Support TJ Alerts", count=2)
+        self.assertContains(response, "Support Tech Jobs", count=2)
         self.assertContains(response, "one-time payment")
         self.assertContains(response, "$1 to $5,000")
         self.assertContains(response, "doesn’t unlock additional features")
@@ -87,6 +86,9 @@ class HomePageRenderTests(TestCase):
 
         assert response.status_code == 200
         self.assertContains(response, 'aria-label="Global"')
+        self.assertContains(response, "Tech Jobs")
+        self.assertContains(response, 'alt="Tech Jobs Logo"', count=2)
+        self.assertNotContains(response, "Tech Job Alerts")
         self.assertContains(response, "Create account")
 
     def test_verified_user_home_stays_focused_on_database_browsing(self):
