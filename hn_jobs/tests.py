@@ -113,6 +113,7 @@ class ObservabilityTests(SimpleTestCase):
 
             assert posthog.api_key == "phc_test_project_key"
             assert posthog.disabled is False
+            assert posthog.enable_exception_autocapture is False
         finally:
             posthog.api_key = original_api_key
             posthog.disabled = original_disabled

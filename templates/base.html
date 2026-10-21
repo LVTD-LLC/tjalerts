@@ -47,6 +47,7 @@
       ui_host: '{{ POSTHOG_HOST|escapejs }}',
       defaults: '2026-01-30',
       __add_tracing_headers: [window.location.host],
+      capture_exceptions: false,
       loaded: function (posthog) {
         posthog.register({ environment: '{{ ENVIRONMENT|escapejs }}' })
       }
