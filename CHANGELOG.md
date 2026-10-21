@@ -21,6 +21,9 @@ and this project tries to adhere to [Semantic Versioning](https://semver.org/spe
 **Security** in case of vulnerabilities.
 
 ## Unreleased
+### Removed
+- Disabled PostHog error tracking (exception autocapture in posthog-js, the Python SDK, and the Django middleware); PostHog analytics, AI observability, and logs are unchanged and errors continue to go to Sentry.
+
 ### Added
 - Added a public, pay-what-you-want Stripe support checkout to the homepage.
 - Added an installable Go CLI with authenticated filtered search, semantic search, and JSON job details.

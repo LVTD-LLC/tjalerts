@@ -105,7 +105,8 @@ POSTHOG_AI_CAPTURE_CONTENT = env.bool("POSTHOG_AI_CAPTURE_CONTENT", default=Fals
 POSTHOG_LOGS_ENABLED = env.bool("POSTHOG_LOGS_ENABLED", default=POSTHOG_ENABLED)
 POSTHOG_LOG_LEVEL = env("POSTHOG_LOG_LEVEL", default="INFO")
 POSTHOG_LOG_TIMEOUT_SECONDS = env.float("POSTHOG_LOG_TIMEOUT_SECONDS", default=10)
-POSTHOG_MW_CAPTURE_EXCEPTIONS = env.bool("POSTHOG_MW_CAPTURE_EXCEPTIONS", default=POSTHOG_ENABLED)
+# PostHog error tracking is intentionally disabled; exceptions go to Sentry.
+POSTHOG_MW_CAPTURE_EXCEPTIONS = False
 
 configure_posthog_client(
     api_key=POSTHOG_API_KEY,

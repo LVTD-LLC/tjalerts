@@ -44,6 +44,8 @@ def configure_posthog_client(*, api_key, host, enabled, debug):
     posthog.host = host
     posthog.disabled = not enabled
     posthog.debug = debug
+    # PostHog error tracking is intentionally disabled; exceptions go to Sentry.
+    posthog.enable_exception_autocapture = False
 
     if enabled:
         posthog.enable_keep_alive()
